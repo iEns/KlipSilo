@@ -1,0 +1,57 @@
+Privatlivspolitik for KlipSilo
+Ikrafttrædelsesdato: 16. september 2026
+
+Hvem vi er
+KlipSilo udgives af Poul Andersen, Danmark. Kontakt: phaprodevelop@gmail.com.
+
+Denne politik beskriver, hvordan KlipSilo behandler oplysninger. Appen er et udklipsholder- og dokumentværktøj, der kører på din Android-enhed. Den er ikke et socialt netværk, den opretter ikke en konto, og den sender ikke dine klip til en KlipSilo-server.
+
+Hvad KlipSilo ikke gør
+KlipSilo:
+- viser ikke reklamer
+- sælger eller udlejer ikke dine data
+- bruger ikke køb i appen
+- kræver ikke en konto
+- driver ikke en KlipSilo-backend, der modtager dine klip, billeder, filer eller din placering
+- indeholder ikke en tredjeparts crash-rapportering (fx Firebase Crashlytics)
+
+KlipSilo kan udbydes som betalt download på Google Play. Betalingen klares af Google Play. Der er ingen køb i appen.
+
+Data gemt på din enhed
+Når du gemmer et klip — ved at dele ind i KlipSilo, gemme den aktuelle udklipsholder, tage billede med kameraet, konvertere en fil eller gemme din position — lagres indholdet i appens private lager på denne enhed (database og filer). Det kan være tekst, links, billeder, PDF’er, andre filer og koordinater.
+
+“Lås” på et klip forhindrer kun sletning, omdøbning og redigering ved et uheld. Det er ikke kryptering. Låste klip ligger stadig i klartekst på enheden og kommer med, hvis du eksporterer en backup-ZIP.
+
+Android-sikkerhedskopi og cloud-gendannelse
+KlipSilo slår Android Backup og overførsel mellem enheder fra for appens data. En Google-cloud-sikkerhedskopi af telefonen, eller opsætning af en ny telefon fra en gammel, gendanner ikke dine KlipSilo-klip, filer eller indstillinger. Hvis du vil kunne gendanne senere, skal du bruge “Backup af klip” i appen og gemme ZIP-filen selv.
+
+ZIP-sikkerhedskopien, du eksporterer, er ukrypteret. Brug den ikke til adgangskoder eller andre hemmeligheder, hvis du lægger den i et cloud-drev eller sender den til andre.
+
+Tilladelser
+Kamera — bruges kun, når du åbner QR-scanneren eller kamera-OCR. Billeder til OCR eller QR behandles på enheden. KlipSilo bruger ikke kameraet i baggrunden.
+
+Placering (præcis og omtrentlig) — bruges kun, når du vælger Lokation for at gemme din aktuelle placering som et klip. Appen gemmer koordinaterne på enheden. For at vise en adresse kan koordinaterne sendes til enhedens geokodningstjeneste (på de fleste telefoner med Google Play leveres den af Google). KlipSilo modtager ikke opslaget på en egen server. Du kan afvise placeringstilladelsen og stadig bruge alle andre funktioner.
+
+Lager (Android 9 og ældre) — bruges kun, hvis du gemmer en fil i Downloads på de versioner.
+
+Udklipsholder — læses kun, når du trykker “Gem udklipsholder”, mens appen er i forgrunden. KlipSilo overvåger ikke udklipsholderen i baggrunden.
+
+Netværk
+Konvertering, OCR, QR-scanning, visning og redigering er lavet til at virke uden en KlipSilo-server. Google ML Kit (tekstgenkendelse og stregkoder) og CameraX kører på enheden.
+
+Appen kan alligevel indeholde en internet-tilladelse, fordi biblioteker fra Google Play-tjenester / ML Kit erklærer den. KlipSilo bruger den ikke til at sende dine klip. Det ene tilfælde, du selv udløser, som kan bruge en netværkstjeneste, er opslag af adresse ud fra placering (geokodning), som beskrevet ovenfor.
+
+Deling, du selv starter
+Hvis du deler et klip, kopierer det, gemmer det i Downloads, åbner et link eller eksporterer en backup, forlader indholdet appen, fordi du bad om det. Modtagere og andre apps har deres egne politikker.
+
+Børn
+KlipSilo er ikke rettet mod børn under 13 år og indsamler ikke bevidst data om børn.
+
+Sådan sletter du data
+Slet enkelte klip i appen, eller slet alle klip under Værktøjer → Vedligehold. Afinstallation af KlipSilo fjerner appens private lager på den enhed. Det sletter ikke en backup-ZIP, du har gemt et andet sted, eller filer du har gemt i Downloads.
+
+Ændringer
+Hvis politikken ændres, opdateres teksten i appen, og ikrafttrædelsesdatoen ændres.
+
+Kontakt
+Spørgsmål om privatliv: Poul Andersen, phaprodevelop@gmail.com, Danmark.

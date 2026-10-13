@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="snip_primary">#FF6200EE</color>
+    <color name="klipsilo_primary">#FF00897B</color>
+    <color name="snip_primary_variant">#FF3700B3</color>
+    <color name="snip_secondary">#FF03DAC5</color>
+    <color name="snip_background">#FFFFFFFF</color>
+    <color name="snip_surface">#FFFFFFFF</color>
+    <color name="snip_on_primary">#FFFFFFFF</color>
+    <color name="snip_on_secondary">#FF000000</color>
+    <color name="snip_on_background">#FF000000</color>
+    <color name="snip_on_surface">#FF000000</color>
+</resources>

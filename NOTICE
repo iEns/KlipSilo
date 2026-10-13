@@ -1,0 +1,38 @@
+KlipSilo
+Copyright 2026 Jens S.
+
+The Android application was written mainly by Jørn. Jens S. prepared this
+open-source release. See README.md for credits.
+
+This product includes the following third-party software.
+
+Liberation fonts
+  app/src/main/assets/fonts/
+  Copyright (c) 2010 Google Corporation, with Reserved Font Arimo, Tinos
+  and Cousine.
+  Copyright (c) 2012 Red Hat, Inc., with Reserved Font Name Liberation.
+  Licensed under the SIL Open Font License, Version 1.1.
+  The license text ships in app/src/main/assets/fonts/LICENSE.txt.
+  https://scripts.sil.org/OFL
+
+Google ML Kit
+  com.google.mlkit:barcode-scanning
+  com.google.mlkit:text-recognition
+  Used under the Google ML Kit Terms of Service. These components are not
+  offered under an OSI-approved open-source license. On-device models may
+  be provided by Google Play services.
+  https://developers.google.com/ml-kit/terms
+
+Apache License 2.0
+  AndroidX (including Core, Activity, Compose, Material, Lifecycle,
+  Navigation, Room, DataStore, CameraX, and ExifInterface), Kotlin,
+  kotlinx-coroutines, Coil, MockK, Turbine, pdfbox-android
+  (com.tom-roush:pdfbox-android), and the Android Gradle Plugin.
+  http://www.apache.org/licenses/LICENSE-2.0
+
+BSD
+  CommonMark (org.commonmark), 2-clause BSD.
+
+Other test-only libraries
+  JUnit is Eclipse Public License 1.0.
+  Robolectric is MIT.

@@ -1,0 +1,57 @@
+Privacy Policy for KlipSilo
+Effective date: 16 September 2026
+
+Who we are
+KlipSilo is published by Poul Andersen, Denmark. Contact: phaprodevelop@gmail.com.
+
+This policy describes how KlipSilo handles information. The app is a clipboard and document tool that runs on your Android device. It is not a social network, it does not create an account, and it does not send your clips to a KlipSilo server.
+
+What KlipSilo does not do
+KlipSilo does not:
+- show advertising
+- sell or rent your data
+- use in-app purchases
+- require an account
+- operate a KlipSilo backend that receives your clips, photos, files or location
+- include a third-party crash reporter (such as Firebase Crashlytics)
+
+KlipSilo may be offered as a paid download on Google Play. Payment is handled by Google Play. There are no in-app purchases.
+
+Data stored on your device
+When you save a clip — by sharing into KlipSilo, saving the current clipboard, capturing with the camera, converting a file, or saving your position — the content is stored in the app’s private storage on this device (database and files). That can include text, links, images, PDFs, other files, and location coordinates.
+
+“Lock” on a clip only prevents accidental delete, rename and edit. It is not encryption. Locked clips are still stored in the clear on the device and are included if you export a backup ZIP.
+
+Android backup and cloud device restore
+KlipSilo turns off Android Backup and device-to-device transfer for its data. A Google cloud backup of your phone, or setting up a new phone from an old one, will not restore your KlipSilo clips, files or settings. If you want a copy you can restore later, use Backup clips in the app and keep that ZIP file yourself.
+
+The ZIP backup you export is unencrypted. Do not put passwords or other secrets in a backup you store in cloud drives or send to others.
+
+Permissions
+Camera — used only when you open the QR scanner or camera OCR. Photos taken for OCR or QR are processed on the device. KlipSilo does not use the camera in the background.
+
+Location (precise and approximate) — used only when you choose Location to save your current location as a clip. The app stores the coordinates on the device. To show a street address, the coordinates may be sent to your device’s geocoding service (on most phones with Google Play this is provided by Google). KlipSilo does not receive that lookup on a server of its own. You can refuse location permission and still use every other feature.
+
+Storage (Android 9 and older) — used only if you save a file to Downloads on those versions.
+
+Clipboard — read only when you tap “Save current clipboard” while the app is in the foreground. KlipSilo does not monitor the clipboard in the background.
+
+Network
+Conversion, OCR, QR scanning, viewing and editing are designed to work without a KlipSilo server. Google ML Kit (text recognition and barcode scanning) and CameraX run on the device.
+
+The app may still include an Internet permission because Google Play Services / ML Kit libraries declare it. KlipSilo does not use that to upload your clips. The one user-triggered case that can use a network service is location address lookup (geocoding), described above.
+
+Sharing you start
+If you share a clip, copy it, save it to Downloads, open a link, or export a backup, that content leaves the app because you asked it to. Recipients and other apps then follow their own policies.
+
+Children
+KlipSilo is not directed at children under 13 and does not knowingly collect data from children.
+
+How to delete data
+Delete individual clips in the app, or delete all clips under Tools → Maintenance. Uninstalling KlipSilo removes the app’s private storage on that device. It does not delete a backup ZIP you saved elsewhere, or files you saved to Downloads.
+
+Changes
+If this policy changes, the in-app text will be updated and the effective date will change.
+
+Contact
+Questions about privacy: Poul Andersen, phaprodevelop@gmail.com, Denmark.
