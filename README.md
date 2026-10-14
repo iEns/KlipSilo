@@ -2,9 +2,26 @@
 
 KlipSilo is a clipboard for Android. It keeps text, links, images, PDFs, files, and places on the phone. There is no account and no KlipSilo server. Nothing is saved unless you share it into the app or tap save.
 
-[Google Play](https://play.google.com/store/apps/details?id=com.phaprodevelop.klipsilo)
+<a href="https://play.google.com/store/apps/details?id=com.phaprodevelop.klipsilo"><img src="docs/google-play-badge.png" alt="Get it on Google Play" height="80"></a>
 
 Application id: `com.phaprodevelop.klipsilo`. This tree is version 1.1.0 (versionCode 11000).
+
+## Screenshots
+
+<table align="center">
+  <tr>
+    <td><img src="docs/screenshots/01_clip_list.webp" width="200" alt="Clip list with text, links, images, PDFs and places"></td>
+    <td><img src="docs/screenshots/02_pdf_viewer.webp" width="200" alt="PDF viewer"></td>
+    <td><img src="docs/screenshots/03_pdf_markup.webp" width="200" alt="PDF markup with text and freehand"></td>
+    <td><img src="docs/screenshots/04_ocr_text.webp" width="200" alt="OCR text extracted from a PDF"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/05_markdown_preview.webp" width="200" alt="Markdown preview of a recipe"></td>
+    <td><img src="docs/screenshots/06_tools.webp" width="200" alt="Tools screen"></td>
+    <td><img src="docs/screenshots/07_combine_to_pdf.webp" width="200" alt="Combine clips into one PDF"></td>
+    <td><img src="docs/screenshots/08_dark_clip_list.webp" width="200" alt="Dark theme clip list"></td>
+  </tr>
+</table>
 
 ## Features
 
