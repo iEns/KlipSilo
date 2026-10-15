@@ -461,27 +461,58 @@ fun DetailScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(context.getString(R.string.discard_changes)) },
-            text = { Text(context.getString(R.string.discard_changes_message)) },
+            title = { Text(context.getString(R.string.editor_leave_title)) },
+            text = { Text(context.getString(R.string.editor_leave_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    showDiscardDialog = false
-                    if (canAutoDelete) {
-                        viewModel.deleteClip(entry)
-                        viewModel.clearRecentNewClipId()
-                    } else {
-                        editedText = TextFieldValue(entry.textContent ?: "")
+                Row {
+                    TextButton(onClick = { showDiscardDialog = false }) {
+                        Text(context.getString(R.string.cancel))
                     }
-                    onNavigateBack()
-                }) {
-                    Text(context.getString(R.string.discard))
+                    TextButton(onClick = {
+                        showDiscardDialog = false
+                        if (canAutoDelete) {
+                            viewModel.deleteClip(entry)
+                            viewModel.clearRecentNewClipId()
+                        }
+                        onNavigateBack()
+                    }) {
+                        Text(context.getString(R.string.discard))
+                    }
+                    TextButton(onClick = {
+                        showDiscardDialog = false
+                        if (entry.isLocked) return@TextButton
+                        if (isNewEmpty && editedText.text.isBlank()) {
+                            viewModel.deleteClip(entry)
+                            viewModel.clearRecentNewClipId()
+                            onNavigateBack()
+                            return@TextButton
+                        }
+                        val txt = editedText.text
+                        val updated =
+                            if (isNewEmpty) {
+                                entry.copy(
+                                    textContent = txt.ifBlank { null },
+                                    previewText =
+                                        com.phaprodevelop.klipsilo.data.textClipTitle(txt),
+                                )
+                            } else {
+                                entry.copy(
+                                    textContent = txt.ifBlank { null },
+                                )
+                            }
+                        committedText = txt
+                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                        viewModel.updateClip(updated)
+                        if (isNewEmpty && txt.isNotBlank()) {
+                            viewModel.clearRecentNewClipId()
+                        }
+                        onNavigateBack()
+                    }) {
+                        Text(context.getString(R.string.save))
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(context.getString(R.string.cancel))
-                }
-            },
+            dismissButton = {},
         )
     }
 

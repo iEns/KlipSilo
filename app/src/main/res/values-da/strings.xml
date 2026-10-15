@@ -73,6 +73,8 @@
     <string name="help_select_all">Vælg alle klip</string>
     <string name="discard_changes">Kassér ændringer?</string>
     <string name="discard_changes_message">Du har ikke-gemte ændringer. Vil du kassere dem?</string>
+    <string name="editor_leave_title">Gem ændringer?</string>
+    <string name="editor_leave_message">Dine rettelser er ikke gemt endnu.</string>
     <string name="discard">Kassér</string>
     <string name="help_new_clip">Opret et nyt klip manuelt</string>
     <string name="search_hint">Søg i klip...</string>

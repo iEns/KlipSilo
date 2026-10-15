@@ -73,6 +73,8 @@
     <string name="help_select_all">Sélectionner tous les extraits</string>
     <string name="discard_changes">Abandonner les modifications ?</string>
     <string name="discard_changes_message">Des modifications ne sont pas enregistrées. Les abandonner ?</string>
+    <string name="editor_leave_title">Enregistrer les modifications ?</string>
+    <string name="editor_leave_message">Vos modifications ne sont pas encore enregistrées.</string>
     <string name="discard">Abandonner</string>
     <string name="help_new_clip">Créer un extrait à la main</string>
     <string name="search_hint">Rechercher des extraits...</string>

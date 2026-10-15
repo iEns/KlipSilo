@@ -73,6 +73,8 @@
     <string name="help_select_all">Alle Clips auswählen</string>
     <string name="discard_changes">Änderungen verwerfen?</string>
     <string name="discard_changes_message">Du hast ungespeicherte Änderungen. Verwerfen?</string>
+    <string name="editor_leave_title">Änderungen speichern?</string>
+    <string name="editor_leave_message">Deine Bearbeitungen sind noch nicht gespeichert.</string>
     <string name="discard">Verwerfen</string>
     <string name="help_new_clip">Neuen Clip manuell erstellen</string>
     <string name="search_hint">Clips suchen...</string>

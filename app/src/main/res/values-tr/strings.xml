@@ -73,6 +73,8 @@
     <string name="help_select_all">Tüm klipleri seç</string>
     <string name="discard_changes">Değişiklikler silinsin mi?</string>
     <string name="discard_changes_message">Kaydedilmemiş değişiklikler var. Silinsin mi?</string>
+    <string name="editor_leave_title">Değişiklikler kaydedilsin mi?</string>
+    <string name="editor_leave_message">Düzenlemeler henüz kaydedilmedi.</string>
     <string name="discard">Vazgeç</string>
     <string name="help_new_clip">Yeni bir klip elle oluştur</string>
     <string name="search_hint">Klip ara...</string>

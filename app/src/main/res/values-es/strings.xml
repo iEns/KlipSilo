@@ -73,6 +73,8 @@
     <string name="help_select_all">Seleccionar todos los recortes</string>
     <string name="discard_changes">¿Descartar los cambios?</string>
     <string name="discard_changes_message">Hay cambios sin guardar. ¿Descartarlos?</string>
+    <string name="editor_leave_title">¿Guardar los cambios?</string>
+    <string name="editor_leave_message">Tus ediciones aún no se han guardado.</string>
     <string name="discard">Descartar</string>
     <string name="help_new_clip">Crear un recorte nuevo a mano</string>
     <string name="search_hint">Buscar recortes...</string>

@@ -73,6 +73,8 @@
     <string name="help_select_all">选择全部剪贴</string>
     <string name="discard_changes">放弃更改？</string>
     <string name="discard_changes_message">有未保存的更改。要放弃吗？</string>
+    <string name="editor_leave_title">保存更改？</string>
+    <string name="editor_leave_message">编辑尚未保存。</string>
     <string name="discard">放弃</string>
     <string name="help_new_clip">手动新建剪贴</string>
     <string name="search_hint">搜索剪贴...</string>

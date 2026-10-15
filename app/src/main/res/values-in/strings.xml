@@ -73,6 +73,8 @@
     <string name="help_select_all">Pilih semua klip</string>
     <string name="discard_changes">Buang perubahan?</string>
     <string name="discard_changes_message">Ada perubahan yang belum disimpan. Buang?</string>
+    <string name="editor_leave_title">Simpan perubahan?</string>
+    <string name="editor_leave_message">Suntingan belum disimpan.</string>
     <string name="discard">Buang</string>
     <string name="help_new_clip">Buat klip baru secara manual</string>
     <string name="search_hint">Cari klip...</string>

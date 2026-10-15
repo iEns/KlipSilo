@@ -73,6 +73,8 @@
     <string name="help_select_all">모든 클립 선택</string>
     <string name="discard_changes">변경 내용을 버릴까요?</string>
     <string name="discard_changes_message">저장하지 않은 변경 내용이 있습니다. 버릴까요?</string>
+    <string name="editor_leave_title">변경 내용을 저장할까요?</string>
+    <string name="editor_leave_message">편집 내용이 아직 저장되지 않았습니다.</string>
     <string name="discard">버리기</string>
     <string name="help_new_clip">새 클립을 직접 만들기</string>
     <string name="search_hint">클립 검색...</string>

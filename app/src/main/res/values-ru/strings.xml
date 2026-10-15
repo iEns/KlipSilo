@@ -73,6 +73,8 @@
     <string name="help_select_all">Выбрать все клипы</string>
     <string name="discard_changes">Отменить изменения?</string>
     <string name="discard_changes_message">Есть несохранённые изменения. Отменить их?</string>
+    <string name="editor_leave_title">Сохранить изменения?</string>
+    <string name="editor_leave_message">Правки ещё не сохранены.</string>
     <string name="discard">Отменить</string>
     <string name="help_new_clip">Создать клип вручную</string>
     <string name="search_hint">Поиск клипов...</string>

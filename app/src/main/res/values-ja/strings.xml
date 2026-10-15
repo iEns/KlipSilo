@@ -73,6 +73,8 @@
     <string name="help_select_all">すべてのクリップを選択</string>
     <string name="discard_changes">変更を破棄しますか？</string>
     <string name="discard_changes_message">未保存の変更があります。破棄しますか？</string>
+    <string name="editor_leave_title">変更を保存しますか？</string>
+    <string name="editor_leave_message">編集内容はまだ保存されていません。</string>
     <string name="discard">破棄</string>
     <string name="help_new_clip">クリップを手動で作成</string>
     <string name="search_hint">クリップを検索...</string>

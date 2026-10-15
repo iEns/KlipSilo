@@ -73,6 +73,8 @@
     <string name="help_select_all">Seleziona tutti i ritagli</string>
     <string name="discard_changes">Scartare le modifiche?</string>
     <string name="discard_changes_message">Ci sono modifiche non salvate. Scartarle?</string>
+    <string name="editor_leave_title">Salvare le modifiche?</string>
+    <string name="editor_leave_message">Le modifiche non sono ancora salvate.</string>
     <string name="discard">Scarta</string>
     <string name="help_new_clip">Crea un ritaglio a mano</string>
     <string name="search_hint">Cerca ritagli...</string>
