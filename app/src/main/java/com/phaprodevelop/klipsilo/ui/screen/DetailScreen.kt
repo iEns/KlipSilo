@@ -210,7 +210,9 @@ fun DetailScreen(
     var fontSize by rememberSaveable { mutableStateOf(16) }
     var showPreview by remember { mutableStateOf(false) }
     var htmlSourceShown by rememberSaveable(entryId) { mutableStateOf(false) }
-    val isHtmlDocument = remember(entryId) { looksLikeHtmlDocument(entry.textContent) }
+    // Key on the loaded body: list rows carry no textContent, so a first-only key
+    // would leave HTML clips on the raw-source editor forever (#32).
+    val isHtmlDocument = remember(entryId, entry.textContent) { looksLikeHtmlDocument(entry.textContent) }
     var previewPages by remember { mutableStateOf<List<Bitmap>?>(null) }
     val previewRecycler = rememberBitmapRecycler()
     val previewGate = remember { AtomicInteger(0) }
@@ -891,6 +893,9 @@ fun DetailScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         } else if (isHtmlDocument && !htmlSourceShown) {
+                            // Read in composition so a body that arrives after the first
+                            // frame (TEXT list rows store no textContent) still loads.
+                            val htmlBody = editedText.text
                             AndroidView(
                                 factory = { ctx ->
                                     WebView(ctx).apply {
@@ -903,7 +908,7 @@ fun DetailScreen(
                                 },
                                 update = { webView ->
                                     webView.loadData(
-                                        editedText.text,
+                                        htmlBody,
                                         "text/html",
                                         null,
                                     )
