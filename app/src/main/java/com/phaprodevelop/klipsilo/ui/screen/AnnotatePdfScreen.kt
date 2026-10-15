@@ -260,7 +260,33 @@ fun AnnotatePdfScreen(
         historyTick++
     }
 
+    fun snapshotWithDraftStroke(stroke: PdfStroke): MarkupSnapshot {
+        val base = markupSnapshot()
+        val pageStrokes = base.strokes[stroke.pageIndex].orEmpty() + stroke
+        return base.copy(strokes = base.strokes + (stroke.pageIndex to pageStrokes))
+    }
+
     fun undoMarkup() {
+        val pendingStroke = draftStroke
+        if (pendingStroke != null && pendingStroke.points.size >= 2) {
+            val restored =
+                markupHistory.undoOne(
+                    committed = markupSnapshot(),
+                    pendingDocument = snapshotWithDraftStroke(pendingStroke),
+                ) ?: return
+            applyMarkupSnapshot(restored)
+            draftStroke = null
+            selectedIndex = -1
+            historyTick++
+            return
+        }
+        if (pendingStroke != null || draft != null) {
+            draftStroke = null
+            draft = null
+            selectedIndex = -1
+            historyTick++
+            return
+        }
         val restored = markupHistory.undo(markupSnapshot()) ?: return
         applyMarkupSnapshot(restored)
         draft = null
@@ -996,7 +1022,9 @@ fun AnnotatePdfScreen(
                         onClick = { undoMarkup() },
                         icon = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = context.getString(R.string.undo),
-                        enabled = historyTick >= 0 && markupHistory.canUndo,
+                        enabled =
+                            historyTick >= 0 &&
+                                (markupHistory.canUndo || draftStroke != null || draft != null),
                     )
                     Spacer(Modifier.width(8.dp))
                     CompactIconButton(

@@ -28,4 +28,22 @@ internal class MarkupHistory<T>(private val limit: Int = 50) {
         undoStack.addLast(current)
         return next
     }
+
+    /**
+     * One undo removes only the newest action.
+     *
+     * [pendingDocument] is the document with an in-progress stroke included.
+     * That stroke is recorded as its own step and then undone, so earlier
+     * steps stay and redo can put the stroke back.
+     */
+    fun undoOne(
+        committed: T,
+        pendingDocument: T? = null,
+    ): T? {
+        if (pendingDocument != null) {
+            record(committed)
+            return undo(pendingDocument)
+        }
+        return undo(committed)
+    }
 }

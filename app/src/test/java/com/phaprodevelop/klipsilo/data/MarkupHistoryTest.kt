@@ -23,4 +23,17 @@ class MarkupHistoryTest {
         assertFalse(history.canRedo)
         assertEquals("text+line", history.undo("fresh"))
     }
+
+    @Test
+    fun undo_pendingStroke_removesOnlyThatStroke_andRedoRestoresInOrder() {
+        val history = MarkupHistory<String>()
+        history.record("empty")
+        val afterLine = history.undoOne(committed = "text", pendingDocument = "text+line")
+        assertEquals("text", afterLine)
+        assertEquals("empty", history.undoOne(committed = "text"))
+        assertEquals("text", history.redo("empty"))
+        assertEquals("text+line", history.redo("text"))
+        assertFalse(history.canRedo)
+        assertTrue(history.canUndo)
+    }
 }
