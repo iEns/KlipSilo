@@ -648,23 +648,20 @@ private fun ClipItemRow(
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = {
-                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                        onTogglePin()
-                    },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.PushPin,
-                        contentDescription = context.getString(R.string.pin_or_unpin),
-                        tint =
-                            if (entry.isPinned) {
-                                Color(0xFF4CAF50)
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
+                if (entry.isPinned) {
+                    IconButton(
+                        onClick = {
+                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                            onTogglePin()
+                        },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.PushPin,
+                            contentDescription = context.getString(R.string.pin_or_unpin),
+                            tint = Color(0xFF4CAF50),
+                        )
+                    }
                 }
                 if (entry.isLocked) {
                     Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {

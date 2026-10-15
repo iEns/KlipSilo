@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pages
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Visibility
@@ -270,6 +271,10 @@ fun ClipActionSheet(
                     onDismiss()
                     onFindLinks()
                 }
+            }
+            SheetRow(Icons.Filled.PushPin, context.getString(R.string.pin_or_unpin)) {
+                viewModel.togglePin(entry)
+                onDismiss()
             }
             SheetRow(
                 icon = if (entry.isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
