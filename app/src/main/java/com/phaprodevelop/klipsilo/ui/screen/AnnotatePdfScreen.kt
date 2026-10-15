@@ -84,6 +84,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.MarkupHistory
 import com.phaprodevelop.klipsilo.data.STROKE_PRESETS
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearestStrokePreset
@@ -102,6 +103,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+
+private data class MarkupSnapshot(
+    val annotations: Map<Int, List<PdfAnnotation>>,
+    val strokes: Map<Int, List<PdfStroke>>,
+)
 
 private fun markupFileName(entry: ClipboardEntry): String {
     val path = entry.filePath
@@ -233,9 +239,51 @@ fun AnnotatePdfScreen(
             strokes.values.flatten() != savedStrokes ||
             draft != null ||
             draftStroke != null
+    val markupHistory = remember { MarkupHistory<MarkupSnapshot>() }
+    var historyTick by remember { mutableIntStateOf(0) }
+
+    fun markupSnapshot(): MarkupSnapshot =
+        MarkupSnapshot(
+            annotations = annotations.mapValues { it.value.toList() },
+            strokes = strokes.mapValues { it.value.toList() },
+        )
+
+    fun applyMarkupSnapshot(snapshot: MarkupSnapshot) {
+        annotations.clear()
+        snapshot.annotations.forEach { (page, items) -> annotations[page] = items }
+        strokes.clear()
+        snapshot.strokes.forEach { (page, items) -> strokes[page] = items }
+    }
+
+    fun recordMarkup() {
+        markupHistory.record(markupSnapshot())
+        historyTick++
+    }
+
+    fun undoMarkup() {
+        val restored = markupHistory.undo(markupSnapshot()) ?: return
+        applyMarkupSnapshot(restored)
+        draft = null
+        draftStroke = null
+        selectedIndex = -1
+        historyTick++
+    }
+
+    fun redoMarkup() {
+        val restored = markupHistory.redo(markupSnapshot()) ?: return
+        applyMarkupSnapshot(restored)
+        draft = null
+        draftStroke = null
+        selectedIndex = -1
+        historyTick++
+    }
 
     fun commitDrafts() {
         val d = draft
+        val pendingStroke = draftStroke
+        if ((d != null && d.text.isNotBlank()) || (pendingStroke != null && pendingStroke.points.size >= 2)) {
+            recordMarkup()
+        }
         if (d != null && d.text.isNotBlank()) {
             val list = annotations[pageIndex].orEmpty().toMutableList()
             val newAnn =
@@ -592,6 +640,7 @@ fun AnnotatePdfScreen(
                                                         movingIndex = targetIndex
                                                         movingDraft = targetIsDraft
                                                         if (!targetIsDraft) {
+                                                            recordMarkup()
                                                             val list = annotations[pageIndex].orEmpty().toMutableList()
                                                             if (targetIndex in list.indices) {
                                                                 list[targetIndex] =
@@ -941,23 +990,24 @@ fun AnnotatePdfScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     CompactIconButton(
-                        onClick = {},
+                        onClick = { undoMarkup() },
                         icon = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = context.getString(R.string.undo),
-                        enabled = false,
+                        enabled = historyTick >= 0 && markupHistory.canUndo,
                     )
                     Spacer(Modifier.width(8.dp))
                     CompactIconButton(
-                        onClick = {},
+                        onClick = { redoMarkup() },
                         icon = Icons.AutoMirrored.Filled.Redo,
                         contentDescription = context.getString(R.string.redo),
-                        enabled = false,
+                        enabled = historyTick >= 0 && markupHistory.canRedo,
                     )
                     Spacer(Modifier.width(8.dp))
                     CompactIconButton(
                         onClick = {
                             val editing = draft?.editingIndex
                             if (editing != null) {
+                                recordMarkup()
                                 val list = annotations[pageIndex].orEmpty().toMutableList()
                                 if (editing < list.size) {
                                     list.removeAt(editing)
@@ -1006,6 +1056,7 @@ fun AnnotatePdfScreen(
             text = { Text(context.getString(R.string.clear_all_strokes_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
+                    recordMarkup()
                     strokes.clear()
                     showClearStrokesConfirm = false
                 }) {
@@ -1064,6 +1115,7 @@ fun AnnotatePdfScreen(
             text = { Text(context.getString(R.string.delete_annotation_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
+                    recordMarkup()
                     val list = annotations[pageIndex].orEmpty().toMutableList()
                     if (selectedIndex in list.indices) {
                         list.removeAt(selectedIndex)
