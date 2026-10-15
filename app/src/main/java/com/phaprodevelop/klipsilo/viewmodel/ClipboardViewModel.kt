@@ -53,6 +53,13 @@ import java.util.concurrent.atomic.AtomicLong
 
 data class UndoOffer(val message: String)
 
+/** A snackbar. When [clipId] is set, [actionLabel] opens that clip. */
+data class ClipNotice(
+    val message: String,
+    val actionLabel: String? = null,
+    val clipId: Long? = null,
+)
+
 data class DuplicateShareOffer(
     val existingId: Long,
     val displayName: String,
@@ -104,10 +111,10 @@ class ClipboardViewModel(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
-    private val _toastEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
-    val toastEvents: SharedFlow<String> = _toastEvents.asSharedFlow()
+    private val _toastEvents = MutableSharedFlow<ClipNotice>(extraBufferCapacity = 16)
+    val toastEvents: SharedFlow<ClipNotice> = _toastEvents.asSharedFlow()
 
-    private val queuedToasts = ArrayDeque<String>()
+    private val queuedToasts = ArrayDeque<ClipNotice>()
 
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
@@ -118,11 +125,15 @@ class ClipboardViewModel(
     private val undoMutex = Mutex()
 
     private fun toast(s: String) {
-        _toastMessage.value = s
+        postNotice(ClipNotice(message = s))
+    }
+
+    private fun postNotice(notice: ClipNotice) {
+        _toastMessage.value = notice.message
         if (_undoOffer.value != null) {
-            queuedToasts.addLast(s)
+            queuedToasts.addLast(notice)
         } else {
-            _toastEvents.tryEmit(s)
+            _toastEvents.tryEmit(notice)
         }
     }
 
@@ -884,11 +895,16 @@ class ClipboardViewModel(
                         repository.ocrPdfPage(filePath, pageIndex)
                     }
                 if (text.isNullOrBlank()) {
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.ocr_no_text))
                 } else {
-                    createTextSnip(text)
-                    _navigateBack.value = true
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.ocr_page))
+                    val id = createTextSnip(text, navigate = false)
+                    postNotice(
+                        ClipNotice(
+                            message = localizedString(com.phaprodevelop.klipsilo.R.string.text_extracted),
+                            actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
+                            clipId = id,
+                        ),
+                    )
                 }
             } catch (_: Exception) {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1530,11 +1546,24 @@ class ClipboardViewModel(
             try {
                 val location = withContext(ioDispatcher) { obtainCurrentLocation(app) }
                 if (location != null) {
-                    withContext(ioDispatcher) {
-                        repository.saveLocation(location.latitude, location.longitude)
-                    }
+                    val saved =
+                        withContext(ioDispatcher) {
+                            val id = repository.saveLocation(location.latitude, location.longitude)
+                            val address = repository.getClip(id)?.previewText.orEmpty()
+                            id to address
+                        }
                     triggerScrollToTop()
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_saved))
+                    postNotice(
+                        ClipNotice(
+                            message =
+                                localizedString(
+                                    com.phaprodevelop.klipsilo.R.string.location_saved,
+                                    saved.second,
+                                ),
+                            actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
+                            clipId = saved.first,
+                        ),
+                    )
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_unavailable))
                 }

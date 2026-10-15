@@ -132,6 +132,10 @@
     <string name="html_from">HTML из %1$s</string>
     <string name="html_to_pdf_done">HTML преобразован в PDF</string>
     <string name="ocr_page">Страница OCR</string>
+    <string name="text_extracted">Текст извлечён</string>
+    <string name="ocr_no_text">На этой странице текст не найден</string>
+    <string name="snackbar_open">Открыть</string>
+    <string name="location_saved">Место сохранено: %1$s</string>
     <string name="clips">Клипы</string>
     <string name="tools">Инструменты</string>
     <string name="settings">Настройки</string>

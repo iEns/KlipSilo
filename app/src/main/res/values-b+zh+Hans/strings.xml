@@ -129,6 +129,10 @@
     <string name="html_from">来自 %1$s 的 HTML</string>
     <string name="html_to_pdf_done">HTML 已转为 PDF</string>
     <string name="ocr_page">OCR 页面</string>
+    <string name="text_extracted">已提取文本</string>
+    <string name="ocr_no_text">此页未找到文本</string>
+    <string name="snackbar_open">打开</string>
+    <string name="location_saved">已保存位置：%1$s</string>
     <string name="clips">剪贴</string>
     <string name="tools">工具</string>
     <string name="settings">设置</string>

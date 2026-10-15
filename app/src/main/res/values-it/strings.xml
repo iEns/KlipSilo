@@ -130,6 +130,10 @@
     <string name="html_from">HTML da %1$s</string>
     <string name="html_to_pdf_done">HTML convertito in PDF</string>
     <string name="ocr_page">Pagina OCR</string>
+    <string name="text_extracted">Testo estratto</string>
+    <string name="ocr_no_text">Nessun testo trovato in questa pagina</string>
+    <string name="snackbar_open">Apri</string>
+    <string name="location_saved">Posizione salvata: %1$s</string>
     <string name="clips">Ritagli</string>
     <string name="tools">Strumenti</string>
     <string name="settings">Impostazioni</string>

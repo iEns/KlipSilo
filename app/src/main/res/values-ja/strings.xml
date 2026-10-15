@@ -129,6 +129,10 @@
     <string name="html_from">%1$s のHTML</string>
     <string name="html_to_pdf_done">HTMLをPDFに変換しました</string>
     <string name="ocr_page">OCRページ</string>
+    <string name="text_extracted">テキストを抽出しました</string>
+    <string name="ocr_no_text">このページにテキストは見つかりません</string>
+    <string name="snackbar_open">開く</string>
+    <string name="location_saved">位置を保存しました: %1$s</string>
     <string name="clips">クリップ</string>
     <string name="tools">ツール</string>
     <string name="settings">設定</string>

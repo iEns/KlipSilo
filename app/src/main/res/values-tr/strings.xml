@@ -130,6 +130,10 @@
     <string name="html_from">%1$s kaynağından HTML</string>
     <string name="html_to_pdf_done">HTML, PDF\'ye dönüştürüldü</string>
     <string name="ocr_page">OCR sayfası</string>
+    <string name="text_extracted">Metin çıkarıldı</string>
+    <string name="ocr_no_text">Bu sayfada metin bulunamadı</string>
+    <string name="snackbar_open">Aç</string>
+    <string name="location_saved">Konum kaydedildi: %1$s</string>
     <string name="clips">Klipler</string>
     <string name="tools">Araçlar</string>
     <string name="settings">Ayarlar</string>

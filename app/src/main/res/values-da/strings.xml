@@ -130,6 +130,10 @@
     <string name="html_from">HTML fra %1$s</string>
     <string name="html_to_pdf_done">HTML konverteret til PDF</string>
     <string name="ocr_page">OCR side</string>
+    <string name="text_extracted">Tekst hentet</string>
+    <string name="ocr_no_text">Ingen tekst fundet på denne side</string>
+    <string name="snackbar_open">Åbn</string>
+    <string name="location_saved">Placering gemt: %1$s</string>
     <string name="clips">Klip</string>
     <string name="tools">Værktøjer</string>
     <string name="settings">Indstillinger</string>

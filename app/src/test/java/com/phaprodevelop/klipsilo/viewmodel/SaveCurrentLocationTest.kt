@@ -98,9 +98,13 @@ class SaveCurrentLocationTest {
             assertEquals(55.676098, clips.single().latitude)
             assertEquals(12.568337, clips.single().longitude)
             assertEquals(
-                LocaleHelper.applyLocale(app).getString(R.string.clip_saved),
+                LocaleHelper.applyLocale(app).getString(
+                    R.string.location_saved,
+                    "55.676098, 12.568337",
+                ),
                 viewModel.toastMessage.value,
             )
+            assertEquals(null, viewModel.navigateToNewClip.value)
             assertFalse(viewModel.isLocating.value)
         }
 }

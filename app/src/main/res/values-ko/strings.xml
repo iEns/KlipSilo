@@ -129,6 +129,10 @@
     <string name="html_from">%1$s의 HTML</string>
     <string name="html_to_pdf_done">HTML을 PDF로 변환했습니다</string>
     <string name="ocr_page">OCR 페이지</string>
+    <string name="text_extracted">텍스트를 추출했습니다</string>
+    <string name="ocr_no_text">이 페이지에서 텍스트를 찾지 못했습니다</string>
+    <string name="snackbar_open">열기</string>
+    <string name="location_saved">위치를 저장했습니다: %1$s</string>
     <string name="clips">클립</string>
     <string name="tools">도구</string>
     <string name="settings">설정</string>

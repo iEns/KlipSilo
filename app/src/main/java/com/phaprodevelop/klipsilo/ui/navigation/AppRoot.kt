@@ -116,8 +116,21 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                 viewModel.undoDelete()
             }
         } else {
-            viewModel.toastEvents.collect { message ->
-                snackbarHostState.showSnackbar(message)
+            viewModel.toastEvents.collect { notice ->
+                val result =
+                    snackbarHostState.showSnackbar(
+                        message = notice.message,
+                        actionLabel = notice.actionLabel,
+                        duration =
+                            if (notice.actionLabel != null) {
+                                SnackbarDuration.Long
+                            } else {
+                                SnackbarDuration.Short
+                            },
+                    )
+                if (result == SnackbarResult.ActionPerformed) {
+                    notice.clipId?.let { id -> navController.navigate("detail/$id") }
+                }
             }
         }
     }
@@ -133,7 +146,11 @@ fun AppRoot(viewModel: ClipboardViewModel) {
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding().imePadding(),
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(bottom = if (isFullScreenRoute) 72.dp else 0.dp),
             )
         },
         contentWindowInsets =

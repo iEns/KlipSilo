@@ -129,6 +129,10 @@
     <string name="html_from">HTML dari %1$s</string>
     <string name="html_to_pdf_done">HTML dikonversi ke PDF</string>
     <string name="ocr_page">Halaman OCR</string>
+    <string name="text_extracted">Teks diekstrak</string>
+    <string name="ocr_no_text">Tidak ada teks di halaman ini</string>
+    <string name="snackbar_open">Buka</string>
+    <string name="location_saved">Lokasi disimpan: %1$s</string>
     <string name="clips">Klip</string>
     <string name="tools">Alat</string>
     <string name="settings">Setelan</string>
