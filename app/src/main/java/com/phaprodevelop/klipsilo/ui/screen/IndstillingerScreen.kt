@@ -167,6 +167,13 @@ fun IndstillingerScreen(
 
             Spacer(Modifier.size(24.dp))
 
+            Text(
+                text = context.getString(R.string.settings_pdf_export),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.size(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -231,7 +238,9 @@ fun IndstillingerScreen(
             PdfSettingSlider(
                 label = context.getString(R.string.pdf_setting_margin_top_bottom),
                 value = pdfSettings.marginTopBottomCm,
-                valueText = String.format(Locale.US, "%.1f cm", pdfSettings.marginTopBottomCm),
+                valueText =
+                    String.format(Locale.US, "%.1f", pdfSettings.marginTopBottomCm) +
+                        " " + context.getString(R.string.unit_cm),
                 valueRange = 0.5f..4.0f,
                 steps = 34,
                 onValueChange = {
@@ -242,7 +251,9 @@ fun IndstillingerScreen(
             PdfSettingSlider(
                 label = context.getString(R.string.pdf_setting_margin_left_right),
                 value = pdfSettings.marginLeftRightCm,
-                valueText = String.format(Locale.US, "%.1f cm", pdfSettings.marginLeftRightCm),
+                valueText =
+                    String.format(Locale.US, "%.1f", pdfSettings.marginLeftRightCm) +
+                        " " + context.getString(R.string.unit_cm),
                 valueRange = 0.5f..4.0f,
                 steps = 34,
                 onValueChange = {

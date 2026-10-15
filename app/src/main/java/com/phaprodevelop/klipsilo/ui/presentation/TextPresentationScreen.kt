@@ -55,11 +55,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.delay
 
@@ -84,8 +86,10 @@ fun TextPresentationScreen(
     val entry = listEntry
     val text = fullText ?: entry?.previewText ?: ""
     val title =
-        entry?.previewText?.ifBlank {
-            stringResource(R.string.text_presentation)
+        entry?.let {
+            clipListTitle(it.contentType, it.previewText).ifBlank {
+                stringResource(R.string.untitled_clip)
+            }
         } ?: stringResource(R.string.text_presentation)
 
     val fontSize by presentationViewModel.fontSize.collectAsState()
@@ -125,7 +129,7 @@ fun TextPresentationScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(title, maxLines = 1) },
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.reader_back))

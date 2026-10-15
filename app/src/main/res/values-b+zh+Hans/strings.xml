@@ -186,6 +186,8 @@
     <string name="pdf_setting_line_spacing">行距</string>
     <string name="pdf_setting_max_output">最大输出分辨率</string>
     <string name="display_mode">显示模式</string>
+    <string name="settings_pdf_export">PDF 与导出</string>
+    <string name="unit_cm">cm</string>
     <string name="light">浅色</string>
     <string name="dark">深色</string>
     <string name="system">系统</string>
@@ -195,6 +197,9 @@
     <string name="file_cannot_open">无法打开文件</string>
     <string name="text_editor">编辑</string>
     <string name="preview">预览</string>
+    <string name="source">源代码</string>
+    <string name="qr_hint">对准二维码</string>
+    <string name="ocr_hint">拍摄文字</string>
     <string name="no_content_preview">没有可预览的内容</string>
     <string name="text_presentation">文本呈现</string>
     <string name="reader_back">返回</string>

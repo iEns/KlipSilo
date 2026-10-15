@@ -137,6 +137,25 @@ androidComponents {
             output.versionCode.set(code)
         }
     }
+    // Debug builds get the base version plus the git short hash, e.g.
+    // 1.2.0-beta.1-debug+abc1234. A tree without .git (git archive / deploy) keeps
+    // the plain base name.
+    onVariants(selector().withBuildType("debug")) { variant ->
+        val hash =
+            providers.exec {
+                commandLine("git", "rev-parse", "--short", "HEAD")
+                workingDir(rootProject.layout.projectDirectory)
+                isIgnoreExitValue = true
+            }.standardOutput.asText.map { it.trim() }
+        variant.outputs.forEach { output ->
+            output.versionName.set(
+                betaVersionNameProvider
+                    .zip(hash) { base, shortHash ->
+                        if (shortHash.isBlank()) base else "$base-debug+$shortHash"
+                    },
+            )
+        }
+    }
 }
 
 kapt {

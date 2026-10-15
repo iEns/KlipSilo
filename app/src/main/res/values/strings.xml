@@ -187,6 +187,8 @@
     <string name="pdf_setting_line_spacing">Line spacing</string>
     <string name="pdf_setting_max_output">Max output resolution</string>
     <string name="display_mode">Display mode</string>
+    <string name="settings_pdf_export">PDF &amp; export</string>
+    <string name="unit_cm">cm</string>
     <string name="light">Light</string>
     <string name="dark">Dark</string>
     <string name="system">System</string>
@@ -196,6 +198,9 @@
     <string name="file_cannot_open">File can\'t be opened</string>
     <string name="text_editor">Edit</string>
     <string name="preview">Preview</string>
+    <string name="source">Source</string>
+    <string name="qr_hint">Point at a QR code</string>
+    <string name="ocr_hint">Photograph text</string>
     <string name="no_content_preview">No content to preview</string>
     <string name="text_presentation">Text presentation</string>
     <string name="reader_back">Back</string>

@@ -186,6 +186,8 @@
     <string name="pdf_setting_line_spacing">行間</string>
     <string name="pdf_setting_max_output">最大出力解像度</string>
     <string name="display_mode">表示モード</string>
+    <string name="settings_pdf_export">PDF とエクスポート</string>
+    <string name="unit_cm">cm</string>
     <string name="light">ライト</string>
     <string name="dark">ダーク</string>
     <string name="system">システム</string>
@@ -195,6 +197,9 @@
     <string name="file_cannot_open">ファイルを開けません</string>
     <string name="text_editor">編集</string>
     <string name="preview">プレビュー</string>
+    <string name="source">ソースコード</string>
+    <string name="qr_hint">QRコードにかざす</string>
+    <string name="ocr_hint">テキストを撮影</string>
     <string name="no_content_preview">プレビューする内容がありません</string>
     <string name="text_presentation">テキスト表示</string>
     <string name="reader_back">戻る</string>

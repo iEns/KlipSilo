@@ -187,6 +187,8 @@
     <string name="pdf_setting_line_spacing">Satır aralığı</string>
     <string name="pdf_setting_max_output">En yüksek çıktı çözünürlüğü</string>
     <string name="display_mode">Görünüm modu</string>
+    <string name="settings_pdf_export">PDF &amp; dışa aktarma</string>
+    <string name="unit_cm">cm</string>
     <string name="light">Açık</string>
     <string name="dark">Koyu</string>
     <string name="system">Sistem</string>
@@ -196,6 +198,9 @@
     <string name="file_cannot_open">Dosya açılamıyor</string>
     <string name="text_editor">Düzenle</string>
     <string name="preview">Önizleme</string>
+    <string name="source">Kaynak kodu</string>
+    <string name="qr_hint">QR koduna doğrultun</string>
+    <string name="ocr_hint">Metni fotoğraflayın</string>
     <string name="no_content_preview">Önizlenecek içerik yok</string>
     <string name="text_presentation">Metin sunumu</string>
     <string name="reader_back">Geri</string>

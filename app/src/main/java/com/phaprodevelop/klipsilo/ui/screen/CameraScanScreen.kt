@@ -25,6 +25,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,9 +44,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,6 +79,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -155,9 +159,15 @@ fun CameraScanScreen(
     val handleVisualHalfW = remember { with(density) { 14.dp.toPx() } }
     val handleVisualHalfH = remember { with(density) { 3.dp.toPx() } }
 
+    var permissionDeniedPermanently by remember { mutableStateOf(false) }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             hasPermission = granted
+            if (!granted) {
+                permissionDeniedPermanently =
+                    activity == null ||
+                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA)
+            }
         }
 
     LaunchedEffect(Unit) {
@@ -598,62 +608,62 @@ fun CameraScanScreen(
                                 .align(if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter)
                                 .navigationBarsPadding()
                                 .padding(32.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Button(
-                            onClick = {
-                                if (scanned || capturing) return@Button
-                                capturing = true
-                                val photoFile =
-                                    File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
-                                val outputOptions =
-                                    ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                                imageCapture.takePicture(
-                                    outputOptions,
-                                    ContextCompat.getMainExecutor(context),
-                                    object : ImageCapture.OnImageSavedCallback {
-                                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                            val decoded =
-                                                decodeSampledWithFallback(
-                                                    context,
-                                                    photoFile.absolutePath,
-                                                    MAX_CAPTURE_DIM,
-                                                )
-                                            displayed.update(decoded)
-                                            photoFile.delete()
-                                            capturing = false
-                                            if (decoded == null) {
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.clip_save_failed),
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                            }
-                                        }
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.2f))
+                                    .border(3.dp, Color.White, CircleShape)
+                                    .clickable(enabled = !capturing && !scanned) {
+                                        capturing = true
+                                        val photoFile =
+                                            File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
+                                        val outputOptions =
+                                            ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                                        imageCapture.takePicture(
+                                            outputOptions,
+                                            ContextCompat.getMainExecutor(context),
+                                            object : ImageCapture.OnImageSavedCallback {
+                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                                    val decoded =
+                                                        decodeSampledWithFallback(
+                                                            context,
+                                                            photoFile.absolutePath,
+                                                            MAX_CAPTURE_DIM,
+                                                        )
+                                                    displayed.update(decoded)
+                                                    photoFile.delete()
+                                                    capturing = false
+                                                    if (decoded == null) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(R.string.clip_save_failed),
+                                                            Toast.LENGTH_SHORT,
+                                                        ).show()
+                                                    }
+                                                }
 
-                                        override fun onError(exception: ImageCaptureException) {
-                                            photoFile.delete()
-                                            capturing = false
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.clip_save_failed),
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                        }
+                                                override fun onError(exception: ImageCaptureException) {
+                                                    photoFile.delete()
+                                                    capturing = false
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.clip_save_failed),
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                }
+                                            },
+                                        )
                                     },
-                                )
-                            },
-                            enabled = !capturing,
-                            modifier = Modifier.size(56.dp).clip(CircleShape),
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor = Color.White.copy(alpha = 0.8f),
-                                ),
                         ) {
                             Box(
                                 Modifier
-                                    .size(42.dp)
+                                    .size(if (capturing) 40.dp else 54.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF6200EE)),
+                                    .background(Color.White),
                             )
                         }
                     }
@@ -743,15 +753,36 @@ fun CameraScanScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.size(16.dp))
-                Button(onClick = {
-                    context.startActivity(
-                        Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.fromParts("package", context.packageName, null),
-                        ),
-                    )
-                }) {
-                    Text(stringResource(R.string.open_settings))
+                if (permissionDeniedPermanently) {
+                    Button(onClick = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            ),
+                        )
+                    }) {
+                        Text(stringResource(R.string.open_settings))
+                    }
+                } else {
+                    Button(onClick = {
+                        if (!hasPermission) {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Text(stringResource(R.string.try_again))
+                    }
+                    Spacer(Modifier.size(8.dp))
+                    TextButton(onClick = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            ),
+                        )
+                    }) {
+                        Text(stringResource(R.string.open_settings))
+                    }
                 }
             }
         }
@@ -771,6 +802,58 @@ fun CameraScanScreen(
                 contentDescription = stringResource(R.string.back),
                 tint = Color.White,
             )
+        }
+
+        if (hasPermission && !staticImage && !cameraBindFailed) {
+            Column(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(start = 60.dp, top = 8.dp),
+            ) {
+                Text(
+                    text =
+                        stringResource(
+                            if (mode == ScanMode.QR) R.string.tool_qr else R.string.tool_ocr_camera,
+                        ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    modifier =
+                        Modifier
+                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector =
+                            if (mode == ScanMode.QR) {
+                                Icons.Filled.QrCodeScanner
+                            } else {
+                                Icons.Filled.DocumentScanner
+                            },
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        text =
+                            stringResource(
+                                if (mode == ScanMode.QR) R.string.qr_hint else R.string.ocr_hint,
+                            ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier =
+                            Modifier
+                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                    )
+                }
+            }
         }
     }
 }

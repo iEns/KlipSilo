@@ -187,6 +187,8 @@
     <string name="pdf_setting_line_spacing">Interlineado</string>
     <string name="pdf_setting_max_output">Resolución máxima de salida</string>
     <string name="display_mode">Modo de visualización</string>
+    <string name="settings_pdf_export">PDF &amp; exportación</string>
+    <string name="unit_cm">cm</string>
     <string name="light">Claro</string>
     <string name="dark">Oscuro</string>
     <string name="system">Sistema</string>
@@ -196,6 +198,9 @@
     <string name="file_cannot_open">No se puede abrir el archivo</string>
     <string name="text_editor">Editar</string>
     <string name="preview">Vista previa</string>
+    <string name="source">Código fuente</string>
+    <string name="qr_hint">Apunta a un código QR</string>
+    <string name="ocr_hint">Fotografía el texto</string>
     <string name="no_content_preview">No hay contenido para previsualizar</string>
     <string name="text_presentation">Presentación del texto</string>
     <string name="reader_back">Atrás</string>

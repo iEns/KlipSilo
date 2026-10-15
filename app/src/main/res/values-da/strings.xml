@@ -187,6 +187,8 @@
     <string name="pdf_setting_line_spacing">Linjeafstand</string>
     <string name="pdf_setting_max_output">Maks. output-opløsning</string>
     <string name="display_mode">Visningstilstand</string>
+    <string name="settings_pdf_export">PDF &amp; eksport</string>
+    <string name="unit_cm">cm</string>
     <string name="light">Lys</string>
     <string name="dark">Mørk</string>
     <string name="system">System</string>
@@ -196,6 +198,9 @@
     <string name="file_cannot_open">Filen kan ikke åbnes</string>
     <string name="text_editor">Rediger</string>
     <string name="preview">Forhåndsvisning</string>
+    <string name="source">Kildekode</string>
+    <string name="qr_hint">Peg mod en QR-kode</string>
+    <string name="ocr_hint">Tag et billede af teksten</string>
     <string name="no_content_preview">Intet indhold at forhåndsvise</string>
     <string name="text_presentation">Tekst præsentation</string>
     <string name="reader_back">Tilbage</string>

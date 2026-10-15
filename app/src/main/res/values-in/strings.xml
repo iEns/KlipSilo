@@ -186,6 +186,8 @@
     <string name="pdf_setting_line_spacing">Jarak baris</string>
     <string name="pdf_setting_max_output">Resolusi keluaran maksimum</string>
     <string name="display_mode">Mode tampilan</string>
+    <string name="settings_pdf_export">PDF &amp; ekspor</string>
+    <string name="unit_cm">cm</string>
     <string name="light">Terang</string>
     <string name="dark">Gelap</string>
     <string name="system">Sistem</string>
@@ -195,6 +197,9 @@
     <string name="file_cannot_open">File tidak dapat dibuka</string>
     <string name="text_editor">Edit</string>
     <string name="preview">Pratinjau</string>
+    <string name="source">Kode sumber</string>
+    <string name="qr_hint">Arahkan ke kode QR</string>
+    <string name="ocr_hint">Ambil foto teks</string>
     <string name="no_content_preview">Tidak ada konten untuk pratinjau</string>
     <string name="text_presentation">Tampilan teks</string>
     <string name="reader_back">Kembali</string>

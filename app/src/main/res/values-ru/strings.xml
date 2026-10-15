@@ -189,6 +189,8 @@
     <string name="pdf_setting_line_spacing">Межстрочный интервал</string>
     <string name="pdf_setting_max_output">Максимальное разрешение</string>
     <string name="display_mode">Режим отображения</string>
+    <string name="settings_pdf_export">PDF &amp; экспорт</string>
+    <string name="unit_cm">см</string>
     <string name="light">Светлая</string>
     <string name="dark">Тёмная</string>
     <string name="system">Система</string>
@@ -198,6 +200,9 @@
     <string name="file_cannot_open">Не удаётся открыть файл</string>
     <string name="text_editor">Изменить</string>
     <string name="preview">Предпросмотр</string>
+    <string name="source">Исходный код</string>
+    <string name="qr_hint">Наведите на QR-код</string>
+    <string name="ocr_hint">Сфотографировать текст</string>
     <string name="no_content_preview">Нет содержимого для предпросмотра</string>
     <string name="text_presentation">Оформление текста</string>
     <string name="reader_back">Назад</string>

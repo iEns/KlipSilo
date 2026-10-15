@@ -186,6 +186,8 @@
     <string name="pdf_setting_line_spacing">줄 간격</string>
     <string name="pdf_setting_max_output">최대 출력 해상도</string>
     <string name="display_mode">디스플레이 모드</string>
+    <string name="settings_pdf_export">PDF 및 내보내기</string>
+    <string name="unit_cm">cm</string>
     <string name="light">밝게</string>
     <string name="dark">어둡게</string>
     <string name="system">시스템</string>
@@ -195,6 +197,9 @@
     <string name="file_cannot_open">파일을 열 수 없습니다</string>
     <string name="text_editor">편집</string>
     <string name="preview">미리보기</string>
+    <string name="source">소스 코드</string>
+    <string name="qr_hint">QR 코드에 맞추세요</string>
+    <string name="ocr_hint">텍스트 촬영</string>
     <string name="no_content_preview">미리볼 내용이 없습니다</string>
     <string name="text_presentation">텍스트 표시</string>
     <string name="reader_back">뒤로</string>
