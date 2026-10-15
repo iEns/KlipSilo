@@ -38,11 +38,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -50,6 +49,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 data class UndoOffer(val message: String)
 
@@ -73,6 +73,18 @@ class ClipboardViewModel(
     init {
         viewModelScope.launch {
             repository.migrateLegacyNames()
+        }
+        viewModelScope.launch {
+            // Re-read the table on every signal. A Room emission can be stale or, after a
+            // delete or an incoming share, missing entirely. The generation discards a read
+            // that started before a newer write.
+            repository.getAllClips().collectLatest {
+                val generation = clipGeneration.get()
+                val rows = withContext(ioDispatcher) { repository.listClips() }
+                if (generation == clipGeneration.get()) {
+                    _clips.value = rows
+                }
+            }
         }
     }
 
@@ -262,9 +274,31 @@ class ClipboardViewModel(
         }
     }
 
-    val clips: StateFlow<List<ClipboardEntry>> =
-        repository.getAllClips()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    private val _clips = MutableStateFlow<List<ClipboardEntry>>(emptyList())
+    val clips: StateFlow<List<ClipboardEntry>> = _clips.asStateFlow()
+
+    private val clipGeneration = AtomicLong(0)
+
+    /** Drop the clip from the on-screen list before the database round-trip finishes. */
+    private fun hideClipsNow(ids: Collection<Long>) {
+        if (ids.isEmpty()) return
+        clipGeneration.incrementAndGet()
+        val hide = ids.toSet()
+        _clips.value = _clips.value.filter { it.id !in hide }
+    }
+
+    /** Re-read the clip list. Safe to call when a Room flow may not emit. */
+    fun reloadClips() {
+        viewModelScope.launch { awaitClipReload() }
+    }
+
+    private suspend fun awaitClipReload() {
+        val generation = clipGeneration.incrementAndGet()
+        val rows = withContext(ioDispatcher) { repository.listClips() }
+        if (generation == clipGeneration.get()) {
+            _clips.value = rows
+        }
+    }
 
     private val _navigateToNewClip = MutableStateFlow<Long?>(null)
     val navigateToNewClip: StateFlow<Long?> = _navigateToNewClip.asStateFlow()
@@ -290,6 +324,7 @@ class ClipboardViewModel(
 
     private fun triggerScrollToTop() {
         _scrollToTop.value = System.currentTimeMillis()
+        reloadClips()
     }
 
     fun createEmptyClip() {
@@ -1658,10 +1693,12 @@ class ClipboardViewModel(
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             return
         }
+        hideClipsNow(setOf(entry.id))
         viewModelScope.launch {
             val full = repository.getClip(entry.id) ?: entry
             if (full.isLocked) {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
+                awaitClipReload()
                 return@launch
             }
             pendingDeletes[full.id] = full
@@ -1669,9 +1706,10 @@ class ClipboardViewModel(
             undoMutex.withLock {
                 repository.deleteClipLazy(full)
             }
+            awaitClipReload()
             delay(undoTimeoutMs)
             undoMutex.withLock {
-                if (pendingDeletes.remove(full.id) != null && clips.value.none { it.id == full.id }) {
+                if (pendingDeletes.remove(full.id) != null && repository.getClip(full.id) == null) {
                     repository.deleteClipFile(full)
                 }
                 if (pendingDeletes.isEmpty()) {
@@ -1689,22 +1727,31 @@ class ClipboardViewModel(
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             return 0
         }
+        hideClipsNow(deletable.map { it.id })
         viewModelScope.launch {
             val fullEntries = deletable.map { repository.getClip(it.id) ?: it }
-            fullEntries.forEach { pendingDeletes[it.id] = it }
-            setUndoOffer(
-                UndoOffer(
-                    localizedString(com.phaprodevelop.klipsilo.R.string.clips_deleted_count, fullEntries.size),
-                ),
-            )
-            undoMutex.withLock {
-                repository.deleteClipsLazy(fullEntries)
+            val locked = fullEntries.filter { it.isLocked }
+            val removable = fullEntries.filter { !it.isLocked }
+            if (locked.isNotEmpty() && removable.isEmpty()) {
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             }
+            removable.forEach { pendingDeletes[it.id] = it }
+            if (removable.isNotEmpty()) {
+                setUndoOffer(
+                    UndoOffer(
+                        localizedString(com.phaprodevelop.klipsilo.R.string.clips_deleted_count, removable.size),
+                    ),
+                )
+                undoMutex.withLock {
+                    repository.deleteClipsLazy(removable)
+                }
+            }
+            awaitClipReload()
             delay(undoTimeoutMs)
             undoMutex.withLock {
                 val stillPending =
-                    fullEntries.filter {
-                        pendingDeletes.remove(it.id) != null && clips.value.none { c -> c.id == it.id }
+                    removable.filter {
+                        pendingDeletes.remove(it.id) != null && repository.getClip(it.id) == null
                     }
                 repository.deleteClipsFiles(stillPending)
                 if (pendingDeletes.isEmpty()) {
@@ -1723,22 +1770,27 @@ class ClipboardViewModel(
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             return 0
         }
+        hideClipsNow(deletable.map { it.id })
         viewModelScope.launch {
             val fullEntries = deletable.map { repository.getClip(it.id) ?: it }
-            fullEntries.forEach { pendingDeletes[it.id] = it }
-            setUndoOffer(
-                UndoOffer(
-                    localizedString(com.phaprodevelop.klipsilo.R.string.clips_deleted_count, fullEntries.size),
-                ),
-            )
-            undoMutex.withLock {
-                repository.deleteClipsLazy(fullEntries)
+            val removable = fullEntries.filter { !it.isLocked }
+            removable.forEach { pendingDeletes[it.id] = it }
+            if (removable.isNotEmpty()) {
+                setUndoOffer(
+                    UndoOffer(
+                        localizedString(com.phaprodevelop.klipsilo.R.string.clips_deleted_count, removable.size),
+                    ),
+                )
+                undoMutex.withLock {
+                    repository.deleteClipsLazy(removable)
+                }
             }
+            awaitClipReload()
             delay(undoTimeoutMs)
             undoMutex.withLock {
                 val stillPending =
-                    fullEntries.filter {
-                        pendingDeletes.remove(it.id) != null && clips.value.none { c -> c.id == it.id }
+                    removable.filter {
+                        pendingDeletes.remove(it.id) != null && repository.getClip(it.id) == null
                     }
                 repository.deleteClipsFiles(stillPending)
                 if (pendingDeletes.isEmpty()) {
@@ -1754,8 +1806,16 @@ class ClipboardViewModel(
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             return
         }
+        hideClipsNow(setOf(entry.id))
         viewModelScope.launch {
-            repository.deleteClip(entry)
+            val full = repository.getClip(entry.id) ?: entry
+            if (full.isLocked) {
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
+                awaitClipReload()
+                return@launch
+            }
+            repository.deleteClip(full)
+            awaitClipReload()
         }
     }
 
@@ -1774,6 +1834,7 @@ class ClipboardViewModel(
                         true
                     }
                 }
+            awaitClipReload()
             if (restored) {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_restored))
             }
@@ -1782,8 +1843,11 @@ class ClipboardViewModel(
     }
 
     fun deleteAllClips() {
+        val hidden = clips.value.filter { !it.isLocked }.map { it.id }
+        hideClipsNow(hidden)
         viewModelScope.launch {
             repository.deleteAllClips()
+            awaitClipReload()
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.all_deleted))
         }
     }

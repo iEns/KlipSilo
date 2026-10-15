@@ -26,6 +26,12 @@ interface ClipboardItemDao {
     )
     fun getAll(): Flow<List<ClipboardItemListRow>>
 
+    @Query(
+        "SELECT id, contentType, filePath, previewText, timestamp, isPinned, isLocked, latitude, longitude " +
+            "FROM clipboard_items ORDER BY isPinned DESC, timestamp DESC",
+    )
+    suspend fun getAllListOnce(): List<ClipboardItemListRow>
+
     @Query("SELECT * FROM clipboard_items")
     suspend fun getAllOnce(): List<ClipboardItem>
 

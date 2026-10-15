@@ -162,6 +162,9 @@ class ClipboardRepository(
         }
     }
 
+    /** One-shot list read. Used to refresh the UI when a Room flow emission is missed or stale. */
+    suspend fun listClips(): List<ClipboardEntry> = dao.getAllListOnce().map { it.toEntry() }
+
     suspend fun getClip(id: Long): ClipboardEntry? = dao.getById(id)?.toEntry()
 
     suspend fun readTextBody(entry: ClipboardEntry): String? {

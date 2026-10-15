@@ -115,6 +115,10 @@ fun KlipScreen(
             filterClips(clips, searchQuery, filter)
         }
 
+    LaunchedEffect(Unit) {
+        viewModel.reloadClips()
+    }
+
     LaunchedEffect(sheetReopenId) {
         sheetReopenId?.let { id ->
             clips.find { it.id == id }?.let { sheetEntry = it }

@@ -11,13 +11,24 @@ class FakeClipboardItemDao : ClipboardItemDao {
     private val itemsById = mutableMapOf<Long, ClipboardItem>()
     private val allFlow = MutableStateFlow<List<ClipboardItemListRow>>(emptyList())
 
+    /** When false, writes update [getAllOnce] but do not emit [getAll]. */
+    var emitFlowUpdates: Boolean = true
+
     private fun emitAll() {
-        allFlow.value =
-            itemsById.values
-                .sortedWith(
-                    compareByDescending<ClipboardItem> { it.isPinned }
-                        .thenByDescending { it.timestamp },
-                ).map { it.toListRow() }
+        if (!emitFlowUpdates) return
+        allFlow.value = sortedRows()
+    }
+
+    private fun sortedRows(): List<ClipboardItemListRow> =
+        itemsById.values
+            .sortedWith(
+                compareByDescending<ClipboardItem> { it.isPinned }
+                    .thenByDescending { it.timestamp },
+            ).map { it.toListRow() }
+
+    /** Push a list snapshot that may not match the table, to simulate a stale Room emission. */
+    fun emitRows(rows: List<ClipboardItemListRow>) {
+        allFlow.value = rows
     }
 
     override suspend fun insert(item: ClipboardItem): Long {
@@ -44,6 +55,8 @@ class FakeClipboardItemDao : ClipboardItemDao {
     }
 
     override fun getAll(): Flow<List<ClipboardItemListRow>> = allFlow.asStateFlow()
+
+    override suspend fun getAllListOnce(): List<ClipboardItemListRow> = sortedRows()
 
     override suspend fun getAllOnce(): List<ClipboardItem> = itemsById.values.toList()
 
