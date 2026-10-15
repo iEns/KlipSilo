@@ -78,11 +78,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.STROKE_PRESETS
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.nearestStrokePreset
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
@@ -838,10 +842,7 @@ fun AnnotatePdfScreen(
                         StrokePanel(
                             thickness = strokeWidth,
                             color = strokeColor,
-                            onThicknessChange = {
-                                strokeWidth = it
-                                draftStroke = draftStroke?.copy(widthFraction = it)
-                            },
+                            onThicknessChange = { strokeWidth = it },
                             onColorChange = {
                                 strokeColor = it
                                 draftStroke = draftStroke?.copy(color = it)
@@ -1246,26 +1247,50 @@ private fun StrokePanel(
                 )
             }
         }
+        val presetLabels =
+            listOf(
+                R.string.stroke_thin,
+                R.string.stroke_medium,
+                R.string.stroke_thick,
+                R.string.stroke_heavy,
+            )
+        val dotSizes = listOf(6.dp, 10.dp, 16.dp, 22.dp)
+        val selected = nearestStrokePreset(thickness)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier
-                        .size((thickness * 2000f).dp.coerceAtLeast(2.dp))
-                        .background(selectedColor)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-            )
-            Spacer(Modifier.width(8.dp))
-            Slider(
-                value = thickness,
-                onValueChange = onThicknessChange,
-                onValueChangeFinished = onCommit,
-                valueRange = 0.001f..0.02f,
-                steps = 9,
-                modifier = Modifier.weight(1f),
-            )
+            STROKE_PRESETS.forEachIndexed { index, width ->
+                val chosen = kotlin.math.abs(selected - width) < 0.0001f
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(end = 4.dp)
+                            .size(36.dp)
+                            .semantics { contentDescription = context.getString(presetLabels[index]) }
+                            .clickable {
+                                onThicknessChange(width)
+                                onCommit()
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(dotSizes[index])
+                                .clip(CircleShape)
+                                .background(selectedColor)
+                                .border(
+                                    width = if (chosen) 2.dp else 1.dp,
+                                    color =
+                                        if (chosen) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    shape = CircleShape,
+                                ),
+                    )
+                }
+            }
+            Spacer(Modifier.width(4.dp))
             colors.forEach { (argb, composeColor) ->
                 val selected = color == argb
                 Box(

@@ -389,6 +389,10 @@
     <string name="clear_all_strokes">Удалить штрихи</string>
     <string name="clear_all_strokes_confirm">Удалить все штрихи на всех страницах?</string>
     <string name="stroke_saved">Штрих сохранён</string>
+    <string name="stroke_thin">Тонкая</string>
+    <string name="stroke_medium">Средняя</string>
+    <string name="stroke_thick">Толстая</string>
+    <string name="stroke_heavy">Очень толстая</string>
     <string name="pdf_not_generated">PDF ещё не создан</string>
     <string name="pdf_not_generated_message">Есть изменения, но PDF ещё не создан. Если выйти сейчас, они пропадут.</string>
     <string name="tool_use_cases">Где приложение помогает</string>

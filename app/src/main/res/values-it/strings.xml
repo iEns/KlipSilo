@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Elimina tratti</string>
     <string name="clear_all_strokes_confirm">Eliminare tutti i tratti su tutte le pagine?</string>
     <string name="stroke_saved">Tratto salvato</string>
+    <string name="stroke_thin">Sottile</string>
+    <string name="stroke_medium">Medio</string>
+    <string name="stroke_thick">Spesso</string>
+    <string name="stroke_heavy">Molto spesso</string>
     <string name="pdf_not_generated">PDF non generato</string>
     <string name="pdf_not_generated_message">Ci sono modifiche, ma non è ancora stato generato un PDF. Se esci ora, andranno perse.</string>
     <string name="tool_use_cases">Dove l\'app aiuta</string>

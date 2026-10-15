@@ -388,6 +388,10 @@
     <string name="clear_all_strokes">Supprimer les traits</string>
     <string name="clear_all_strokes_confirm">Supprimer tous les traits de toutes les pages ?</string>
     <string name="stroke_saved">Trait enregistré</string>
+    <string name="stroke_thin">Fin</string>
+    <string name="stroke_medium">Moyen</string>
+    <string name="stroke_thick">Épais</string>
+    <string name="stroke_heavy">Très épais</string>
     <string name="pdf_not_generated">PDF non généré</string>
     <string name="pdf_not_generated_message">Il y a des modifications, mais aucun PDF n\'a encore été généré. Si vous quittez maintenant, elles seront perdues.</string>
     <string name="tool_use_cases">Où l\'appli aide</string>

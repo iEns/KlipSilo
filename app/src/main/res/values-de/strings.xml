@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Striche löschen</string>
     <string name="clear_all_strokes_confirm">Alle Striche auf allen Seiten löschen?</string>
     <string name="stroke_saved">Strich gespeichert</string>
+    <string name="stroke_thin">Dünn</string>
+    <string name="stroke_medium">Mittel</string>
+    <string name="stroke_thick">Dick</string>
+    <string name="stroke_heavy">Sehr dick</string>
     <string name="pdf_not_generated">PDF nicht erzeugt</string>
     <string name="pdf_not_generated_message">Es gibt Änderungen, aber noch kein PDF. Wenn du jetzt gehst, gehen sie verloren.</string>
     <string name="tool_use_cases">Wo die App hilft</string>

@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Delete strokes</string>
     <string name="clear_all_strokes_confirm">Delete all strokes on all pages?</string>
     <string name="stroke_saved">Stroke saved</string>
+    <string name="stroke_thin">Thin</string>
+    <string name="stroke_medium">Medium</string>
+    <string name="stroke_thick">Thick</string>
+    <string name="stroke_heavy">Heavy</string>
     <string name="pdf_not_generated">PDF not generated</string>
     <string name="pdf_not_generated_message">There are changes, but no PDF has been generated yet. If you leave now, they will be lost.</string>
     <string name="tool_use_cases">Where the app helps</string>

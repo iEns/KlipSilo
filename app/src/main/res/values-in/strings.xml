@@ -386,6 +386,10 @@
     <string name="clear_all_strokes">Hapus goresan</string>
     <string name="clear_all_strokes_confirm">Hapus semua goresan di semua halaman?</string>
     <string name="stroke_saved">Goresan disimpan</string>
+    <string name="stroke_thin">Tipis</string>
+    <string name="stroke_medium">Sedang</string>
+    <string name="stroke_thick">Tebal</string>
+    <string name="stroke_heavy">Sangat tebal</string>
     <string name="pdf_not_generated">PDF belum dibuat</string>
     <string name="pdf_not_generated_message">Ada perubahan, tetapi PDF belum dibuat. Jika Anda keluar sekarang, perubahan akan hilang.</string>
     <string name="tool_use_cases">Di mana aplikasi membantu</string>

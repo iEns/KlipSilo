@@ -386,6 +386,10 @@
     <string name="clear_all_strokes">删除笔迹</string>
     <string name="clear_all_strokes_confirm">删除所有页面上的全部笔迹？</string>
     <string name="stroke_saved">已保存笔迹</string>
+    <string name="stroke_thin">细</string>
+    <string name="stroke_medium">中</string>
+    <string name="stroke_thick">粗</string>
+    <string name="stroke_heavy">很粗</string>
     <string name="pdf_not_generated">尚未生成 PDF</string>
     <string name="pdf_not_generated_message">已有更改，但还没有生成 PDF。现在离开就会丢失。</string>
     <string name="tool_use_cases">应用能帮上忙的场景</string>

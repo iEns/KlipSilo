@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Slet streger</string>
     <string name="clear_all_strokes_confirm">Slette alle streger på alle sider?</string>
     <string name="stroke_saved">Streg gemt</string>
+    <string name="stroke_thin">Tynd</string>
+    <string name="stroke_medium">Mellem</string>
+    <string name="stroke_thick">Tyk</string>
+    <string name="stroke_heavy">Meget tyk</string>
     <string name="pdf_not_generated">PDF er ikke genereret</string>
     <string name="pdf_not_generated_message">Der er ændringer, men der er ikke genereret en PDF endnu. Hvis du forlader nu, går de tabt.</string>
     <string name="tool_use_cases">Hvor appen gør en forskel</string>

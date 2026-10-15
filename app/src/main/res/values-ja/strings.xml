@@ -386,6 +386,10 @@
     <string name="clear_all_strokes">ストロークを削除</string>
     <string name="clear_all_strokes_confirm">すべてのページのストロークを削除しますか？</string>
     <string name="stroke_saved">ストロークを保存しました</string>
+    <string name="stroke_thin">細い</string>
+    <string name="stroke_medium">普通</string>
+    <string name="stroke_thick">太い</string>
+    <string name="stroke_heavy">とても太い</string>
     <string name="pdf_not_generated">PDFはまだ生成されていません</string>
     <string name="pdf_not_generated_message">変更はありますが、まだPDFが生成されていません。今離れると失われます。</string>
     <string name="tool_use_cases">アプリが役立つ場面</string>

@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Çizgileri sil</string>
     <string name="clear_all_strokes_confirm">Tüm sayfalardaki çizgiler silinsin mi?</string>
     <string name="stroke_saved">Çizgi kaydedildi</string>
+    <string name="stroke_thin">İnce</string>
+    <string name="stroke_medium">Orta</string>
+    <string name="stroke_thick">Kalın</string>
+    <string name="stroke_heavy">Çok kalın</string>
     <string name="pdf_not_generated">PDF oluşturulmadı</string>
     <string name="pdf_not_generated_message">Değişiklikler var ama henüz PDF oluşturulmadı. Şimdi çıkarsanız kaybolurlar.</string>
     <string name="tool_use_cases">Uygulamanın yardımı</string>

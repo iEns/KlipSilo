@@ -387,6 +387,10 @@
     <string name="clear_all_strokes">Eliminar trazos</string>
     <string name="clear_all_strokes_confirm">¿Eliminar todos los trazos de todas las páginas?</string>
     <string name="stroke_saved">Trazo guardado</string>
+    <string name="stroke_thin">Fino</string>
+    <string name="stroke_medium">Medio</string>
+    <string name="stroke_thick">Grueso</string>
+    <string name="stroke_heavy">Muy grueso</string>
     <string name="pdf_not_generated">PDF no generado</string>
     <string name="pdf_not_generated_message">Hay cambios, pero todavía no se ha generado un PDF. Si sales ahora, se perderán.</string>
     <string name="tool_use_cases">Dónde ayuda la app</string>
