@@ -53,6 +53,14 @@ import java.util.concurrent.atomic.AtomicLong
 
 data class UndoOffer(val message: String)
 
+data class DuplicateShareOffer(
+    val existingId: Long,
+    val displayName: String,
+    val imageUri: Uri?,
+    val pdfUri: Uri?,
+    val fileUri: Uri?,
+)
+
 class ClipboardViewModel(
     application: Application,
     private val repository: ClipboardRepository,
@@ -103,6 +111,9 @@ class ClipboardViewModel(
 
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
+
+    private val _duplicateShare = MutableStateFlow<DuplicateShareOffer?>(null)
+    val duplicateShare: StateFlow<DuplicateShareOffer?> = _duplicateShare.asStateFlow()
 
     private val undoMutex = Mutex()
 
@@ -1050,7 +1061,32 @@ class ClipboardViewModel(
 
         viewModelScope.launch {
             val results = mutableListOf<SaveClipResult>()
-            if (hasStream) {
+            var duplicateOffer: DuplicateShareOffer? = null
+            val streamForCheck = imageUri ?: pdfUri ?: fileUri
+            if (streamForCheck != null) {
+                val checked =
+                    withContext(ioDispatcher) {
+                        val identity = repository.sharedFileIdentity(streamForCheck) ?: return@withContext null
+                        val duplicate =
+                            repository.findDuplicateSharedFile(identity.first, identity.second)
+                                ?: return@withContext null
+                        identity to duplicate
+                    }
+                if (checked != null) {
+                    val (identity, duplicate) = checked
+                    duplicateOffer =
+                        DuplicateShareOffer(
+                            existingId = duplicate.id,
+                            displayName = identity.first,
+                            imageUri = imageUri,
+                            pdfUri = pdfUri,
+                            fileUri = fileUri,
+                        )
+                }
+            }
+            if (duplicateOffer != null) {
+                _duplicateShare.value = duplicateOffer
+            } else if (hasStream) {
                 results +=
                     withContext(ioDispatcher) {
                         repository.saveNewClip(null, imageUri, pdfUri, fileUri)
@@ -1062,16 +1098,41 @@ class ClipboardViewModel(
                         repository.saveNewClip(text, null, null, null)
                     }
             }
+            if (results.isNotEmpty()) {
+                val result =
+                    when {
+                        results.any { it == SaveClipResult.Saved } -> SaveClipResult.Saved
+                        results.any { it == SaveClipResult.TooLarge } -> SaveClipResult.TooLarge
+                        else -> SaveClipResult.Failed
+                    }
+                toast(localizedString(toastForSave(result)))
+                if (result == SaveClipResult.Saved) {
+                    triggerScrollToTop()
+                }
+            }
+        }
+    }
+
+    fun dismissDuplicateShare() {
+        _duplicateShare.value = null
+    }
+
+    fun openExistingShare() {
+        val offer = _duplicateShare.value ?: return
+        _duplicateShare.value = null
+        _navigateToNewClip.value = offer.existingId
+    }
+
+    fun saveDuplicateAgain() {
+        val offer = _duplicateShare.value ?: return
+        _duplicateShare.value = null
+        viewModelScope.launch {
             val result =
-                when {
-                    results.any { it == SaveClipResult.Saved } -> SaveClipResult.Saved
-                    results.any { it == SaveClipResult.TooLarge } -> SaveClipResult.TooLarge
-                    else -> SaveClipResult.Failed
+                withContext(ioDispatcher) {
+                    repository.saveNewClip(null, offer.imageUri, offer.pdfUri, offer.fileUri)
                 }
             toast(localizedString(toastForSave(result)))
-            if (result == SaveClipResult.Saved) {
-                triggerScrollToTop()
-            }
+            if (result == SaveClipResult.Saved) triggerScrollToTop()
         }
     }
 

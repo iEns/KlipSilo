@@ -29,6 +29,10 @@
     <string name="undo">Fortryd</string>
     <string name="save_current_clipboard">Gem udklipsholder</string>
     <string name="clip_saved">Klip gemt</string>
+    <string name="already_saved">Allerede gemt</string>
+    <string name="already_saved_message">%1$s er allerede gemt.</string>
+    <string name="open_existing">Åbn eksisterende</string>
+    <string name="save_again">Gem igen</string>
     <string name="image_saved">Billede gemt</string>
     <string name="try_again">Prøv igen</string>
     <string name="save_image">Gem billede</string>

@@ -29,6 +29,10 @@
     <string name="undo">Urungkan</string>
     <string name="save_current_clipboard">Simpan papan klip saat ini</string>
     <string name="clip_saved">Klip disimpan</string>
+    <string name="already_saved">Sudah disimpan</string>
+    <string name="already_saved_message">%1$s sudah disimpan.</string>
+    <string name="open_existing">Buka yang ada</string>
+    <string name="save_again">Simpan lagi</string>
     <string name="image_saved">Gambar disimpan</string>
     <string name="try_again">Coba lagi</string>
     <string name="save_image">Simpan gambar</string>

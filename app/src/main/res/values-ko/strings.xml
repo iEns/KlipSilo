@@ -29,6 +29,10 @@
     <string name="undo">실행 취소</string>
     <string name="save_current_clipboard">현재 클립보드 저장</string>
     <string name="clip_saved">클립을 저장했습니다</string>
+    <string name="already_saved">이미 저장됨</string>
+    <string name="already_saved_message">%1$s은(는) 이미 저장되어 있습니다.</string>
+    <string name="open_existing">기존 항목 열기</string>
+    <string name="save_again">다시 저장</string>
     <string name="image_saved">이미지를 저장했습니다</string>
     <string name="try_again">다시 시도</string>
     <string name="save_image">이미지 저장</string>

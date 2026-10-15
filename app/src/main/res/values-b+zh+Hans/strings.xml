@@ -29,6 +29,10 @@
     <string name="undo">撤消</string>
     <string name="save_current_clipboard">保存当前剪贴板</string>
     <string name="clip_saved">已保存剪贴</string>
+    <string name="already_saved">已经保存</string>
+    <string name="already_saved_message">%1$s已经保存。</string>
+    <string name="open_existing">打开已有项</string>
+    <string name="save_again">再次保存</string>
     <string name="image_saved">已保存图片</string>
     <string name="try_again">重试</string>
     <string name="save_image">保存图片</string>

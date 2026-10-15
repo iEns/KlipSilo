@@ -29,6 +29,10 @@
     <string name="undo">Отменить</string>
     <string name="save_current_clipboard">Сохранить текущий буфер обмена</string>
     <string name="clip_saved">Клип сохранён</string>
+    <string name="already_saved">Уже сохранено</string>
+    <string name="already_saved_message">%1$s уже сохранён.</string>
+    <string name="open_existing">Открыть существующий</string>
+    <string name="save_again">Сохранить ещё раз</string>
     <string name="image_saved">Изображение сохранено</string>
     <string name="try_again">Повторить</string>
     <string name="save_image">Сохранить изображение</string>

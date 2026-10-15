@@ -29,6 +29,10 @@
     <string name="undo">Annulla</string>
     <string name="save_current_clipboard">Salva gli appunti attuali</string>
     <string name="clip_saved">Ritaglio salvato</string>
+    <string name="already_saved">Già salvato</string>
+    <string name="already_saved_message">%1$s è già salvato.</string>
+    <string name="open_existing">Apri esistente</string>
+    <string name="save_again">Salva di nuovo</string>
     <string name="image_saved">Immagine salvata</string>
     <string name="try_again">Riprova</string>
     <string name="save_image">Salva immagine</string>

@@ -3276,6 +3276,32 @@ class ClipboardRepository(
         return size > MAX_IMPORT_BYTES
     }
 
+    /**
+     * Display name and size in bytes of the shared file behind [uri], used to detect duplicates.
+     * Returns null when either piece is unknown, blank or non-positive.
+     */
+    fun sharedFileIdentity(uri: Uri): Pair<String, Long>? {
+        val displayName =
+            resolveDisplayName(uri)
+                ?: uri.lastPathSegment?.let { Uri.decode(it) }
+                ?: return null
+        val size = queryUriSize(uri) ?: fileSizeFromPath(uri)
+        if (displayName.isBlank() || size == null || size <= 0L) return null
+        return displayName to size
+    }
+
+    private fun fileSizeFromPath(uri: Uri): Long? {
+        if (uri.scheme != "file") return null
+        val path = uri.path ?: return null
+        val length = File(path).length()
+        return length.takeIf { it > 0 }
+    }
+
+    suspend fun findDuplicateSharedFile(
+        displayName: String,
+        sizeBytes: Long,
+    ): ClipboardEntry? = findDuplicateFileClip(listClips(), displayName, sizeBytes)
+
     private fun queryUriSize(uri: Uri): Long? {
         return try {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -5192,7 +5218,34 @@ internal fun buildPageImageName(
     return "${base}$pageStr.jpg"
 }
 
-private fun extractBaseName(name: String): String {
+internal fun extractBaseName(name: String): String {
     val dot = name.lastIndexOf('.')
     return if (dot > 0) name.substring(0, dot) else name
+}
+
+/**
+ * Finds an existing IMAGE, PDF or FILE clip that already holds the same file, matched by
+ * file size plus a case-insensitive name match. Pure so it can be unit-tested without Android.
+ */
+internal fun findDuplicateFileClip(
+    clips: List<ClipboardEntry>,
+    displayName: String,
+    sizeBytes: Long,
+): ClipboardEntry? {
+    if (sizeBytes <= 0L || displayName.isBlank()) return null
+    return clips.firstOrNull { entry ->
+        val filePath = entry.filePath ?: return@firstOrNull false
+        val isFileClip =
+            entry.contentType == ContentType.IMAGE ||
+                entry.contentType == ContentType.PDF ||
+                entry.contentType == ContentType.FILE
+        if (!isFileClip) return@firstOrNull false
+        val file = File(filePath)
+        if (!file.exists() || file.length() != sizeBytes) return@firstOrNull false
+        val storedName = file.name
+        val baseDisplayName = extractBaseName(displayName)
+        entry.previewText.equals(baseDisplayName, ignoreCase = true) ||
+            storedName.equals(displayName, ignoreCase = true) ||
+            extractBaseName(storedName).equals(baseDisplayName, ignoreCase = true)
+    }
 }

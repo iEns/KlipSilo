@@ -29,6 +29,10 @@
     <string name="undo">Undo</string>
     <string name="save_current_clipboard">Save current clipboard</string>
     <string name="clip_saved">Clip saved</string>
+    <string name="already_saved">Already saved</string>
+    <string name="already_saved_message">%1$s is already saved.</string>
+    <string name="open_existing">Open existing</string>
+    <string name="save_again">Save again</string>
     <string name="image_saved">Image saved</string>
     <string name="try_again">Try again</string>
     <string name="save_image">Save image</string>

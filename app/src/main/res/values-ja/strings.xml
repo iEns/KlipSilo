@@ -29,6 +29,10 @@
     <string name="undo">元に戻す</string>
     <string name="save_current_clipboard">現在のクリップボードを保存</string>
     <string name="clip_saved">クリップを保存しました</string>
+    <string name="already_saved">保存済み</string>
+    <string name="already_saved_message">%1$sはすでに保存されています。</string>
+    <string name="open_existing">既存を開く</string>
+    <string name="save_again">もう一度保存</string>
     <string name="image_saved">画像を保存しました</string>
     <string name="try_again">再試行</string>
     <string name="save_image">画像を保存</string>

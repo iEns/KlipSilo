@@ -29,6 +29,10 @@
     <string name="undo">Deshacer</string>
     <string name="save_current_clipboard">Guardar el portapapeles actual</string>
     <string name="clip_saved">Recorte guardado</string>
+    <string name="already_saved">Ya está guardado</string>
+    <string name="already_saved_message">%1$s ya está guardado.</string>
+    <string name="open_existing">Abrir existente</string>
+    <string name="save_again">Guardar de nuevo</string>
     <string name="image_saved">Imagen guardada</string>
     <string name="try_again">Reintentar</string>
     <string name="save_image">Guardar imagen</string>

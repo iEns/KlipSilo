@@ -29,6 +29,10 @@
     <string name="undo">Desfazer</string>
     <string name="save_current_clipboard">Salvar a área de transferência atual</string>
     <string name="clip_saved">Recorte salvo</string>
+    <string name="already_saved">Já está salvo</string>
+    <string name="already_saved_message">%1$s já está salvo.</string>
+    <string name="open_existing">Abrir existente</string>
+    <string name="save_again">Salvar novamente</string>
     <string name="image_saved">Imagem salva</string>
     <string name="try_again">Tentar de novo</string>
     <string name="save_image">Salvar imagem</string>

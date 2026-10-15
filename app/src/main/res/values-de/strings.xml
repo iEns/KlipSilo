@@ -29,6 +29,10 @@
     <string name="undo">Rückgängig</string>
     <string name="save_current_clipboard">Aktuelle Zwischenablage speichern</string>
     <string name="clip_saved">Clip gespeichert</string>
+    <string name="already_saved">Bereits gespeichert</string>
+    <string name="already_saved_message">%1$s ist bereits gespeichert.</string>
+    <string name="open_existing">Vorhandenes öffnen</string>
+    <string name="save_again">Erneut speichern</string>
     <string name="image_saved">Bild gespeichert</string>
     <string name="try_again">Erneut versuchen</string>
     <string name="save_image">Bild speichern</string>

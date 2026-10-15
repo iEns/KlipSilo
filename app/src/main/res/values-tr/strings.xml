@@ -29,6 +29,10 @@
     <string name="undo">Geri al</string>
     <string name="save_current_clipboard">Geçerli panoyu kaydet</string>
     <string name="clip_saved">Klip kaydedildi</string>
+    <string name="already_saved">Zaten kayıtlı</string>
+    <string name="already_saved_message">%1$s zaten kayıtlı.</string>
+    <string name="open_existing">Mevcut olanı aç</string>
+    <string name="save_again">Yeniden kaydet</string>
     <string name="image_saved">Resim kaydedildi</string>
     <string name="try_again">Tekrar dene</string>
     <string name="save_image">Resmi kaydet</string>

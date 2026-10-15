@@ -29,6 +29,10 @@
     <string name="undo">Annuler</string>
     <string name="save_current_clipboard">Enregistrer le presse-papiers actuel</string>
     <string name="clip_saved">Extrait enregistré</string>
+    <string name="already_saved">Déjà enregistré</string>
+    <string name="already_saved_message">%1$s est déjà enregistré.</string>
+    <string name="open_existing">Ouvrir l\'existant</string>
+    <string name="save_again">Enregistrer à nouveau</string>
     <string name="image_saved">Image enregistrée</string>
     <string name="try_again">Réessayer</string>
     <string name="save_image">Enregistrer l\'image</string>

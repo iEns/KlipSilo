@@ -4,16 +4,19 @@ package com.phaprodevelop.klipsilo.viewmodel
 
 import android.app.Application
 import android.content.Intent
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.ClipboardRepository
 import com.phaprodevelop.klipsilo.fakes.FakeClipboardItemDao
 import com.phaprodevelop.klipsilo.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -29,16 +32,18 @@ class SaveSharedContentTest {
 
     private lateinit var app: Application
     private lateinit var dao: FakeClipboardItemDao
+    private lateinit var repository: ClipboardRepository
     private lateinit var viewModel: ClipboardViewModel
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext()
         dao = FakeClipboardItemDao()
+        repository = ClipboardRepository(dao, app)
         viewModel =
             ClipboardViewModel(
                 application = app,
-                repository = ClipboardRepository(dao, app),
+                repository = repository,
                 ioDispatcher = mainDispatcherRule.dispatcher,
             )
     }
@@ -110,7 +115,7 @@ class SaveSharedContentTest {
                 }
             val intent =
                 Intent()
-                    .putExtra(Intent.EXTRA_STREAM, android.net.Uri.fromFile(image))
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(image))
                     .putExtra(Intent.EXTRA_TEXT, "caption text")
                     .setType("*/*")
 
@@ -123,6 +128,195 @@ class SaveSharedContentTest {
             assertEquals(2, items.size)
             assertTrue(items.any { it.contentType == ContentType.IMAGE })
             assertTrue(items.any { it.contentType == ContentType.TEXT && it.textContent == "caption text" })
+            assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
+        }
+
+    @Test
+    fun duplicateImageShare_noText_doesNotInsertOrToast_showsOffer() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val existingId = 101L
+            val stored =
+                File(app.filesDir, "images").also {
+                    it.mkdirs()
+                }.resolve("report.png")
+            stored.writeBytes(ByteArray(48) { 7 })
+            repository.insertEntry(
+                ClipboardEntry(
+                    id = existingId,
+                    contentType = ContentType.IMAGE,
+                    filePath = stored.absolutePath,
+                    previewText = "report",
+                    timestamp = 0L,
+                ),
+            )
+            val shared =
+                File(app.cacheDir, "report.png").also {
+                    it.writeBytes(ByteArray(48) { 7 })
+                }
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(shared))
+                    .setType("image/png")
+
+            // Act
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            assertEquals(1, dao.getAllOnce().size)
+            val offer = viewModel.duplicateShare.value
+            assertEquals(existingId, offer?.existingId)
+            assertEquals("report.png", offer?.displayName)
+            assertNull(viewModel.toastMessage.value)
+        }
+
+    @Test
+    fun duplicateFileShare_saveDuplicateAgain_insertsSecondClip() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val existingId = 202L
+            val stored =
+                File(app.filesDir, "files").also {
+                    it.mkdirs()
+                }.resolve("blob.bin")
+            stored.writeBytes(ByteArray(21) { 3 })
+            repository.insertEntry(
+                ClipboardEntry(
+                    id = existingId,
+                    contentType = ContentType.FILE,
+                    filePath = stored.absolutePath,
+                    previewText = "blob",
+                    timestamp = 0L,
+                ),
+            )
+            val shared =
+                File(app.cacheDir, "blob.bin").also {
+                    it.writeBytes(ByteArray(21) { 3 })
+                }
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(shared))
+                    .setType("*/*")
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+            assertEquals(1, dao.getAllOnce().size)
+
+            // Act
+            viewModel.saveDuplicateAgain()
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val items = dao.getAllOnce()
+            assertEquals(2, items.size)
+            assertTrue(items.any { it.contentType == ContentType.FILE })
+            assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
+            assertNull(viewModel.duplicateShare.value)
+        }
+
+    @Test
+    fun duplicatePdfShare_openExistingShare_navigatesToExistingAndClearsOffer() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val existingId = 303L
+            val stored =
+                File(app.filesDir, "pdfs").also {
+                    it.mkdirs()
+                }.resolve("doc.pdf")
+            stored.writeBytes("%PDF".toByteArray() + ByteArray(16))
+            repository.insertEntry(
+                ClipboardEntry(
+                    id = existingId,
+                    contentType = ContentType.PDF,
+                    filePath = stored.absolutePath,
+                    previewText = "doc",
+                    timestamp = 0L,
+                ),
+            )
+            val shared =
+                File(app.cacheDir, "doc.pdf").also {
+                    it.writeBytes("%PDF".toByteArray() + ByteArray(16))
+                }
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(shared))
+                    .setType("application/pdf")
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+            assertEquals(1, dao.getAllOnce().size)
+
+            // Act
+            viewModel.openExistingShare()
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            assertEquals(existingId, viewModel.navigateToNewClip.value)
+            assertNull(viewModel.duplicateShare.value)
+            assertEquals(1, dao.getAllOnce().size)
+        }
+
+    @Test
+    fun duplicateFileShare_withText_savesTextClipAndToastsSaved() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val stored =
+                File(app.filesDir, "files").also {
+                    it.mkdirs()
+                }.resolve("blob.bin")
+            stored.writeBytes(ByteArray(21) { 3 })
+            repository.insertEntry(
+                ClipboardEntry(
+                    id = 404L,
+                    contentType = ContentType.FILE,
+                    filePath = stored.absolutePath,
+                    previewText = "blob",
+                    timestamp = 0L,
+                ),
+            )
+            val shared =
+                File(app.cacheDir, "blob.bin").also {
+                    it.writeBytes(ByteArray(21) { 3 })
+                }
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(shared))
+                    .putExtra(Intent.EXTRA_TEXT, "note about the file")
+                    .setType("*/*")
+
+            // Act
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val items = dao.getAllOnce()
+            assertEquals(2, items.size)
+            assertTrue(items.any { it.contentType == ContentType.TEXT })
+            assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
+        }
+
+    @Test
+    fun textOnlyShare_ofSameString_stillInserts() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            repository.insertEntry(
+                ClipboardEntry(
+                    id = 505L,
+                    contentType = ContentType.TEXT,
+                    textContent = "hello share",
+                    previewText = "hello share",
+                    timestamp = 0L,
+                ),
+            )
+            val intent = Intent().putExtra(Intent.EXTRA_TEXT, "hello share")
+
+            // Act
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val items = dao.getAllOnce()
+            assertEquals(2, items.size)
+            assertNull(viewModel.duplicateShare.value)
             assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
         }
 

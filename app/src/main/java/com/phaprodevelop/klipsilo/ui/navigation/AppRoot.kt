@@ -23,6 +23,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -103,6 +104,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val undoOffer by viewModel.undoOffer.collectAsState()
+    val duplicateShare by viewModel.duplicateShare.collectAsState()
     val context = LocalContext.current
     LaunchedEffect(undoOffer) {
         val offer = undoOffer
@@ -410,6 +412,29 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                 }
             },
             confirmButton = {},
+        )
+    }
+
+    duplicateShare?.let { offer ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDuplicateShare() },
+            title = { Text(stringResource(R.string.already_saved)) },
+            text = { Text(stringResource(R.string.already_saved_message, offer.displayName)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.openExistingShare() }) {
+                    Text(stringResource(R.string.open_existing))
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { viewModel.saveDuplicateAgain() }) {
+                        Text(stringResource(R.string.save_again))
+                    }
+                    TextButton(onClick = { viewModel.dismissDuplicateShare() }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            },
         )
     }
 }
