@@ -186,7 +186,7 @@
     <string name="pdf_setting_line_spacing">Jarak baris</string>
     <string name="pdf_setting_max_output">Resolusi keluaran maksimum</string>
     <string name="display_mode">Mode tampilan</string>
-    <string name="settings_pdf_export">PDF &amp; ekspor</string>
+    <string name="settings_pdf_export">PDF dan ekspor</string>
     <string name="unit_cm">cm</string>
     <string name="light">Terang</string>
     <string name="dark">Gelap</string>

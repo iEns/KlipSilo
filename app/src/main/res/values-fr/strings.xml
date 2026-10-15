@@ -188,7 +188,7 @@
     <string name="pdf_setting_line_spacing">Interligne</string>
     <string name="pdf_setting_max_output">Résolution maximale</string>
     <string name="display_mode">Mode d\'affichage</string>
-    <string name="settings_pdf_export">PDF &amp; export</string>
+    <string name="settings_pdf_export">PDF et exportation</string>
     <string name="unit_cm">cm</string>
     <string name="light">Clair</string>
     <string name="dark">Sombre</string>

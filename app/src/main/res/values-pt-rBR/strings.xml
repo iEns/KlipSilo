@@ -187,7 +187,7 @@
     <string name="pdf_setting_line_spacing">Espaçamento entre linhas</string>
     <string name="pdf_setting_max_output">Resolução máxima de saída</string>
     <string name="display_mode">Modo de exibição</string>
-    <string name="settings_pdf_export">PDF &amp; exportação</string>
+    <string name="settings_pdf_export">PDF e exportação</string>
     <string name="unit_cm">cm</string>
     <string name="light">Claro</string>
     <string name="dark">Escuro</string>

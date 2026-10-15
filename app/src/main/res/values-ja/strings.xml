@@ -197,7 +197,7 @@
     <string name="file_cannot_open">ファイルを開けません</string>
     <string name="text_editor">編集</string>
     <string name="preview">プレビュー</string>
-    <string name="source">ソースコード</string>
+    <string name="source">ソース</string>
     <string name="qr_hint">QRコードにかざす</string>
     <string name="ocr_hint">テキストを撮影</string>
     <string name="no_content_preview">プレビューする内容がありません</string>

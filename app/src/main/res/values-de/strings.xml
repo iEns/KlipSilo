@@ -198,7 +198,7 @@
     <string name="file_cannot_open">Datei kann nicht geöffnet werden</string>
     <string name="text_editor">Bearbeiten</string>
     <string name="preview">Vorschau</string>
-    <string name="source">Quellcode</string>
+    <string name="source">Quelltext</string>
     <string name="qr_hint">Auf einen QR-Code richten</string>
     <string name="ocr_hint">Text fotografieren</string>
     <string name="no_content_preview">Kein Inhalt für die Vorschau</string>
@@ -257,7 +257,7 @@
     <string name="markup_tool_text">Text</string>
     <string name="markup_tool_line">Linie</string>
     <string name="markup_tool_draw">Stift</string>
-    <string name="markup_tool_select">Wahl</string>
+    <string name="markup_tool_select">Auswahl</string>
     <string name="markup_tool_highlight">Marker</string>
     <string name="markup_undo">Rückgängig</string>
     <string name="markup_redo">Wiederholen</string>

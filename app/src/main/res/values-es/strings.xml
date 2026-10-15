@@ -187,7 +187,7 @@
     <string name="pdf_setting_line_spacing">Interlineado</string>
     <string name="pdf_setting_max_output">Resolución máxima de salida</string>
     <string name="display_mode">Modo de visualización</string>
-    <string name="settings_pdf_export">PDF &amp; exportación</string>
+    <string name="settings_pdf_export">PDF y exportación</string>
     <string name="unit_cm">cm</string>
     <string name="light">Claro</string>
     <string name="dark">Oscuro</string>

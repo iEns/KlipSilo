@@ -80,7 +80,7 @@
     <string name="search_hint">Поиск клипов...</string>
     <string name="clear">Очистить</string>
     <string name="clip_more_actions">Другие действия</string>
-    <string name="more_options">Другие параметры</string>
+    <string name="more_options">Ещё</string>
     <string name="selected">выбрано</string>
     <string name="select_all">Выбрать все</string>
     <string name="select_paragraph">Выбрать абзац</string>
@@ -189,7 +189,7 @@
     <string name="pdf_setting_line_spacing">Межстрочный интервал</string>
     <string name="pdf_setting_max_output">Максимальное разрешение</string>
     <string name="display_mode">Режим отображения</string>
-    <string name="settings_pdf_export">PDF &amp; экспорт</string>
+    <string name="settings_pdf_export">PDF и экспорт</string>
     <string name="unit_cm">см</string>
     <string name="light">Светлая</string>
     <string name="dark">Тёмная</string>
@@ -202,7 +202,7 @@
     <string name="preview">Предпросмотр</string>
     <string name="source">Исходный код</string>
     <string name="qr_hint">Наведите на QR-код</string>
-    <string name="ocr_hint">Сфотографировать текст</string>
+    <string name="ocr_hint">Сфотографируйте текст</string>
     <string name="no_content_preview">Нет содержимого для предпросмотра</string>
     <string name="text_presentation">Оформление текста</string>
     <string name="reader_back">Назад</string>

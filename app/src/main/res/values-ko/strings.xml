@@ -80,7 +80,7 @@
     <string name="search_hint">클립 검색...</string>
     <string name="clear">지우기</string>
     <string name="clip_more_actions">추가 작업</string>
-    <string name="more_options">더보기</string>
+    <string name="more_options">옵션 더보기</string>
     <string name="selected">선택됨</string>
     <string name="select_all">모두 선택</string>
     <string name="select_paragraph">문단 선택</string>
@@ -197,7 +197,7 @@
     <string name="file_cannot_open">파일을 열 수 없습니다</string>
     <string name="text_editor">편집</string>
     <string name="preview">미리보기</string>
-    <string name="source">소스 코드</string>
+    <string name="source">소스</string>
     <string name="qr_hint">QR 코드에 맞추세요</string>
     <string name="ocr_hint">텍스트 촬영</string>
     <string name="no_content_preview">미리볼 내용이 없습니다</string>
@@ -258,8 +258,8 @@
     <string name="markup_tool_draw">그리기</string>
     <string name="markup_tool_select">선택</string>
     <string name="markup_tool_highlight">표시</string>
-    <string name="markup_undo">실행취소</string>
-    <string name="markup_redo">다시실행</string>
+    <string name="markup_undo">실행 취소</string>
+    <string name="markup_redo">다시 실행</string>
     <string name="markup_delete">삭제</string>
     <string name="markup_move">이동</string>
     <string name="markup_size_s">S</string>
