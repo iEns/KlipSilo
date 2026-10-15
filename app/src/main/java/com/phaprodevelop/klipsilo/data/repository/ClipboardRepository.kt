@@ -45,6 +45,7 @@ import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearbyFieldText
+import com.phaprodevelop.klipsilo.data.refreshedTextClipTitle
 import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
@@ -153,6 +154,9 @@ class ClipboardRepository(
         const val MAX_RESTORE_TOTAL_BYTES = 500L * 1024L * 1024L
         const val MAX_IMAGE_DECODE_PX = 4096
         const val INLINE_TEXT_MAX_BYTES = 256 * 1024
+
+        private const val TITLE_RECOMPUTE_PREFS = "data_migration_prefs"
+        private const val KEY_TEXT_TITLE_RECOMPUTE_DONE = "text_titles_recomputed"
     }
 
     private val restoreMutex = Mutex()
@@ -180,6 +184,30 @@ class ClipboardRepository(
     suspend fun listClips(): List<ClipboardEntry> = dao.getAllListOnce().map { it.toEntry() }
 
     suspend fun getClip(id: Long): ClipboardEntry? = dao.getById(id)?.toEntry()
+
+    /**
+     * One-time migration for text clips saved by older builds: their stored
+     * preview can be a stale title derived with the old title rule (or the
+     * raw-body truncation) that the current title logic no longer produces.
+     * Recompute those titles from the stored body once, leaving previews that
+     * may be user renames untouched. Guarded by a stored flag so it only runs
+     * per install.
+     */
+    suspend fun recomputeStaleTextTitles() {
+        try {
+            val prefs =
+                context.getSharedPreferences(TITLE_RECOMPUTE_PREFS, Context.MODE_PRIVATE)
+            if (prefs.getBoolean(KEY_TEXT_TITLE_RECOMPUTE_DONE, false)) return
+            dao.getAllOnce().forEach { item ->
+                if (item.contentType != ContentType.TEXT) return@forEach
+                val body = item.textContent ?: item.filePath?.let { readCappedUtf8File(it) }
+                val fresh = body?.let { refreshedTextClipTitle(item.previewText, it) }
+                fresh?.let { dao.updatePreviewText(item.id, it) }
+            }
+            prefs.edit().putBoolean(KEY_TEXT_TITLE_RECOMPUTE_DONE, true).apply()
+        } catch (_: Exception) {
+        }
+    }
 
     suspend fun readTextBody(entry: ClipboardEntry): String? {
         val full = dao.getById(entry.id)

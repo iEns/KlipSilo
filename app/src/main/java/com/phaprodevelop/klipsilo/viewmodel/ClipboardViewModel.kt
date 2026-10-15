@@ -92,6 +92,11 @@ class ClipboardViewModel(
             repository.migrateLegacyNames()
         }
         viewModelScope.launch {
+            // #33 leftover: once per install, title text clips that still carry a
+            // stale auto title from an older build (user renames are untouched).
+            repository.recomputeStaleTextTitles()
+        }
+        viewModelScope.launch {
             // Re-read the table on every signal. A Room emission can be stale or, after a
             // delete or an incoming share, missing entirely. The generation discards a read
             // that started before a newer write.

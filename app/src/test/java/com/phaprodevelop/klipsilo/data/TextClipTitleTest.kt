@@ -5,6 +5,7 @@ package com.phaprodevelop.klipsilo.data
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -112,5 +113,68 @@ class TextClipTitleTest {
     fun markerOnlyFirstTitle_fallsBackToReadableLine() {
         assertEquals("Lemon", clipListTitle(ContentType.TEXT, "##\n\n- Lemon\nrest"))
         assertEquals("Buy milk", clipListTitle(ContentType.TEXT, "- [ ] Buy milk\n- [ ] Bread"))
+    }
+
+    @Test
+    fun legacyTextClipTitle_reproducesThePreSetextRule() {
+        val recipe =
+            "Citronpasta med hvidløg\n" +
+                "=======================\n" +
+                "\n" +
+                "## Ingredienser\n" +
+                "- 200 g spaghetti\n"
+        assertEquals("Ingredienser", legacyTextClipTitle(recipe))
+        assertEquals("Lemon Garlic Pasta", legacyTextClipTitle("# Lemon Garlic Pasta\n\nBoil"))
+        assertEquals("Buy milk", legacyTextClipTitle("- [ ] Buy milk\n- [ ] Bread"))
+    }
+
+    @Test
+    fun legacyRawTextPreview_matchesTheOldTruncation() {
+        assertEquals("short body", legacyRawTextPreview("short body"))
+        val long = "word ".repeat(30)
+        assertEquals(long.take(LEGACY_CLIP_PREVIEW_MAX) + "...", legacyRawTextPreview(long))
+    }
+
+    @Test
+    fun refreshedTextClipTitle_recomputesLegacyDerivedTitle() {
+        val recipe =
+            "Citronpasta med hvidløg\n" +
+                "=======================\n" +
+                "\n" +
+                "## Ingredienser\n" +
+                "- 200 g spaghetti\n"
+        assertEquals("Citronpasta med hvidløg", refreshedTextClipTitle("Ingredienser", recipe))
+    }
+
+    @Test
+    fun refreshedTextClipTitle_recomputesRawBodyPreview() {
+        val body =
+            "Citronpasta med hvidløg\n" +
+                "=======================\n" +
+                "\n" +
+                "## Ingredienser\n"
+        assertEquals("Citronpasta med hvidløg", refreshedTextClipTitle(legacyRawTextPreview(body), body))
+    }
+
+    @Test
+    fun refreshedTextClipTitle_recomputesLeadingFragmentOfFirstLine() {
+        val body = "Citronpasta med hvidløg og citron\nmer tekst"
+        assertEquals("Citronpasta med hvidløg og citron", refreshedTextClipTitle("Citronpasta", body))
+    }
+
+    @Test
+    fun refreshedTextClipTitle_keepsUserRename() {
+        val recipe =
+            "Citronpasta med hvidløg\n" +
+                "=======================\n" +
+                "\n" +
+                "## Ingredienser\n" +
+                "- 200 g spaghetti\n"
+        assertNull(refreshedTextClipTitle("Min pasta-opskrift", recipe))
+        assertNull(refreshedTextClipTitle("   ", recipe))
+        // A preview already matching the current title stays (idempotent).
+        assertNull(refreshedTextClipTitle("Citronpasta med hvidløg", recipe))
+        // A rename that is not reconstructible from the body stays.
+        assertNull(refreshedTextClipTitle("Madplan uge 42", "Pasta med pesto\nmozzarella"))
     }
 }

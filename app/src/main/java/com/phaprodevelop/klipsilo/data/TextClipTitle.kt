@@ -116,6 +116,66 @@ internal fun textTitleLooksAutomatic(preview: String): Boolean {
 }
 
 /**
+ * Length cap of the pre-title-rule preview: the raw body, cut with
+ * `take(n) + "..."` when longer. Matches the old MAX_PREVIEW_LENGTH rule.
+ */
+internal const val LEGACY_CLIP_PREVIEW_MAX = 100
+
+/**
+ * The title algorithm used before the setext fix: the first ATX heading
+ * (`# Title`), otherwise the first non-empty line, with markers removed and
+ * cut to [maxChars]. A stored preview that equals this was derived, not typed.
+ */
+internal fun legacyTextClipTitle(
+    raw: String,
+    maxChars: Int = TEXT_CLIP_TITLE_MAX,
+): String {
+    val lines = raw.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }
+    val source =
+        lines.firstOrNull { headingLine.containsMatchIn(it) } ?: lines.firstOrNull() ?: return ""
+    val stripped = stripTitleLine(source)
+    if (stripped.isEmpty()) return ""
+    return truncateTitle(stripped, maxChars)
+}
+
+/**
+ * The preview an older build stored for a text clip before titles came from
+ * headings: the raw body truncated to [LEGACY_CLIP_PREVIEW_MAX] characters
+ * plus an ellipsis when longer.
+ */
+internal fun legacyRawTextPreview(raw: String): String {
+    return if (raw.length > LEGACY_CLIP_PREVIEW_MAX) {
+        raw.take(LEGACY_CLIP_PREVIEW_MAX) + "..."
+    } else {
+        raw
+    }
+}
+
+/**
+ * A recomputed title for a text clip whose stored preview came from an older
+ * title rule, or `null` when the preview may be a user rename and must stay.
+ *
+ * There is no stored renamed/auto-titled flag, so a preview is only treated
+ * as a derived title when the body reproduces it from one of the old rules:
+ * the pre-setext title algorithm, the raw-body truncation, or a leading
+ * fragment of the body's first line.
+ */
+internal fun refreshedTextClipTitle(
+    preview: String,
+    body: String,
+): String? {
+    val derived = textClipTitle(body)
+    if (derived.isBlank()) return null
+    val stored = preview.trim()
+    if (stored.isBlank() || stored == derived) return null
+    if (stored == legacyTextClipTitle(body)) return derived
+    if (stored == legacyRawTextPreview(body).trim()) return derived
+    val firstLine = firstTitleLine(body)
+    if (firstLine.isNotEmpty() && firstLine.startsWith(stored)) return derived
+    return null
+}
+
+/**
  * Title shown in the clip list, the action sheet and the reader: one line,
  * never longer than the cap, Markdown markers removed, safe next to icons.
  */
