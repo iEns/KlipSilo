@@ -48,12 +48,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,6 +74,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -661,7 +664,9 @@ private fun ClipItemRow(
                     text =
                         clipListTitle(entry.contentType, entry.previewText)
                             .ifBlank { context.getString(R.string.untitled_clip) },
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.bodyMedium,
+                    softWrap = false,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -676,43 +681,45 @@ private fun ClipItemRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (entry.isPinned) {
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (entry.isPinned) {
+                        IconButton(
+                            onClick = {
+                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                onTogglePin()
+                            },
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.PushPin,
+                                contentDescription = context.getString(R.string.pin_or_unpin),
+                                tint = Color(0xFF4CAF50),
+                            )
+                        }
+                    }
+                    if (entry.isLocked) {
+                        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.Lock,
+                                contentDescription = context.getString(R.string.lock_or_unlock),
+                                modifier = Modifier.size(22.dp),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = {
                             ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            onTogglePin()
+                            onOpenSheet()
                         },
                         modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
-                            Icons.Filled.PushPin,
-                            contentDescription = context.getString(R.string.pin_or_unpin),
-                            tint = Color(0xFF4CAF50),
+                            Icons.Filled.MoreVert,
+                            contentDescription = context.getString(R.string.clip_more_actions),
                         )
                     }
-                }
-                if (entry.isLocked) {
-                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Lock,
-                            contentDescription = context.getString(R.string.lock_or_unlock),
-                            modifier = Modifier.size(22.dp),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                        onOpenSheet()
-                    },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = context.getString(R.string.clip_more_actions),
-                    )
                 }
             }
         }
