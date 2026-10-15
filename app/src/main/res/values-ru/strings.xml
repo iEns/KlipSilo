@@ -169,6 +169,7 @@
     <string name="choose_clip">Выбрать клип</string>
     <string name="coming_soon">Скоро</string>
     <string name="tool_combine">Объединить в PDF</string>
+    <string name="combine_pdf_images_only">Объединять можно только PDF и изображения</string>
     <string name="select_at_least_two">Выберите хотя бы два клипа</string>
     <string name="tool_qr">Сканер QR</string>
     <string name="tool_ocr_camera">OCR с камеры</string>

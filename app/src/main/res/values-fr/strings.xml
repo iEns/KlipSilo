@@ -168,6 +168,7 @@
     <string name="choose_clip">Choisir un extrait</string>
     <string name="coming_soon">Bientôt disponible</string>
     <string name="tool_combine">Combiner en PDF</string>
+    <string name="combine_pdf_images_only">Seuls les PDF et les images peuvent être combinés</string>
     <string name="select_at_least_two">Sélectionnez au moins deux extraits</string>
     <string name="tool_qr">Scanner QR</string>
     <string name="tool_ocr_camera">OCR depuis l\'appareil photo</string>

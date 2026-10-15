@@ -166,6 +166,7 @@
     <string name="choose_clip">选择剪贴</string>
     <string name="coming_soon">即将推出</string>
     <string name="tool_combine">合并为 PDF</string>
+    <string name="combine_pdf_images_only">只能合并 PDF 和图片</string>
     <string name="select_at_least_two">请至少选择两条剪贴</string>
     <string name="tool_qr">二维码扫描</string>
     <string name="tool_ocr_camera">相机 OCR</string>

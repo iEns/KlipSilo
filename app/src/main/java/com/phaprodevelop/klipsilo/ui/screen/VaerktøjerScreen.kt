@@ -377,9 +377,19 @@ fun VaerktøjerScreen(
             clips.filter {
                 it.contentType == ContentType.PDF || it.contentType == ContentType.IMAGE
             }
+        val excludedFromPdf =
+            clips.any {
+                it.contentType != ContentType.PDF && it.contentType != ContentType.IMAGE
+            }
         CombineDialog(
             title = context.getString(R.string.tool_combine),
             entries = combinable,
+            hint =
+                if (excludedFromPdf) {
+                    context.getString(R.string.combine_pdf_images_only)
+                } else {
+                    null
+                },
             onDismiss = { showCombineDialog = false },
             onConfirm = { selected ->
                 showCombineDialog = false
@@ -659,6 +669,7 @@ private fun CombineDialog(
     entries: List<ClipboardEntry>,
     onDismiss: () -> Unit,
     onConfirm: (List<ClipboardEntry>) -> Unit,
+    hint: String? = null,
 ) {
     val context = LocalContext.current
     var selectedIds by remember { mutableStateOf(listOf<Long>()) }
@@ -668,7 +679,7 @@ private fun CombineDialog(
         text = {
             if (entries.isEmpty()) {
                 Text(
-                    text = context.getString(R.string.no_clips_yet),
+                    text = hint ?: context.getString(R.string.no_clips_yet),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             } else {
@@ -729,6 +740,14 @@ private fun CombineDialog(
                         }
                     }
                     Spacer(Modifier.size(4.dp))
+                    if (hint != null) {
+                        Text(
+                            text = hint,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.size(4.dp))
+                    }
                     Text(
                         text = context.getString(R.string.select_at_least_two),
                         style = MaterialTheme.typography.labelSmall,

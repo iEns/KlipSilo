@@ -167,6 +167,7 @@
     <string name="choose_clip">Klip seç</string>
     <string name="coming_soon">Yakında</string>
     <string name="tool_combine">PDF olarak birleştir</string>
+    <string name="combine_pdf_images_only">Yalnızca PDF ve görseller birleştirilebilir</string>
     <string name="select_at_least_two">En az iki klip seçin</string>
     <string name="tool_qr">QR tarayıcı</string>
     <string name="tool_ocr_camera">Kameradan OCR</string>

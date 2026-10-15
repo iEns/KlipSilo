@@ -167,6 +167,7 @@
     <string name="choose_clip">Scegli ritaglio</string>
     <string name="coming_soon">Prossimamente</string>
     <string name="tool_combine">Unisci in PDF</string>
+    <string name="combine_pdf_images_only">Si possono unire solo PDF e immagini</string>
     <string name="select_at_least_two">Seleziona almeno due ritagli</string>
     <string name="tool_qr">Scanner QR</string>
     <string name="tool_ocr_camera">OCR dalla fotocamera</string>

@@ -167,6 +167,7 @@
     <string name="choose_clip">Clip auswählen</string>
     <string name="coming_soon">Demnächst</string>
     <string name="tool_combine">Zu PDF zusammenfügen</string>
+    <string name="combine_pdf_images_only">Nur PDFs und Bilder können zusammengefügt werden</string>
     <string name="select_at_least_two">Wähle mindestens zwei Clips</string>
     <string name="tool_qr">QR-Scanner</string>
     <string name="tool_ocr_camera">OCR von der Kamera</string>

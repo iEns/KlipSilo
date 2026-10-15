@@ -163,6 +163,7 @@
     <string name="choose_clip">Vælg klip</string>
     <string name="coming_soon">Kommer snart</string>
     <string name="tool_combine">Sammensæt til PDF</string>
+    <string name="combine_pdf_images_only">Kun PDF-filer og billeder kan sammensættes</string>
     <string name="select_at_least_two">Vælg mindst to klip</string>
     <string name="tool_qr">QR kodelæser</string>
     <string name="tool_ocr_camera">OCR fra kamera</string>

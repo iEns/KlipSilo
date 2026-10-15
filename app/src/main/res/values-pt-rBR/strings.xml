@@ -167,6 +167,7 @@
     <string name="choose_clip">Escolher recorte</string>
     <string name="coming_soon">Em breve</string>
     <string name="tool_combine">Combinar em PDF</string>
+    <string name="combine_pdf_images_only">Somente PDFs e imagens podem ser combinados</string>
     <string name="select_at_least_two">Selecione pelo menos dois recortes</string>
     <string name="tool_qr">Leitor de QR</string>
     <string name="tool_ocr_camera">OCR da câmera</string>

@@ -167,6 +167,7 @@
     <string name="choose_clip">Choose clip</string>
     <string name="coming_soon">Coming soon</string>
     <string name="tool_combine">Combine to PDF</string>
+    <string name="combine_pdf_images_only">Only PDFs and images can be combined</string>
     <string name="select_at_least_two">Select at least two clips</string>
     <string name="tool_qr">QR scanner</string>
     <string name="tool_ocr_camera">OCR from camera</string>

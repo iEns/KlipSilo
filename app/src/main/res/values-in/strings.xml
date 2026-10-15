@@ -166,6 +166,7 @@
     <string name="choose_clip">Pilih klip</string>
     <string name="coming_soon">Segera hadir</string>
     <string name="tool_combine">Gabungkan ke PDF</string>
+    <string name="combine_pdf_images_only">Hanya PDF dan gambar yang dapat digabungkan</string>
     <string name="select_at_least_two">Pilih minimal dua klip</string>
     <string name="tool_qr">Pemindai QR</string>
     <string name="tool_ocr_camera">OCR dari kamera</string>
