@@ -369,7 +369,10 @@ fun AnnotatePdfScreen(
                             onNavigateBack()
                         }
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = context.getString(R.string.back),
+                        )
                     }
                 },
                 actions = {
@@ -445,267 +448,28 @@ fun AnnotatePdfScreen(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .clipToBounds()
-                        .pointerInput(annotationMode, drawMode, straightMode, baseBitmap, pageIndex) {
-                            val touchSlop = viewConfiguration.touchSlop
-                            if (annotationMode) {
-                                var lastTapUpTime = 0L
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false)
-                                    val downPos = down.position
-                                    var targetIndex = -1
-                                    var targetIsDraft = false
-                                    var fx = 0.5f
-                                    var fy = 0.5f
-                                    val bmp = baseBitmap
-                                    if (bmp != null) {
-                                        val mapped =
-                                            mapTapToFraction(
-                                                downPos,
-                                                size,
-                                                bmp.width,
-                                                bmp.height,
-                                                scale,
-                                                offsetX,
-                                                offsetY,
-                                            )
-                                        fx = mapped.first
-                                        fy = mapped.second
-                                        val idx =
-                                            annotations[pageIndex].orEmpty().indexOfFirst {
-                                                annotationHitTest(
-                                                    fx,
-                                                    fy,
-                                                    it.xFraction,
-                                                    it.yFraction,
-                                                    it.text,
-                                                    it.sizeFraction,
-                                                    bmp.width,
-                                                    bmp.height,
-                                                )
-                                            }
-                                        if (idx >= 0) {
-                                            targetIndex = idx
-                                            targetIsDraft = false
-                                        } else if (
-                                            draft != null &&
-                                            annotationHitTest(
-                                                fx,
-                                                fy,
-                                                draft!!.xFraction,
-                                                draft!!.yFraction,
-                                                draft!!.text,
-                                                draft!!.sizeFraction,
-                                                bmp.width,
-                                                bmp.height,
-                                            )
-                                        ) {
-                                            targetIndex = -1
-                                            targetIsDraft = true
-                                        }
-                                    }
-                                    val targetOnText = targetIndex >= 0 || targetIsDraft
-
-                                    var moved = false
-                                    var pinching = false
-                                    var lastDist = 0f
-                                    var lastCentroid = Offset.Zero
-                                    var lastPos = downPos
-
-                                    while (true) {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        if (pressed.isEmpty()) {
-                                            if (!moved) {
-                                                val now = SystemClock.uptimeMillis()
-                                                val isDoubleTap =
-                                                    lastTapUpTime > 0 && now - lastTapUpTime < 300L
-                                                if (isDoubleTap && targetOnText && !targetIsDraft) {
-                                                    val list = annotations[pageIndex].orEmpty()
-                                                    if (targetIndex in list.indices) {
-                                                        val a = list[targetIndex]
-                                                        selectedIndex = -1
-                                                        draft =
-                                                            DraftAnnotation(
-                                                                a.text,
-                                                                a.sizeFraction,
-                                                                a.xFraction,
-                                                                a.yFraction,
-                                                                targetIndex,
-                                                                a.color,
-                                                                nextZ(),
-                                                            )
-                                                    }
-                                                    lastTapUpTime = 0L
-                                                } else {
-                                                    if (targetOnText && !targetIsDraft) {
-                                                        selectedIndex = targetIndex
-                                                    } else {
-                                                        if (selectedIndex < 0 && draft == null && !targetOnText) {
-                                                            draft =
-                                                                DraftAnnotation(
-                                                                    "",
-                                                                    textSizeFraction,
-                                                                    fx,
-                                                                    fy,
-                                                                    null,
-                                                                    textColor,
-                                                                    nextZ(),
-                                                                )
-                                                        } else {
-                                                            selectedIndex = -1
-                                                        }
-                                                    }
-                                                    lastTapUpTime = if (targetOnText && !targetIsDraft) now else 0L
-                                                }
-                                            }
-                                            break
-                                        }
-                                        if (pressed.size >= 2) {
-                                            moved = true
-                                            val a = pressed[0].position
-                                            val b = pressed[1].position
-                                            val dist = (a - b).getDistance()
-                                            val centroid = (a + b) / 2f
-                                            if (!pinching) {
-                                                pinching = true
-                                                lastDist = dist
-                                                lastCentroid = centroid
-                                            } else if (lastDist > 0f) {
-                                                val zoom = dist / lastDist
-                                                scale = (scale * zoom).coerceIn(1f, 8f)
-                                                lastDist = dist
-                                                val cDelta = centroid - lastCentroid
-                                                if (scale > 1f) {
-                                                    offsetX += cDelta.x
-                                                    offsetY += cDelta.y
-                                                }
-                                                lastCentroid = centroid
-                                            }
-                                            pressed.forEach { it.consume() }
-                                        } else {
-                                            val change = pressed.first()
-                                            val pos = change.position
-                                            if (!moved) {
-                                                if ((pos - downPos).getDistance() < touchSlop) {
-                                                    continue
-                                                }
-                                                moved = true
-                                                if (targetOnText) {
-                                                    movingIndex = targetIndex
-                                                    movingDraft = targetIsDraft
-                                                    if (!targetIsDraft) {
-                                                        val list = annotations[pageIndex].orEmpty().toMutableList()
-                                                        if (targetIndex in list.indices) {
-                                                            list[targetIndex] = list[targetIndex].copy(zOrder = nextZ())
-                                                            annotations[pageIndex] = list
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            val delta = pos - lastPos
-                                            lastPos = pos
-                                            if (pinching) {
-                                                pinching = false
-                                                lastDist = 0f
-                                            }
-                                            if (targetOnText) {
-                                                val curBmp = baseBitmap ?: break
-                                                val rect = fittedRect(size, curBmp.width, curBmp.height)
-                                                if (rect.width > 0f && rect.height > 0f && scale > 0f) {
-                                                    val dfx = delta.x / (scale * rect.width)
-                                                    val dfy = delta.y / (scale * rect.height)
-                                                    if (targetIsDraft) {
-                                                        val d = draft ?: break
-                                                        draft =
-                                                            d.copy(
-                                                                xFraction = (d.xFraction + dfx).coerceIn(0f, 0.95f),
-                                                                yFraction = (d.yFraction + dfy).coerceIn(0f, 0.95f),
-                                                            )
-                                                    } else {
-                                                        val list = annotations[pageIndex].orEmpty().toMutableList()
-                                                        if (targetIndex in list.indices) {
-                                                            val a = list[targetIndex]
-                                                            list[targetIndex] =
-                                                                a.copy(
-                                                                    xFraction = (a.xFraction + dfx).coerceIn(0f, 0.95f),
-                                                                    yFraction = (a.yFraction + dfy).coerceIn(0f, 0.95f),
-                                                                )
-                                                            annotations[pageIndex] = list
-                                                        }
-                                                    }
-                                                }
-                                            } else if (scale > 1f) {
-                                                offsetX += delta.x
-                                                offsetY += delta.y
-                                            } else {
-                                                offsetX = 0f
-                                                offsetY = 0f
-                                            }
-                                            change.consume()
-                                        }
-                                    }
-                                    movingIndex = -1
-                                    movingDraft = false
-                                }
-                            } else if (drawMode) {
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false)
-                                    val bmp = baseBitmap
-                                    var started = false
-                                    var lastFraction = 0.5f to 0.5f
-                                    var pinching = false
-                                    var lastDist = 0f
-                                    var lastCentroid = Offset.Zero
-                                    while (true) {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        if (pressed.isEmpty()) {
-                                            if (started) {
-                                                val d = draftStroke
-                                                if (d != null && d.points.size < 2) {
-                                                    draftStroke = null
-                                                }
-                                            }
-                                            break
-                                        }
-                                        if (pressed.size >= 2) {
-                                            val a = pressed[0].position
-                                            val b = pressed[1].position
-                                            val dist = (a - b).getDistance()
-                                            val centroid = (a + b) / 2f
-                                            if (!pinching) {
-                                                pinching = true
-                                                lastDist = dist
-                                                lastCentroid = centroid
-                                            } else if (lastDist > 0f) {
-                                                val zoom = dist / lastDist
-                                                scale = (scale * zoom).coerceIn(1f, 8f)
-                                                lastDist = dist
-                                                val cDelta = centroid - lastCentroid
-                                                if (scale > 1f) {
-                                                    offsetX += cDelta.x
-                                                    offsetY += cDelta.y
-                                                }
-                                                lastCentroid = centroid
-                                            }
-                                            pressed.forEach { it.consume() }
-                                            continue
-                                        }
-                                        if (pinching) {
-                                            pinching = false
-                                            lastDist = 0f
-                                        }
-                                        val change = pressed.first()
-                                        val pos = change.position
-                                        if ((pos - down.position).getDistance() < touchSlop) {
-                                            change.consume()
-                                            continue
-                                        }
+                        .clipToBounds(),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(annotationMode, drawMode, straightMode, baseBitmap, pageIndex) {
+                                val touchSlop = viewConfiguration.touchSlop
+                                if (annotationMode) {
+                                    var lastTapUpTime = 0L
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown(requireUnconsumed = false)
+                                        val downPos = down.position
+                                        var targetIndex = -1
+                                        var targetIsDraft = false
+                                        var fx = 0.5f
+                                        var fy = 0.5f
+                                        val bmp = baseBitmap
                                         if (bmp != null) {
                                             val mapped =
                                                 mapTapToFraction(
-                                                    pos,
+                                                    downPos,
                                                     size,
                                                     bmp.width,
                                                     bmp.height,
@@ -713,68 +477,392 @@ fun AnnotatePdfScreen(
                                                     offsetX,
                                                     offsetY,
                                                 )
-                                            if (!started) {
-                                                started = true
-                                                draftStroke =
-                                                    PdfStroke(
-                                                        pageIndex = pageIndex,
-                                                        points = listOf(mapped),
-                                                        widthFraction = strokeWidth,
-                                                        color = strokeColor,
-                                                        straight = straightMode,
-                                                        zOrder = nextZ(),
+                                            fx = mapped.first
+                                            fy = mapped.second
+                                            val idx =
+                                                annotations[pageIndex].orEmpty().indexOfFirst {
+                                                    annotationHitTest(
+                                                        fx,
+                                                        fy,
+                                                        it.xFraction,
+                                                        it.yFraction,
+                                                        it.text,
+                                                        it.sizeFraction,
+                                                        bmp.width,
+                                                        bmp.height,
                                                     )
-                                                lastFraction = mapped
-                                            } else {
-                                                val d = draftStroke ?: break
-                                                if (straightMode) {
-                                                    draftStroke =
-                                                        d.copy(points = listOf(d.points.first(), mapped))
-                                                } else if (
-                                                    Math.abs(mapped.first - lastFraction.first) +
-                                                    Math.abs(mapped.second - lastFraction.second) >
-                                                    0.002f
-                                                ) {
-                                                    draftStroke = d.copy(points = d.points + mapped)
-                                                    lastFraction = mapped
                                                 }
+                                            if (idx >= 0) {
+                                                targetIndex = idx
+                                                targetIsDraft = false
+                                            } else if (
+                                                draft != null &&
+                                                annotationHitTest(
+                                                    fx,
+                                                    fy,
+                                                    draft!!.xFraction,
+                                                    draft!!.yFraction,
+                                                    draft!!.text,
+                                                    draft!!.sizeFraction,
+                                                    bmp.width,
+                                                    bmp.height,
+                                                )
+                                            ) {
+                                                targetIndex = -1
+                                                targetIsDraft = true
                                             }
                                         }
-                                        change.consume()
+                                        val targetOnText = targetIndex >= 0 || targetIsDraft
+
+                                        var moved = false
+                                        var pinching = false
+                                        var lastDist = 0f
+                                        var lastCentroid = Offset.Zero
+                                        var lastPos = downPos
+
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            val pressed = event.changes.filter { it.pressed }
+                                            if (pressed.isEmpty()) {
+                                                if (!moved) {
+                                                    val now = SystemClock.uptimeMillis()
+                                                    val isDoubleTap =
+                                                        lastTapUpTime > 0 && now - lastTapUpTime < 300L
+                                                    if (isDoubleTap && targetOnText && !targetIsDraft) {
+                                                        val list = annotations[pageIndex].orEmpty()
+                                                        if (targetIndex in list.indices) {
+                                                            val a = list[targetIndex]
+                                                            selectedIndex = -1
+                                                            draft =
+                                                                DraftAnnotation(
+                                                                    a.text,
+                                                                    a.sizeFraction,
+                                                                    a.xFraction,
+                                                                    a.yFraction,
+                                                                    targetIndex,
+                                                                    a.color,
+                                                                    nextZ(),
+                                                                )
+                                                        }
+                                                        lastTapUpTime = 0L
+                                                    } else {
+                                                        if (targetOnText && !targetIsDraft) {
+                                                            selectedIndex = targetIndex
+                                                        } else {
+                                                            if (selectedIndex < 0 && draft == null && !targetOnText) {
+                                                                draft =
+                                                                    DraftAnnotation(
+                                                                        "",
+                                                                        textSizeFraction,
+                                                                        fx,
+                                                                        fy,
+                                                                        null,
+                                                                        textColor,
+                                                                        nextZ(),
+                                                                    )
+                                                            } else {
+                                                                selectedIndex = -1
+                                                            }
+                                                        }
+                                                        lastTapUpTime = if (targetOnText && !targetIsDraft) now else 0L
+                                                    }
+                                                }
+                                                break
+                                            }
+                                            if (pressed.size >= 2) {
+                                                moved = true
+                                                val a = pressed[0].position
+                                                val b = pressed[1].position
+                                                val dist = (a - b).getDistance()
+                                                val centroid = (a + b) / 2f
+                                                if (!pinching) {
+                                                    pinching = true
+                                                    lastDist = dist
+                                                    lastCentroid = centroid
+                                                } else if (lastDist > 0f) {
+                                                    val zoom = dist / lastDist
+                                                    scale = (scale * zoom).coerceIn(1f, 8f)
+                                                    lastDist = dist
+                                                    val cDelta = centroid - lastCentroid
+                                                    if (scale > 1f) {
+                                                        offsetX += cDelta.x
+                                                        offsetY += cDelta.y
+                                                    }
+                                                    lastCentroid = centroid
+                                                }
+                                                pressed.forEach { it.consume() }
+                                            } else {
+                                                val change = pressed.first()
+                                                val pos = change.position
+                                                if (!moved) {
+                                                    if ((pos - downPos).getDistance() < touchSlop) {
+                                                        continue
+                                                    }
+                                                    moved = true
+                                                    if (targetOnText) {
+                                                        movingIndex = targetIndex
+                                                        movingDraft = targetIsDraft
+                                                        if (!targetIsDraft) {
+                                                            val list = annotations[pageIndex].orEmpty().toMutableList()
+                                                            if (targetIndex in list.indices) {
+                                                                list[targetIndex] =
+                                                                    list[targetIndex].copy(zOrder = nextZ())
+                                                                annotations[pageIndex] = list
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                val delta = pos - lastPos
+                                                lastPos = pos
+                                                if (pinching) {
+                                                    pinching = false
+                                                    lastDist = 0f
+                                                }
+                                                if (targetOnText) {
+                                                    val curBmp = baseBitmap ?: break
+                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    if (rect.width > 0f && rect.height > 0f && scale > 0f) {
+                                                        val dfx = delta.x / (scale * rect.width)
+                                                        val dfy = delta.y / (scale * rect.height)
+                                                        if (targetIsDraft) {
+                                                            val d = draft ?: break
+                                                            draft =
+                                                                d.copy(
+                                                                    xFraction =
+                                                                        (d.xFraction + dfx).coerceIn(0f, 0.95f),
+                                                                    yFraction =
+                                                                        (d.yFraction + dfy).coerceIn(0f, 0.95f),
+                                                                )
+                                                        } else {
+                                                            val list = annotations[pageIndex].orEmpty().toMutableList()
+                                                            if (targetIndex in list.indices) {
+                                                                val a = list[targetIndex]
+                                                                list[targetIndex] =
+                                                                    a.copy(
+                                                                        xFraction =
+                                                                            (a.xFraction + dfx).coerceIn(0f, 0.95f),
+                                                                        yFraction =
+                                                                            (a.yFraction + dfy).coerceIn(0f, 0.95f),
+                                                                    )
+                                                                annotations[pageIndex] = list
+                                                            }
+                                                        }
+                                                    }
+                                                } else if (scale > 1f) {
+                                                    offsetX += delta.x
+                                                    offsetY += delta.y
+                                                } else {
+                                                    offsetX = 0f
+                                                    offsetY = 0f
+                                                }
+                                                change.consume()
+                                            }
+                                        }
+                                        movingIndex = -1
+                                        movingDraft = false
+                                    }
+                                } else if (drawMode) {
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown(requireUnconsumed = false)
+                                        val bmp = baseBitmap
+                                        var started = false
+                                        var lastFraction = 0.5f to 0.5f
+                                        var pinching = false
+                                        var lastDist = 0f
+                                        var lastCentroid = Offset.Zero
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            val pressed = event.changes.filter { it.pressed }
+                                            if (pressed.isEmpty()) {
+                                                if (started) {
+                                                    val d = draftStroke
+                                                    if (d != null && d.points.size < 2) {
+                                                        draftStroke = null
+                                                    }
+                                                }
+                                                break
+                                            }
+                                            if (pressed.size >= 2) {
+                                                val a = pressed[0].position
+                                                val b = pressed[1].position
+                                                val dist = (a - b).getDistance()
+                                                val centroid = (a + b) / 2f
+                                                if (!pinching) {
+                                                    pinching = true
+                                                    lastDist = dist
+                                                    lastCentroid = centroid
+                                                } else if (lastDist > 0f) {
+                                                    val zoom = dist / lastDist
+                                                    scale = (scale * zoom).coerceIn(1f, 8f)
+                                                    lastDist = dist
+                                                    val cDelta = centroid - lastCentroid
+                                                    if (scale > 1f) {
+                                                        offsetX += cDelta.x
+                                                        offsetY += cDelta.y
+                                                    }
+                                                    lastCentroid = centroid
+                                                }
+                                                pressed.forEach { it.consume() }
+                                                continue
+                                            }
+                                            if (pinching) {
+                                                pinching = false
+                                                lastDist = 0f
+                                            }
+                                            val change = pressed.first()
+                                            val pos = change.position
+                                            if ((pos - down.position).getDistance() < touchSlop) {
+                                                change.consume()
+                                                continue
+                                            }
+                                            if (bmp != null) {
+                                                val mapped =
+                                                    mapTapToFraction(
+                                                        pos,
+                                                        size,
+                                                        bmp.width,
+                                                        bmp.height,
+                                                        scale,
+                                                        offsetX,
+                                                        offsetY,
+                                                    )
+                                                if (!started) {
+                                                    started = true
+                                                    draftStroke =
+                                                        PdfStroke(
+                                                            pageIndex = pageIndex,
+                                                            points = listOf(mapped),
+                                                            widthFraction = strokeWidth,
+                                                            color = strokeColor,
+                                                            straight = straightMode,
+                                                            zOrder = nextZ(),
+                                                        )
+                                                    lastFraction = mapped
+                                                } else {
+                                                    val d = draftStroke ?: break
+                                                    if (straightMode) {
+                                                        draftStroke =
+                                                            d.copy(points = listOf(d.points.first(), mapped))
+                                                    } else if (
+                                                        Math.abs(mapped.first - lastFraction.first) +
+                                                        Math.abs(mapped.second - lastFraction.second) >
+                                                        0.002f
+                                                    ) {
+                                                        draftStroke = d.copy(points = d.points + mapped)
+                                                        lastFraction = mapped
+                                                    }
+                                                }
+                                            }
+                                            change.consume()
+                                        }
+                                    }
+                                } else {
+                                    detectTransformGestures { _, pan, zoom, _ ->
+                                        scale = (scale * zoom).coerceIn(1f, 8f)
+                                        if (scale > 1f) {
+                                            offsetX += pan.x
+                                            offsetY += pan.y
+                                        } else {
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        }
                                     }
                                 }
-                            } else {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(1f, 8f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
-                                    } else {
-                                        offsetX = 0f
-                                        offsetY = 0f
-                                    }
-                                }
-                            }
-                        },
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                translationX = offsetX,
-                                translationY = offsetY,
-                            ),
+                            },
                 ) {
-                    displayed.bitmap?.let { bmp ->
-                        Image(
-                            bitmap = bmp.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit,
-                            filterQuality = FilterQuality.High,
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(
+                                    scaleX = scale,
+                                    scaleY = scale,
+                                    translationX = offsetX,
+                                    translationY = offsetY,
+                                ),
+                    ) {
+                        displayed.bitmap?.let { bmp ->
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit,
+                                filterQuality = FilterQuality.High,
+                            )
+                        }
+                    }
+                }
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface),
+                ) {
+                    if (annotationMode && selectedIndex >= 0 && draft == null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                        ) {
+                            TextButton(onClick = {
+                                val list = annotations[pageIndex].orEmpty()
+                                if (selectedIndex in list.indices) {
+                                    val a = list[selectedIndex]
+                                    draft =
+                                        DraftAnnotation(
+                                            a.text,
+                                            a.sizeFraction,
+                                            a.xFraction,
+                                            a.yFraction,
+                                            selectedIndex,
+                                            a.color,
+                                            nextZ(),
+                                        )
+                                }
+                                selectedIndex = -1
+                            }) {
+                                Text(context.getString(R.string.edit))
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = { showDeleteConfirm = true }) {
+                                Text(
+                                    context.getString(R.string.delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                    if (annotationMode && draft != null) {
+                        AnnotationPanel(
+                            draft = draft!!,
+                            pointSize = if (pageHeightPt > 0f) draft!!.sizeFraction * pageHeightPt else 0f,
+                            onDraftChange = { newDraft ->
+                                if (newDraft.sizeFraction != draft?.sizeFraction) {
+                                    textSizeFraction = newDraft.sizeFraction
+                                }
+                                if (newDraft.color != draft?.color) {
+                                    textColor = newDraft.color
+                                }
+                                draft = newDraft
+                            },
+                            onCommit = { persistAnnotateSettings() },
+                            onConfirm = { commitDrafts() },
+                        )
+                    }
+                    if (drawMode) {
+                        StrokePanel(
+                            thickness = strokeWidth,
+                            color = strokeColor,
+                            onThicknessChange = {
+                                strokeWidth = it
+                                draftStroke = draftStroke?.copy(widthFraction = it)
+                            },
+                            onColorChange = {
+                                strokeColor = it
+                                draftStroke = draftStroke?.copy(color = it)
+                            },
+                            onCommit = { persistAnnotateSettings() },
+                            saved = strokeSavedFlash,
                         )
                     }
                 }
@@ -876,76 +964,6 @@ fun AnnotatePdfScreen(
                         active = drawMode && !straightMode,
                     )
                 }
-            }
-
-            if (annotationMode && selectedIndex >= 0 && draft == null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-                ) {
-                    TextButton(onClick = {
-                        val list = annotations[pageIndex].orEmpty()
-                        if (selectedIndex in list.indices) {
-                            val a = list[selectedIndex]
-                            draft =
-                                DraftAnnotation(
-                                    a.text,
-                                    a.sizeFraction,
-                                    a.xFraction,
-                                    a.yFraction,
-                                    selectedIndex,
-                                    a.color,
-                                    nextZ(),
-                                )
-                        }
-                        selectedIndex = -1
-                    }) {
-                        Text(context.getString(R.string.edit))
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(onClick = { showDeleteConfirm = true }) {
-                        Text(
-                            context.getString(R.string.delete),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-
-            if (annotationMode && draft != null) {
-                AnnotationPanel(
-                    draft = draft!!,
-                    pointSize = if (pageHeightPt > 0f) draft!!.sizeFraction * pageHeightPt else 0f,
-                    onDraftChange = { newDraft ->
-                        if (newDraft.sizeFraction != draft?.sizeFraction) {
-                            textSizeFraction = newDraft.sizeFraction
-                        }
-                        if (newDraft.color != draft?.color) {
-                            textColor = newDraft.color
-                        }
-                        draft = newDraft
-                    },
-                    onCommit = { persistAnnotateSettings() },
-                    onConfirm = { commitDrafts() },
-                )
-            }
-
-            if (drawMode) {
-                StrokePanel(
-                    thickness = strokeWidth,
-                    color = strokeColor,
-                    onThicknessChange = {
-                        strokeWidth = it
-                        draftStroke = draftStroke?.copy(widthFraction = it)
-                    },
-                    onColorChange = {
-                        strokeColor = it
-                        draftStroke = draftStroke?.copy(color = it)
-                    },
-                    onCommit = { persistAnnotateSettings() },
-                    saved = strokeSavedFlash,
-                )
             }
         }
     }
