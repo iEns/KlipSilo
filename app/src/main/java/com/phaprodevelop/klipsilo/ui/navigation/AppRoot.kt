@@ -227,15 +227,15 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                             restoreState = true
                         }
                     },
-                    onNavigateToTips = { navController.navigate("tips") },
-                    onNavigateToLimitations = { navController.navigate("limitations") },
-                    onNavigateToWhy = { navController.navigate("why") },
-                    onNavigateToUseCases = { navController.navigate("use-cases") },
                 )
             }
             composable(BottomNavItem.INDSTILLINGER.route) {
                 IndstillingerScreen(
                     viewModel,
+                    onNavigateToTips = { navController.navigate("tips") },
+                    onNavigateToLimitations = { navController.navigate("limitations") },
+                    onNavigateToWhy = { navController.navigate("why") },
+                    onNavigateToUseCases = { navController.navigate("use-cases") },
                     onNavigateToAbout = { navController.navigate("about") },
                     onNavigateToPrivacy = { navController.navigate("privacy") },
                 )

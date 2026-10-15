@@ -27,15 +27,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -84,10 +80,6 @@ fun VaerktøjerScreen(
     onNavigateToScanner: () -> Unit = {},
     onNavigateToOcr: () -> Unit = {},
     onNavigateToClips: () -> Unit = {},
-    onNavigateToTips: () -> Unit = {},
-    onNavigateToLimitations: () -> Unit = {},
-    onNavigateToWhy: () -> Unit = {},
-    onNavigateToUseCases: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val clips by viewModel.clips.collectAsState()
@@ -241,23 +233,6 @@ fun VaerktøjerScreen(
                 }
                 ToolRow(Icons.Filled.Delete, context.getString(R.string.maintenance_delete)) {
                     showDeleteTypeDialog = true
-                }
-            }
-
-            Spacer(Modifier.size(16.dp))
-
-            ToolGroup(title = context.getString(R.string.tool_group_guide)) {
-                ToolRow(Icons.Filled.Lightbulb, context.getString(R.string.tips)) {
-                    onNavigateToTips()
-                }
-                ToolRow(Icons.Filled.Info, context.getString(R.string.tool_limitations)) {
-                    onNavigateToLimitations()
-                }
-                ToolRow(Icons.Filled.Help, context.getString(R.string.tool_why)) {
-                    onNavigateToWhy()
-                }
-                ToolRow(Icons.Filled.Star, context.getString(R.string.tool_use_cases)) {
-                    onNavigateToUseCases()
                 }
             }
         }
