@@ -80,6 +80,7 @@
     <string name="search_hint">Clips suchen...</string>
     <string name="clear">Leeren</string>
     <string name="clip_more_actions">Weitere Aktionen</string>
+    <string name="more_options">Weitere Optionen</string>
     <string name="selected">ausgewählt</string>
     <string name="select_all">Alle auswählen</string>
     <string name="select_paragraph">Absatz auswählen</string>
@@ -216,7 +217,7 @@
     <string name="clip_duplicated">Clip dupliziert</string>
     <string name="tool_combine_texts">Texte zusammenfügen</string>
     <string name="texts_combined">Texte zusammengefügt</string>
-    <string name="save_page_pdf">Seite als PDF speichern</string>
+    <string name="save_page_pdf">Seite speichern</string>
     <string name="page_saved_as_pdf">Seite als PDF gespeichert</string>
     <string name="clip_renamed">Clip umbenannt</string>
     <string name="tool_group_maintenance">Wartung</string>

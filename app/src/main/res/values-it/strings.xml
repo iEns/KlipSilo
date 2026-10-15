@@ -80,6 +80,7 @@
     <string name="search_hint">Cerca ritagli...</string>
     <string name="clear">Cancella</string>
     <string name="clip_more_actions">Altre azioni</string>
+    <string name="more_options">Altre opzioni</string>
     <string name="selected">selezionati</string>
     <string name="select_all">Seleziona tutto</string>
     <string name="select_paragraph">Seleziona paragrafo</string>
@@ -216,7 +217,7 @@
     <string name="clip_duplicated">Ritaglio duplicato</string>
     <string name="tool_combine_texts">Unisci i testi</string>
     <string name="texts_combined">Testi uniti</string>
-    <string name="save_page_pdf">Salva pagina come PDF</string>
+    <string name="save_page_pdf">Salva pagina</string>
     <string name="page_saved_as_pdf">Pagina salvata come PDF</string>
     <string name="clip_renamed">Ritaglio rinominato</string>
     <string name="tool_group_maintenance">Manutenzione</string>

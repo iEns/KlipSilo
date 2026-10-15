@@ -80,6 +80,7 @@
     <string name="search_hint">Klip ara...</string>
     <string name="clear">Temizle</string>
     <string name="clip_more_actions">Diğer işlemler</string>
+    <string name="more_options">Diğer seçenekler</string>
     <string name="selected">seçili</string>
     <string name="select_all">Tümünü seç</string>
     <string name="select_paragraph">Paragrafı seç</string>
@@ -216,7 +217,7 @@
     <string name="clip_duplicated">Klip çoğaltıldı</string>
     <string name="tool_combine_texts">Metinleri birleştir</string>
     <string name="texts_combined">Metinler birleştirildi</string>
-    <string name="save_page_pdf">Sayfayı PDF olarak kaydet</string>
+    <string name="save_page_pdf">Sayfayı kaydet</string>
     <string name="page_saved_as_pdf">Sayfa PDF olarak kaydedildi</string>
     <string name="clip_renamed">Klip yeniden adlandırıldı</string>
     <string name="tool_group_maintenance">Bakım</string>

@@ -80,6 +80,7 @@
     <string name="search_hint">클립 검색...</string>
     <string name="clear">지우기</string>
     <string name="clip_more_actions">추가 작업</string>
+    <string name="more_options">더보기</string>
     <string name="selected">선택됨</string>
     <string name="select_all">모두 선택</string>
     <string name="select_paragraph">문단 선택</string>
@@ -215,7 +216,7 @@
     <string name="clip_duplicated">클립을 복제했습니다</string>
     <string name="tool_combine_texts">텍스트 합치기</string>
     <string name="texts_combined">텍스트를 합쳤습니다</string>
-    <string name="save_page_pdf">페이지를 PDF로 저장</string>
+    <string name="save_page_pdf">페이지 저장</string>
     <string name="page_saved_as_pdf">페이지를 PDF로 저장했습니다</string>
     <string name="clip_renamed">클립 이름을 바꿨습니다</string>
     <string name="tool_group_maintenance">유지 관리</string>

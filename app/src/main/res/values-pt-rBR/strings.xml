@@ -80,6 +80,7 @@
     <string name="search_hint">Pesquisar recortes...</string>
     <string name="clear">Limpar</string>
     <string name="clip_more_actions">Mais ações</string>
+    <string name="more_options">Mais opções</string>
     <string name="selected">selecionados</string>
     <string name="select_all">Selecionar tudo</string>
     <string name="select_paragraph">Selecionar parágrafo</string>
@@ -216,7 +217,7 @@
     <string name="clip_duplicated">Recorte duplicado</string>
     <string name="tool_combine_texts">Combinar textos</string>
     <string name="texts_combined">Textos combinados</string>
-    <string name="save_page_pdf">Salvar página como PDF</string>
+    <string name="save_page_pdf">Salvar página</string>
     <string name="page_saved_as_pdf">Página salva como PDF</string>
     <string name="clip_renamed">Recorte renomeado</string>
     <string name="tool_group_maintenance">Manutenção</string>

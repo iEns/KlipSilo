@@ -731,10 +731,11 @@ class ClipboardViewModel(
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
                 } else {
                     val id = System.nanoTime()
+                    val stem = entry.previewText.replace(Regex("[_\\-]+"), " ").trim()
                     val preview =
                         localizedString(
                             com.phaprodevelop.klipsilo.R.string.html_from,
-                            entry.previewText.take(60),
+                            stem.take(60),
                         ).take(100)
                     val newEntry =
                         ClipboardEntry(

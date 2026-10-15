@@ -80,6 +80,7 @@
     <string name="search_hint">クリップを検索...</string>
     <string name="clear">クリア</string>
     <string name="clip_more_actions">その他の操作</string>
+    <string name="more_options">その他のオプション</string>
     <string name="selected">選択中</string>
     <string name="select_all">すべて選択</string>
     <string name="select_paragraph">段落を選択</string>
@@ -215,7 +216,7 @@
     <string name="clip_duplicated">クリップを複製しました</string>
     <string name="tool_combine_texts">テキストを結合</string>
     <string name="texts_combined">テキストを結合しました</string>
-    <string name="save_page_pdf">ページをPDFとして保存</string>
+    <string name="save_page_pdf">ページを保存</string>
     <string name="page_saved_as_pdf">ページをPDFとして保存しました</string>
     <string name="clip_renamed">クリップ名を変更しました</string>
     <string name="tool_group_maintenance">メンテナンス</string>

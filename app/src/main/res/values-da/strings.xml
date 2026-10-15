@@ -80,6 +80,7 @@
     <string name="search_hint">Søg i klip...</string>
     <string name="clear">Ryd</string>
     <string name="clip_more_actions">Flere handlinger</string>
+    <string name="more_options">Flere muligheder</string>
     <string name="selected">valgte</string>
     <string name="select_all">Vælg alle</string>
     <string name="select_paragraph">Vælg afsnit</string>
@@ -216,7 +217,7 @@
     <string name="clip_duplicated">Klip duplikeret</string>
     <string name="tool_combine_texts">Sammensæt tekster</string>
     <string name="texts_combined">Tekster sammensat</string>
-    <string name="save_page_pdf">Gem side som PDF</string>
+    <string name="save_page_pdf">Gem side</string>
     <string name="page_saved_as_pdf">Side gemt som PDF</string>
     <string name="clip_renamed">Klip omdøbt</string>
     <string name="tool_group_maintenance">Vedligehold</string>

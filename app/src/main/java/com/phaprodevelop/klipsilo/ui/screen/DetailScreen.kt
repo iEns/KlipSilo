@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import android.graphics.Bitmap
+import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -60,6 +62,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -67,6 +70,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -97,8 +101,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -203,6 +209,8 @@ fun DetailScreen(
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var fontSize by rememberSaveable { mutableStateOf(16) }
     var showPreview by remember { mutableStateOf(false) }
+    var htmlSourceShown by rememberSaveable(entryId) { mutableStateOf(false) }
+    val isHtmlDocument = remember(entryId) { looksLikeHtmlDocument(entry.textContent) }
     var previewPages by remember { mutableStateOf<List<Bitmap>?>(null) }
     val previewRecycler = rememberBitmapRecycler()
     val previewGate = remember { AtomicInteger(0) }
@@ -596,10 +604,32 @@ fun DetailScreen(
                         entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
                     if (entry.contentType == ContentType.TEXT) {
                         EditorToolButton(
-                            icon = if (showPreview) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = context.getString(R.string.preview),
+                            icon =
+                                if (isHtmlDocument && !htmlSourceShown) {
+                                    Icons.Filled.Visibility
+                                } else if (showPreview) {
+                                    Icons.Filled.VisibilityOff
+                                } else {
+                                    Icons.Filled.Visibility
+                                },
+                            contentDescription =
+                                if (isHtmlDocument) {
+                                    if (htmlSourceShown) {
+                                        context.getString(R.string.preview)
+                                    } else {
+                                        context.getString(R.string.source)
+                                    }
+                                } else {
+                                    context.getString(R.string.preview)
+                                },
                             enabled = editedText.text.isNotBlank(),
-                        ) { showPreview = !showPreview }
+                        ) {
+                            if (isHtmlDocument) {
+                                htmlSourceShown = !htmlSourceShown
+                            } else {
+                                showPreview = !showPreview
+                            }
+                        }
                         EditorToolButton(
                             icon = Icons.Filled.PictureAsPdf,
                             contentDescription = context.getString(R.string.text_to_pdf),
@@ -859,6 +889,30 @@ fun DetailScreen(
                                 loading = previewLoading,
                                 onPageTap = { previewZoomPage = it },
                                 modifier = Modifier.weight(1f),
+                            )
+                        } else if (isHtmlDocument && !htmlSourceShown) {
+                            AndroidView(
+                                factory = { ctx ->
+                                    WebView(ctx).apply {
+                                        settings.javaScriptEnabled = false
+                                        settings.builtInZoomControls = true
+                                        settings.displayZoomControls = false
+                                        settings.loadWithOverviewMode = true
+                                        settings.useWideViewPort = true
+                                    }
+                                },
+                                update = { webView ->
+                                    webView.loadData(
+                                        editedText.text,
+                                        "text/html",
+                                        null,
+                                    )
+                                },
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .imePadding(),
                             )
                         } else {
                             OutlinedTextField(
@@ -1222,35 +1276,41 @@ private fun PdfViewer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (pageCount > 1) {
-                    IconButton(
-                        onClick = {
-                            if (pageIndex > 0) {
-                                pageIndex--
-                                offsetX = 0f
-                                offsetY = 0f
-                                scale = 1f
-                            }
-                        },
-                        enabled = pageIndex > 0,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        IconButton(
+                            onClick = {
+                                if (pageIndex > 0) {
+                                    pageIndex--
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                    scale = 1f
+                                }
+                            },
+                            enabled = pageIndex > 0,
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
+                        }
                     }
                     Text(
                         text = "${pageIndex + 1} / $pageCount",
                         style = MaterialTheme.typography.labelMedium,
                     )
-                    IconButton(
-                        onClick = {
-                            if (pageIndex < pageCount - 1) {
-                                pageIndex++
-                                offsetX = 0f
-                                offsetY = 0f
-                                scale = 1f
-                            }
-                        },
-                        enabled = pageIndex < pageCount - 1,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        IconButton(
+                            onClick = {
+                                if (pageIndex < pageCount - 1) {
+                                    pageIndex++
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                    scale = 1f
+                                }
+                            },
+                            enabled = pageIndex < pageCount - 1,
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                        }
                     }
                 }
                 if (onSavePageAsPdf != null) {
@@ -1267,19 +1327,44 @@ private fun PdfViewer(
                         onClick = { onOcrPage(pageIndex) },
                     )
                 }
-                if (onExtractImages != null) {
-                    PdfBarAction(
-                        icon = Icons.Filled.Photo,
-                        label = context.getString(R.string.pdf_to_image),
-                        onClick = { onExtractImages(pageIndex) },
-                    )
-                }
-                if (onScanQr != null) {
-                    PdfBarAction(
-                        icon = Icons.Filled.QrCodeScanner,
-                        label = context.getString(R.string.scan_content),
-                        onClick = { onScanQr(pageIndex) },
-                    )
+                var extraMenuOpen by remember { mutableStateOf(false) }
+                Box {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        IconButton(
+                            onClick = { extraMenuOpen = true },
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = context.getString(R.string.more_options),
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = extraMenuOpen,
+                        onDismissRequest = { extraMenuOpen = false },
+                    ) {
+                        if (onExtractImages != null) {
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.pdf_to_image)) },
+                                leadingIcon = { Icon(Icons.Filled.Photo, null) },
+                                onClick = {
+                                    extraMenuOpen = false
+                                    onExtractImages(pageIndex)
+                                },
+                            )
+                        }
+                        if (onScanQr != null) {
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.scan_content)) },
+                                leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null) },
+                                onClick = {
+                                    extraMenuOpen = false
+                                    onScanQr(pageIndex)
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1313,10 +1398,15 @@ private fun PdfBarAction(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+private fun looksLikeHtmlDocument(text: String?): Boolean {
+    val head = text.orEmpty().trimStart().take(64).lowercase()
+    return head.startsWith("<!doctype html") || head.startsWith("<html")
 }
 
 private fun pdfFileTitle(entry: ClipboardEntry): String {

@@ -1413,26 +1413,37 @@ private fun MarkupChoices(
         colors.forEach { (argb, labelRes) ->
             val selected = color == argb
             val description = context.getString(labelRes)
-            Box(
-                modifier =
-                    Modifier
-                        .padding(horizontal = 3.dp)
-                        .size(28.dp)
-                        .semantics { contentDescription = description }
-                        .clip(CircleShape)
-                        .background(Color(argb))
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color =
-                                if (selected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline
-                                },
-                            shape = CircleShape,
-                        )
-                        .clickable { onColor(argb) },
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 3.dp),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(28.dp)
+                            .semantics { contentDescription = description }
+                            .clip(CircleShape)
+                            .background(Color(argb))
+                            .border(
+                                width = if (selected) 2.dp else 1.dp,
+                                color =
+                                    if (selected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outline
+                                    },
+                                shape = CircleShape,
+                            )
+                            .clickable { onColor(argb) },
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (pointLabel != null) {
             Spacer(Modifier.width(8.dp))
