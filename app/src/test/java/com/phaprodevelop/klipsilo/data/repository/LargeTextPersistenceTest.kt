@@ -63,7 +63,7 @@ class LargeTextPersistenceTest {
                 File(context.filesDir, "files").canonicalPath,
                 file.parentFile!!.canonicalPath,
             )
-            assertEquals("a".repeat(ClipboardRepository.MAX_PREVIEW_LENGTH) + "...", listRow.previewText)
+            assertEquals("a".repeat(60), listRow.previewText)
             assertEquals(text, full?.let { repo.readTextBody(it) })
             assertEquals(text, repo.readTextBody(listRow))
             assertEquals(text, file.readText())

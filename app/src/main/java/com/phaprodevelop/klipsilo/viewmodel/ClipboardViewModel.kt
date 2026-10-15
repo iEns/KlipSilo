@@ -28,6 +28,8 @@ import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.ThemeMode
 import com.phaprodevelop.klipsilo.data.settings.ThemeModeStore
+import com.phaprodevelop.klipsilo.data.textClipTitle
+import com.phaprodevelop.klipsilo.data.textTitleLooksAutomatic
 import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.obtainCurrentLocation
@@ -559,12 +561,7 @@ class ClipboardViewModel(
                         contentType = ContentType.TEXT,
                         textContent = content,
                         filePath = null,
-                        previewText =
-                            if (content.length > ClipboardRepository.MAX_PREVIEW_LENGTH) {
-                                content.take(ClipboardRepository.MAX_PREVIEW_LENGTH) + "..."
-                            } else {
-                                content
-                            },
+                        previewText = textClipTitle(content),
                         timestamp = System.currentTimeMillis(),
                     )
                 repository.insertEntry(textEntry)
@@ -671,12 +668,12 @@ class ClipboardViewModel(
             return base.previewText
         }
         val preview =
-            if (base.previewText.isBlank() && text.isNotBlank()) {
-                if (text.length > ClipboardRepository.MAX_PREVIEW_LENGTH) {
-                    text.take(ClipboardRepository.MAX_PREVIEW_LENGTH) + "..."
-                } else {
-                    text
-                }
+            if (base.contentType == ContentType.TEXT &&
+                (base.previewText.isBlank() || textTitleLooksAutomatic(base.previewText))
+            ) {
+                textClipTitle(text).ifBlank { base.previewText }
+            } else if (base.previewText.isBlank() && text.isNotBlank()) {
+                textClipTitle(text)
             } else {
                 base.previewText
             }
@@ -925,12 +922,7 @@ class ClipboardViewModel(
                 contentType = ContentType.TEXT,
                 textContent = text,
                 filePath = null,
-                previewText =
-                    if (text.length > ClipboardRepository.MAX_PREVIEW_LENGTH) {
-                        text.take(ClipboardRepository.MAX_PREVIEW_LENGTH) + "..."
-                    } else {
-                        text
-                    },
+                previewText = textClipTitle(text),
                 timestamp = System.currentTimeMillis(),
             )
         repository.insertEntry(entry)
@@ -1187,7 +1179,7 @@ class ClipboardViewModel(
                         val full = repository.getClip(entry.id) ?: entry
                         full.copy(
                             textContent = entry.textContent ?: full.textContent,
-                            previewText = entry.previewText.ifBlank { full.previewText },
+                            previewText = previewForUpdatedClip(full, entry),
                             timestamp = entry.timestamp,
                             isPinned = entry.isPinned,
                             isLocked = entry.isLocked,
@@ -1204,6 +1196,27 @@ class ClipboardViewModel(
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
             }
         }
+    }
+
+    private fun previewForUpdatedClip(
+        stored: ClipboardEntry,
+        incoming: ClipboardEntry,
+    ): String {
+        val body = incoming.textContent ?: stored.textContent.orEmpty()
+        val requested = incoming.previewText
+        if (incoming.contentType == ContentType.TEXT) {
+            if (requested.isNotBlank() &&
+                requested != stored.previewText &&
+                !textTitleLooksAutomatic(requested)
+            ) {
+                return requested
+            }
+            if (stored.previewText.isNotBlank() && !textTitleLooksAutomatic(stored.previewText)) {
+                return stored.previewText
+            }
+            return textClipTitle(body).ifBlank { stored.previewText }
+        }
+        return requested.ifBlank { stored.previewText }
     }
 
     fun togglePin(entry: ClipboardEntry) {

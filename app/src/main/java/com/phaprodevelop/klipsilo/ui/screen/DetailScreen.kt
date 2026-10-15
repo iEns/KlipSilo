@@ -594,10 +594,8 @@ fun DetailScreen(
                                         val preview =
                                             if (textToShare.isBlank()) {
                                                 ""
-                                            } else if (textToShare.length > 100) {
-                                                textToShare.take(100) + "..."
                                             } else {
-                                                textToShare
+                                                com.phaprodevelop.klipsilo.data.textClipTitle(textToShare)
                                             }
                                         entry.copy(
                                             textContent = textToShare.ifBlank { null },
@@ -639,10 +637,8 @@ fun DetailScreen(
                                     val preview =
                                         if (txt.isBlank()) {
                                             ""
-                                        } else if (txt.length > 100) {
-                                            txt.take(100) + "..."
                                         } else {
-                                            txt
+                                            com.phaprodevelop.klipsilo.data.textClipTitle(txt)
                                         }
                                     entry.copy(
                                         textContent = txt.ifBlank { null },

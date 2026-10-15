@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -131,7 +132,9 @@ fun ClipActionSheet(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 Text(
-                    text = entry.previewText.ifBlank { context.getString(R.string.untitled_clip) },
+                    text =
+                        clipListTitle(entry.contentType, entry.previewText)
+                            .ifBlank { context.getString(R.string.untitled_clip) },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

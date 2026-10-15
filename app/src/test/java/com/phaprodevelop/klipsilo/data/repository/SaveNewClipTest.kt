@@ -65,7 +65,7 @@ class SaveNewClipTest {
         }
 
     @Test
-    fun textLongerThan100_previewTruncatedWithEllipsis() =
+    fun textLongerThanTitle_previewIsShortTitle() =
         runTest {
             // Arrange
             val text = "a".repeat(120)
@@ -78,9 +78,7 @@ class SaveNewClipTest {
             assertEquals(SaveClipResult.Saved, result)
             assertEquals(ContentType.TEXT, item.contentType)
             assertEquals(text, item.textContent)
-            assertEquals(103, item.previewText.length)
-            assertTrue(item.previewText.endsWith("..."))
-            assertEquals("a".repeat(100) + "...", item.previewText)
+            assertEquals("a".repeat(60), item.previewText)
         }
 
     @Test

@@ -296,12 +296,7 @@ class ClipboardRepository(
             }
             text != null -> {
                 contentType = ContentType.TEXT
-                previewText =
-                    if (text.length > MAX_PREVIEW_LENGTH) {
-                        text.take(MAX_PREVIEW_LENGTH) + "..."
-                    } else {
-                        text
-                    }
+                previewText = com.phaprodevelop.klipsilo.data.textClipTitle(text)
                 when (val persisted = persistTextBody(text)) {
                     PersistTextResult.TooLarge -> return SaveClipResult.TooLarge
                     PersistTextResult.Failed -> return SaveClipResult.Failed
@@ -522,7 +517,7 @@ class ClipboardRepository(
             when (entry.contentType) {
                 ContentType.IMAGE, ContentType.PDF, ContentType.FILE -> renameFileClip(entry, newName)
                 else -> {
-                    val cleanName = newName.trim()
+                    val cleanName = newName.replace('\n', ' ').replace('\r', ' ').trim()
                     if (cleanName.isBlank()) return false
                     dao.updatePreviewText(entry.id, cleanName)
                     true

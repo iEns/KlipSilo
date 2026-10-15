@@ -77,8 +77,10 @@ import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import coil.compose.AsyncImage
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.textClipTitle
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -271,7 +273,14 @@ fun KlipScreen(
 
     if (showRenameDialog && renameEntry != null) {
         val entry = renameEntry!!
-        val currentName = entry.previewText
+        val currentName =
+            if (entry.contentType == ContentType.TEXT) {
+                textClipTitle(entry.previewText).ifBlank {
+                    entry.previewText.lineSequence().firstOrNull().orEmpty().take(60)
+                }
+            } else {
+                entry.previewText
+            }
         var renameText by remember(entry) { mutableStateOf(currentName) }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
@@ -649,7 +658,9 @@ private fun ClipItemRow(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = entry.previewText.ifBlank { context.getString(R.string.untitled_clip) },
+                    text =
+                        clipListTitle(entry.contentType, entry.previewText)
+                            .ifBlank { context.getString(R.string.untitled_clip) },
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
