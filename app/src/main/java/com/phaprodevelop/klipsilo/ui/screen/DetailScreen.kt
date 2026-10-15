@@ -91,6 +91,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
@@ -716,10 +718,14 @@ fun DetailScreen(
                                         ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
                                         showMdDialog = true
                                     },
+                                    modifier =
+                                        Modifier.clearAndSetSemantics {
+                                            contentDescription = context.getString(R.string.md_title)
+                                        },
                                     enabled = !showPreview,
                                 ) {
                                     Text(
-                                        text = "MD",
+                                        text = context.getString(R.string.md_mark),
                                         style =
                                             MaterialTheme.typography.labelLarge.copy(
                                                 fontFamily = FontFamily.Monospace,
@@ -927,10 +933,14 @@ private fun MdToolButton(
             ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
             onClick()
         },
+        modifier =
+            Modifier.clearAndSetSemantics {
+                contentDescription = context.getString(R.string.md_title)
+            },
         enabled = enabled,
     ) {
         Text(
-            text = "MD",
+            text = context.getString(R.string.md_mark),
             style =
                 MaterialTheme.typography.labelLarge.copy(
                     fontFamily = FontFamily.Monospace,

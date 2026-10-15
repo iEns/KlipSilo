@@ -130,7 +130,7 @@
     <string name="html">HTML</string>
     <string name="tools_subtitle">Konverter, scan og udtræk — samlet ét sted</string>
     <string name="tool_group_convert">Konverter</string>
-    <string name="tool_group_ocr">OCR &amp; scanning</string>
+    <string name="tool_group_ocr">OCR og skanning</string>
     <string name="tool_text_pdf">Tekst → PDF</string>
     <string name="tool_text_txt">Tekst → TXT</string>
     <string name="tool_text_html">Tekst → HTML</string>
@@ -179,7 +179,7 @@
     <string name="save">Gem</string>
     <string name="captured">Billede taget</string>
     <string name="file_cannot_open">Filen kan ikke åbnes</string>
-    <string name="text_editor">Edit</string>
+    <string name="text_editor">Rediger</string>
     <string name="preview">Forhåndsvisning</string>
     <string name="no_content_preview">Intet indhold at forhåndsvise</string>
     <string name="text_presentation">Tekst præsentation</string>
@@ -189,11 +189,12 @@
     <string name="reader_dark_full">Mørk + fuld lysstyrke</string>
     <string name="reader_light_full">Lys + fuld lysstyrke</string>
     <string name="reader_page_turn">Bladre</string>
-    <string name="reader_scroll">Scroll</string>
+    <string name="reader_scroll">Rul</string>
+    <string name="reader_theme">Tema</string>
     <string name="reader_page">Side %1$d / %2$d</string>
     <string name="reader_empty">(tom tekst)</string>
-    <string name="reader_play">Auto-scroll start</string>
-    <string name="reader_pause">Auto-scroll stop</string>
+    <string name="reader_play">Start autorulning</string>
+    <string name="reader_pause">Stop autorulning</string>
     <string name="speed_2">Langsom</string>
     <string name="speed_3">Mellem</string>
     <string name="speed_4">Hurtig</string>
@@ -226,12 +227,12 @@
     <string name="delete_type_confirm">Slet alle %1$d %2$s-klip?</string>
     <string name="delete_all_confirm_count">Slet alle %1$d klip?</string>
     <string name="find_links">Find links &amp; numre</string>
-    <string name="scan_content">Scan QR</string>
+    <string name="scan_content">Læs QR</string>
     <string name="save_to_clip">Gem til klip</string>
     <string name="no_qr_found">Ingen QR-kode fundet</string>
     <string name="analyzing">Analyserer…</string>
     <string name="tool_annotate_pdf">Tilføj tekst og streger til PDF</string>
-    <string name="annotate_title">Add</string>
+    <string name="annotate_title">Markér PDF</string>
     <string name="add_text_annotation">Tilføj tekst</string>
     <string name="save_pdf">Gem PDF</string>
     <string name="done">Færdig</string>
@@ -256,7 +257,7 @@
     <string name="tool_group_guide">Vejledning</string>
     <string name="tips">Tips</string>
     <string name="tips_cat_clips">Klip</string>
-    <string name="tips_cat_sheet">Action-sheet</string>
+    <string name="tips_cat_sheet">Handlingsmenu</string>
     <string name="tips_cat_pdf">PDF</string>
     <string name="tips_cat_tools">Værktøjer</string>
     <string name="tips_cat_camera">Kamera, OCR &amp; QR</string>
@@ -283,7 +284,7 @@
     <string name="tip_sheet_links_b">På tekst- og PDF-klip kan du finde URL\'er og telefonnumre og åbne eller ringe til dem.</string>
     <string name="tip_sheet_convert_t">Konverter filer</string>
     <string name="tip_sheet_convert_b">Fil-klip kan konverteres til PDF eller ren tekst (txt, rtf, docx, xlsx) — ukendte formater kan prøves som tekst, og docx/xlsx/rtf vises direkte som læsbar tekst.</string>
-    <string name="tip_pdf_zoom_t">Zoom &amp; pan</string>
+    <string name="tip_pdf_zoom_t">Zoom og panorering</string>
     <string name="tip_pdf_zoom_b">Zoom med to fingre og panorer, når du er zoomet ind. Sider starter i 1×.</string>
     <string name="tip_pdf_pages_t">Bladr i sider</string>
     <string name="tip_pdf_pages_b">Brug pilene til at skifte side, gem en enkelt side som sin egen PDF, eller udtræk sidens billeder som nye billede-klip.</string>
@@ -301,7 +302,7 @@
     <string name="tip_tools_annotate_b">Tilføj tekst, tegn lige streger eller frihåndsstreger, og gem en ny PDF fra topbaren.</string>
     <string name="tip_tools_maintenance_t">Vedligehold</string>
     <string name="tip_tools_maintenance_b">Slet klip efter type — eller dem alle — med mulighed for fortryd. Låste klip tælles ikke med ved sletning og slettes ikke. Gem alle klip som en zip-fil via \"Backup af klip\" og vælg selv stedet (fx Google Drive). Filnavnet indeholder dato. \"Indlæs backup\" indlæser en eller flere tidligere gemte zip-filer — nye klip lægges til, intet overskrives, og fastgjort-/lås-status og tidspunkt bevares.</string>
-    <string name="tip_camera_scan_t">Scanning</string>
+    <string name="tip_camera_scan_t">Skanning</string>
     <string name="tip_camera_scan_b">Læs QR-koder med kameraet, og kør OCR fra kameraet, et billede-klip eller en PDF — fra billedscanning kan du desuden gemme et udsnit som billede-klip.</string>
     <string name="tip_settings_lang_t">Sprog &amp; display</string>
     <string name="tip_settings_lang_b">Skift sprog og vælg display-tilstand (System, Lys, Mørk) — kun for KlipSilo.</string>
@@ -332,9 +333,10 @@
     <string name="decrease_text_size">Formindsk tekst</string>
     <string name="increase_text_size">Forstør tekst</string>
     <string name="md_title">Indsæt Markdown</string>
+    <string name="md_mark">MD</string>
     <string name="md_bold">Fed</string>
     <string name="md_italic">Kursiv</string>
-    <string name="md_underscore">Underscore</string>
+    <string name="md_underscore">Understregning</string>
     <string name="md_strike">Gennemstreget</string>
     <string name="md_h1">Overskrift 1</string>
     <string name="md_h2">Overskrift 2</string>

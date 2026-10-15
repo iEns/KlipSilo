@@ -139,7 +139,7 @@ fun TextPresentationScreen(
                                     isDarkReader -> Icons.Default.DarkMode
                                     else -> Icons.Default.LightMode
                                 },
-                                contentDescription = "Tema",
+                                contentDescription = stringResource(R.string.reader_theme),
                             )
                         }
                         DropdownMenu(expanded = showThemeMenu, onDismissRequest = { showThemeMenu = false }) {
