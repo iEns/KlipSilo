@@ -88,6 +88,8 @@ fun TextPresentationScreen(
     val title =
         entry?.let {
             clipListTitle(it.contentType, it.previewText).ifBlank {
+                clipListTitle(it.contentType, text)
+            }.ifBlank {
                 stringResource(R.string.untitled_clip)
             }
         } ?: stringResource(R.string.text_presentation)

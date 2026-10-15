@@ -52,4 +52,65 @@ class TextClipTitleTest {
         assertEquals("Lemon Garlic Pasta", clipListTitle(ContentType.TEXT, "# Lemon Garlic Pasta"))
         assertEquals("notes.pdf", clipListTitle(ContentType.PDF, "notes.pdf"))
     }
+
+    @Test
+    fun setextHeading_wins_overLaterAtxHeading() {
+        val recipe =
+            "Citronpasta med hvidløg\n" +
+                "=======================\n" +
+                "\n" +
+                "*Til 2 personer - klar på 20 minutter*\n" +
+                "\n" +
+                "## Ingredienser\n" +
+                "- 200 g spaghetti\n"
+        assertEquals("Citronpasta med hvidløg", textClipTitle(recipe))
+    }
+
+    @Test
+    fun setextHeading_levelTwo_usesDashes() {
+        assertEquals("Citronpasta", textClipTitle("Citronpasta\n>\n---\n\n## Ris"))
+        assertEquals("Citronpasta", textClipTitle("Citronpasta\n---\n\n## Ris"))
+    }
+
+    @Test
+    fun setextUnderline_withoutTextBefore_isSkipped() {
+        assertEquals("Lemon", textClipTitle("-----\n\n# Lemon\n"))
+    }
+
+    @Test
+    fun setextUnderline_afterAnotherUnderline_doesNotRebind() {
+        assertEquals("=== band", textClipTitle("=== band\n====\n\n# Real"))
+    }
+
+    @Test
+    fun atxHeading_wins_whenItComesFirst() {
+        assertEquals("Lemon Garlic Pasta", textClipTitle("# Lemon Garlic Pasta\n\nTitle\n====="))
+    }
+
+    @Test
+    fun title_fromRawStoredBody_isSingleLine() {
+        val stored =
+            "Ingredienser\n" +
+                "- 200 g spaghetti\n" +
+                "- 3 fed hvidløg i tynde skiver\n" +
+                "- 1 citron, skal og saft\n"
+        val title = clipListTitle(ContentType.TEXT, stored)
+        assertEquals("Ingredienser", title)
+        assertTrue(title.lines().size == 1)
+    }
+
+    @Test
+    fun clipListTitle_neverReturnsMultiLineRaw() {
+        val raw = "Weekend_i_i_København\nstray line"
+        val title = clipListTitle(ContentType.PDF, raw)
+        assertEquals(1, title.lines().size)
+        assertFalse(title.contains('\n'))
+        assertTrue(clipListTitle(ContentType.TEXT, "\n\n##\n## Lemon\nbody").contains('\n').not())
+    }
+
+    @Test
+    fun markerOnlyFirstTitle_fallsBackToReadableLine() {
+        assertEquals("Lemon", clipListTitle(ContentType.TEXT, "##\n\n- Lemon\nrest"))
+        assertEquals("Buy milk", clipListTitle(ContentType.TEXT, "- [ ] Buy milk\n- [ ] Bread"))
+    }
 }

@@ -83,7 +83,6 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
-import com.phaprodevelop.klipsilo.data.textClipTitle
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -276,14 +275,7 @@ fun KlipScreen(
 
     if (showRenameDialog && renameEntry != null) {
         val entry = renameEntry!!
-        val currentName =
-            if (entry.contentType == ContentType.TEXT) {
-                textClipTitle(entry.previewText).ifBlank {
-                    entry.previewText.lineSequence().firstOrNull().orEmpty().take(60)
-                }
-            } else {
-                entry.previewText
-            }
+        val currentName = clipListTitle(entry.contentType, entry.previewText)
         var renameText by remember(entry) { mutableStateOf(currentName) }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
