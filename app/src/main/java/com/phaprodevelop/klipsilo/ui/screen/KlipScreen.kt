@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -63,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
@@ -488,43 +490,59 @@ private fun FilterRow(
                     ClipFilter.LOCKED -> context.getString(R.string.locked)
                 }
         }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        options.forEach { (filter, label) ->
-            val active = selected == filter
-            Card(
-                onClick = {
-                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                    onSelect(if (active) ClipFilter.ALL else filter)
-                },
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
+    val scroll = rememberScrollState()
+    val fade = MaterialTheme.colorScheme.background
+    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(scroll),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            options.forEach { (filter, label) ->
+                val active = selected == filter
+                Card(
+                    onClick = {
+                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                        onSelect(if (active) ClipFilter.ALL else filter)
+                    },
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                if (active) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                        ),
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color =
                             if (active) {
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.onPrimary
                             } else {
-                                MaterialTheme.colorScheme.surfaceVariant
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                    ),
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color =
-                        if (active) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                )
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
             }
+        }
+        if (scroll.canScrollBackward || scroll.canScrollForward) {
+            val start = if (scroll.canScrollBackward) fade else Color.Transparent
+            val end = if (scroll.canScrollForward) fade else Color.Transparent
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            0f to start,
+                            0.08f to Color.Transparent,
+                            0.92f to Color.Transparent,
+                            1f to end,
+                        ),
+                    ),
+            )
         }
     }
 }
