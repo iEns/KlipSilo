@@ -3,6 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">还没有保存的剪贴</string>
     <string name="untitled_clip">(无标题)</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="filter_no_results">No %1$s clips yet</string>
+    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="clip_not_found">这条剪贴已不存在</string>
     <string name="no_clips_description">复制文本、图片、URL 或 PDF，它们会显示在这里</string>
     <string name="copied_to_clipboard">已复制到剪贴板</string>

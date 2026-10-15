@@ -1,5 +1,6 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,6 +74,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -350,32 +353,41 @@ fun KlipScreen(
                     .fillMaxWidth()
                     .weight(1f),
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 88.dp),
-                ) {
-                    items(filtered, key = { it.id }) { entry ->
-                        val deleteWithUndo: () -> Unit = {
-                            viewModel.deleteClipWithUndo(entry)
-                        }
-                        SwipeToDelete(
-                            enabled = !entry.isLocked,
-                            onDelete = deleteWithUndo,
-                            onDeleteUndo = deleteWithUndo,
-                        ) {
-                            ClipItemRow(
-                                entry = entry,
-                                onClick = { openClip(entry, viewModel, onOpenClip, onOpenPresentation) },
-                                onDoubleTap =
-                                    when (entry.contentType) {
-                                        ContentType.URL -> ({ viewModel.openUrl(entry) })
-                                        ContentType.LOCATION -> ({ viewModel.openLocation(entry) })
-                                        else -> null
-                                    },
-                                onTogglePin = { viewModel.togglePin(entry) },
-                                onOpenSheet = { sheetEntry = entry },
-                            )
+                if (filtered.isEmpty()) {
+                    EmptyListMessage(
+                        listEmpty = clips.isEmpty(),
+                        query = searchQuery,
+                        filter = filter,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 88.dp),
+                    ) {
+                        items(filtered, key = { it.id }) { entry ->
+                            val deleteWithUndo: () -> Unit = {
+                                viewModel.deleteClipWithUndo(entry)
+                            }
+                            SwipeToDelete(
+                                enabled = !entry.isLocked,
+                                onDelete = deleteWithUndo,
+                                onDeleteUndo = deleteWithUndo,
+                            ) {
+                                ClipItemRow(
+                                    entry = entry,
+                                    onClick = { openClip(entry, viewModel, onOpenClip, onOpenPresentation) },
+                                    onDoubleTap =
+                                        when (entry.contentType) {
+                                            ContentType.URL -> ({ viewModel.openUrl(entry) })
+                                            ContentType.LOCATION -> ({ viewModel.openLocation(entry) })
+                                            else -> null
+                                        },
+                                    onTogglePin = { viewModel.togglePin(entry) },
+                                    onOpenSheet = { sheetEntry = entry },
+                                )
+                            }
                         }
                     }
                 }
@@ -472,6 +484,62 @@ private fun CompactSearchField(
         },
     )
 }
+
+@Composable
+private fun EmptyListMessage(
+    listEmpty: Boolean,
+    query: String,
+    filter: ClipFilter,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val title =
+        when {
+            listEmpty -> stringResource(R.string.no_clips_yet)
+            query.isNotBlank() -> stringResource(R.string.search_no_results, query.trim())
+            filter != ClipFilter.ALL -> stringResource(R.string.filter_no_results, filterChipLabel(context, filter))
+            else -> stringResource(R.string.no_clips_yet)
+        }
+    val hint =
+        if (listEmpty) {
+            stringResource(R.string.no_clips_description)
+        } else {
+            stringResource(R.string.empty_list_hint)
+        }
+    Column(
+        modifier = modifier.padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = hint,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private fun filterChipLabel(
+    context: Context,
+    filter: ClipFilter,
+): String =
+    when (filter) {
+        ClipFilter.ALL -> context.getString(R.string.all)
+        ClipFilter.TEXT -> context.getString(R.string.text)
+        ClipFilter.URL -> context.getString(R.string.url)
+        ClipFilter.IMAGE -> context.getString(R.string.image)
+        ClipFilter.PDF -> context.getString(R.string.pdf)
+        ClipFilter.FILE -> context.getString(R.string.file)
+        ClipFilter.LOCATION -> context.getString(R.string.location)
+        ClipFilter.LOCKED -> context.getString(R.string.locked)
+    }
 
 @Composable
 private fun FilterRow(

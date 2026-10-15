@@ -3,6 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">Nessun ritaglio salvato</string>
     <string name="untitled_clip">(senza titolo)</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="filter_no_results">No %1$s clips yet</string>
+    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="clip_not_found">Questo ritaglio non esiste più</string>
     <string name="no_clips_description">Copia testo, immagini, URL o PDF: compariranno qui</string>
     <string name="copied_to_clipboard">Copiato negli appunti</string>

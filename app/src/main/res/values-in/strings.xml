@@ -3,6 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">Belum ada klip tersimpan</string>
     <string name="untitled_clip">(tanpa judul)</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="filter_no_results">No %1$s clips yet</string>
+    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="clip_not_found">Klip ini sudah tidak ada</string>
     <string name="no_clips_description">Salin teks, gambar, URL, atau PDF dan semuanya muncul di sini</string>
     <string name="copied_to_clipboard">Disalin ke papan klip</string>

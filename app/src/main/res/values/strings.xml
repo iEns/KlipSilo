@@ -5,6 +5,9 @@
     <string name="untitled_clip">(untitled)</string>
     <string name="clip_not_found">This clip no longer exists</string>
     <string name="no_clips_description">Copy text, images, URLs or PDFs and they will appear here</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="filter_no_results">No %1$s clips yet</string>
+    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="clip_deleted">Clip deleted</string>
     <string name="all_deleted">All clips deleted</string>

@@ -3,6 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">저장된 클립이 아직 없습니다</string>
     <string name="untitled_clip">(제목 없음)</string>
+    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="filter_no_results">No %1$s clips yet</string>
+    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="clip_not_found">이 클립은 더 이상 없습니다</string>
     <string name="no_clips_description">텍스트, 이미지, URL 또는 PDF를 복사하면 여기에 표시됩니다</string>
     <string name="copied_to_clipboard">클립보드에 복사했습니다</string>
