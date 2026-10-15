@@ -3,9 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">Nenhum recorte salvo ainda</string>
     <string name="untitled_clip">(sem título)</string>
-    <string name="search_no_results">No results for “%1$s”</string>
-    <string name="filter_no_results">No %1$s clips yet</string>
-    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
+    <string name="search_no_results">Nenhum resultado para “%1$s”</string>
+    <string name="filter_no_results">Nenhum recorte de %1$s ainda</string>
+    <string name="empty_list_hint">Limpe a busca ou o filtro para ver todos os recortes</string>
     <string name="clip_not_found">Este recorte não existe mais</string>
     <string name="no_clips_description">Copie texto, imagens, URLs ou PDFs e eles aparecerão aqui</string>
     <string name="copied_to_clipboard">Copiado para a área de transferência</string>

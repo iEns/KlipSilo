@@ -3,9 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">Aucun extrait enregistré</string>
     <string name="untitled_clip">(sans titre)</string>
-    <string name="search_no_results">No results for “%1$s”</string>
-    <string name="filter_no_results">No %1$s clips yet</string>
-    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
+    <string name="search_no_results">Aucun résultat pour « %1$s »</string>
+    <string name="filter_no_results">Aucun extrait de type %1$s</string>
+    <string name="empty_list_hint">Effacez la recherche ou le filtre pour tout afficher</string>
     <string name="clip_not_found">Cet extrait n\'existe plus</string>
     <string name="no_clips_description">Copiez du texte, des images, des URL ou des PDF : ils apparaîtront ici</string>
     <string name="copied_to_clipboard">Copié dans le presse-papiers</string>

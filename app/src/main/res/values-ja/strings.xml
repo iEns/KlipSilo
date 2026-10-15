@@ -3,9 +3,9 @@
     <string name="app_name">KlipSilo</string>
     <string name="no_clips_yet">保存されたクリップはまだありません</string>
     <string name="untitled_clip">(無題)</string>
-    <string name="search_no_results">No results for “%1$s”</string>
-    <string name="filter_no_results">No %1$s clips yet</string>
-    <string name="empty_list_hint">Clear the search or filter to see all clips</string>
+    <string name="search_no_results">「%1$s」の結果はありません</string>
+    <string name="filter_no_results">%1$sのクリップはまだありません</string>
+    <string name="empty_list_hint">検索またはフィルタを解除するとすべて表示されます</string>
     <string name="clip_not_found">このクリップはもうありません</string>
     <string name="no_clips_description">テキスト、画像、URL、PDFをコピーするとここに表示されます</string>
     <string name="copied_to_clipboard">クリップボードにコピーしました</string>
