@@ -246,6 +246,9 @@
     <string name="tool_annotate_pdf">PDF\'ye metin ve çizgi ekle</string>
     <string name="annotate_title">İşaretle</string>
     <string name="add_text_annotation">Metin ekle</string>
+    <string name="markup_tool_text">Metin</string>
+    <string name="markup_tool_line">Çizgi</string>
+    <string name="markup_tool_draw">Çiz</string>
     <string name="save_pdf">PDF\'yi kaydet</string>
     <string name="done">Bitti</string>
     <string name="remove">Kaldır</string>

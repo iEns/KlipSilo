@@ -246,6 +246,9 @@
     <string name="tool_annotate_pdf">Tilføj tekst og streger til PDF</string>
     <string name="annotate_title">Markér</string>
     <string name="add_text_annotation">Tilføj tekst</string>
+    <string name="markup_tool_text">Tekst</string>
+    <string name="markup_tool_line">Linje</string>
+    <string name="markup_tool_draw">Tegn</string>
     <string name="save_pdf">Gem PDF</string>
     <string name="done">Færdig</string>
     <string name="remove">Fjern</string>

@@ -246,6 +246,9 @@
     <string name="tool_annotate_pdf">Text und Striche zum PDF hinzufügen</string>
     <string name="annotate_title">Markieren</string>
     <string name="add_text_annotation">Text hinzufügen</string>
+    <string name="markup_tool_text">Text</string>
+    <string name="markup_tool_line">Linie</string>
+    <string name="markup_tool_draw">Zeichnen</string>
     <string name="save_pdf">PDF speichern</string>
     <string name="done">Fertig</string>
     <string name="remove">Entfernen</string>

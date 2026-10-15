@@ -35,10 +35,10 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,6 +80,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -950,8 +951,9 @@ fun AnnotatePdfScreen(
                             annotationMode = true
                             drawMode = false
                         },
-                        icon = Icons.Filled.Edit,
-                        contentDescription = context.getString(R.string.add_text_annotation),
+                        icon = Icons.Filled.Title,
+                        contentDescription = context.getString(R.string.markup_tool_text),
+                        label = context.getString(R.string.markup_tool_text),
                         active = annotationMode,
                     )
                     Spacer(Modifier.width(8.dp))
@@ -968,7 +970,8 @@ fun AnnotatePdfScreen(
                             }
                         },
                         icon = Icons.Filled.ShowChart,
-                        contentDescription = context.getString(R.string.straight_line),
+                        contentDescription = context.getString(R.string.markup_tool_line),
+                        label = context.getString(R.string.markup_tool_line),
                         active = drawMode && straightMode,
                     )
                     Spacer(Modifier.width(8.dp))
@@ -985,7 +988,8 @@ fun AnnotatePdfScreen(
                             }
                         },
                         icon = Icons.Filled.Gesture,
-                        contentDescription = context.getString(R.string.freehand),
+                        contentDescription = context.getString(R.string.markup_tool_draw),
+                        label = context.getString(R.string.markup_tool_draw),
                         active = drawMode && !straightMode,
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1146,32 +1150,45 @@ private fun CompactIconButton(
     contentDescription: String?,
     enabled: Boolean = true,
     active: Boolean = false,
+    label: String? = null,
 ) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier =
-            Modifier
-                .size(40.dp)
-                .background(
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .background(
+                        if (active) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        },
+                        CircleShape,
+                    ),
+        ) {
+            Icon(
+                icon,
+                contentDescription,
+                tint =
                     if (active) {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.onPrimary
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    CircleShape,
-                ),
-    ) {
-        Icon(
-            icon,
-            contentDescription,
-            tint =
-                if (active) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-        )
+            )
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

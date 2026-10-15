@@ -248,6 +248,9 @@
     <string name="tool_annotate_pdf">Добавить текст и штрихи в PDF</string>
     <string name="annotate_title">Разметка</string>
     <string name="add_text_annotation">Добавить текст</string>
+    <string name="markup_tool_text">Текст</string>
+    <string name="markup_tool_line">Линия</string>
+    <string name="markup_tool_draw">Рисунок</string>
     <string name="save_pdf">Сохранить PDF</string>
     <string name="done">Готово</string>
     <string name="remove">Убрать</string>

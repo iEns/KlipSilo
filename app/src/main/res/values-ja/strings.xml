@@ -245,6 +245,9 @@
     <string name="tool_annotate_pdf">PDFにテキストとストロークを追加</string>
     <string name="annotate_title">マークアップ</string>
     <string name="add_text_annotation">テキストを追加</string>
+    <string name="markup_tool_text">テキスト</string>
+    <string name="markup_tool_line">線</string>
+    <string name="markup_tool_draw">描く</string>
     <string name="save_pdf">PDFを保存</string>
     <string name="done">完了</string>
     <string name="remove">削除</string>

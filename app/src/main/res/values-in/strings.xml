@@ -245,6 +245,9 @@
     <string name="tool_annotate_pdf">Tambahkan teks &amp; goresan ke PDF</string>
     <string name="annotate_title">Tandai</string>
     <string name="add_text_annotation">Tambahkan teks</string>
+    <string name="markup_tool_text">Teks</string>
+    <string name="markup_tool_line">Garis</string>
+    <string name="markup_tool_draw">Gambar</string>
     <string name="save_pdf">Simpan PDF</string>
     <string name="done">Selesai</string>
     <string name="remove">Hapus</string>

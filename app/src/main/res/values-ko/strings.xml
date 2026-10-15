@@ -245,6 +245,9 @@
     <string name="tool_annotate_pdf">PDF에 텍스트와 획 추가</string>
     <string name="annotate_title">마크업</string>
     <string name="add_text_annotation">텍스트 추가</string>
+    <string name="markup_tool_text">텍스트</string>
+    <string name="markup_tool_line">선</string>
+    <string name="markup_tool_draw">그리기</string>
     <string name="save_pdf">PDF 저장</string>
     <string name="done">완료</string>
     <string name="remove">제거</string>
