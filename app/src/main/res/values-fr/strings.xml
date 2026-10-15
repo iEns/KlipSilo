@@ -395,6 +395,8 @@
     <string name="stroke_medium">Moyen</string>
     <string name="stroke_thick">Épais</string>
     <string name="stroke_heavy">Très épais</string>
+    <string name="markup_leave_title">Enregistrer les modifications dans un nouveau PDF ?</string>
+    <string name="markup_leave_message">Le PDF original reste inchangé.</string>
     <string name="pdf_not_generated">PDF non généré</string>
     <string name="pdf_not_generated_message">Il y a des modifications, mais aucun PDF n\'a encore été généré. Si vous quittez maintenant, elles seront perdues.</string>
     <string name="tool_use_cases">Où l\'appli aide</string>

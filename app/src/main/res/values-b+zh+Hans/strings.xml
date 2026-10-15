@@ -393,6 +393,8 @@
     <string name="stroke_medium">中</string>
     <string name="stroke_thick">粗</string>
     <string name="stroke_heavy">很粗</string>
+    <string name="markup_leave_title">将更改另存为新的 PDF？</string>
+    <string name="markup_leave_message">原始 PDF 保持不变。</string>
     <string name="pdf_not_generated">尚未生成 PDF</string>
     <string name="pdf_not_generated_message">已有更改，但还没有生成 PDF。现在离开就会丢失。</string>
     <string name="tool_use_cases">应用能帮上忙的场景</string>

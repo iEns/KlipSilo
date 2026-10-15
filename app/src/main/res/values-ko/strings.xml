@@ -393,6 +393,8 @@
     <string name="stroke_medium">보통</string>
     <string name="stroke_thick">굵게</string>
     <string name="stroke_heavy">매우 굵게</string>
+    <string name="markup_leave_title">변경 내용을 새 PDF로 저장할까요?</string>
+    <string name="markup_leave_message">원래 PDF는 그대로 둡니다.</string>
     <string name="pdf_not_generated">PDF가 아직 생성되지 않았습니다</string>
     <string name="pdf_not_generated_message">변경은 있지만 아직 PDF가 생성되지 않았습니다. 지금 나가면 사라집니다.</string>
     <string name="tool_use_cases">앱이 도움이 되는 경우</string>

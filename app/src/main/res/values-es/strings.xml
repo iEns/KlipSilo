@@ -394,6 +394,8 @@
     <string name="stroke_medium">Medio</string>
     <string name="stroke_thick">Grueso</string>
     <string name="stroke_heavy">Muy grueso</string>
+    <string name="markup_leave_title">¿Guardar los cambios como un PDF nuevo?</string>
+    <string name="markup_leave_message">El PDF original no se modifica.</string>
     <string name="pdf_not_generated">PDF no generado</string>
     <string name="pdf_not_generated_message">Hay cambios, pero todavía no se ha generado un PDF. Si sales ahora, se perderán.</string>
     <string name="tool_use_cases">Dónde ayuda la app</string>

@@ -234,7 +234,6 @@ fun AnnotatePdfScreen(
     var pageHeightPt by remember { mutableFloatStateOf(0f) }
     var savedAnnotations by remember { mutableStateOf(emptyList<PdfAnnotation>()) }
     var savedStrokes by remember { mutableStateOf(emptyList<PdfStroke>()) }
-    var generatedPdf by remember { mutableStateOf(false) }
     val dirty =
         annotations.values.flatten() != savedAnnotations ||
             strokes.values.flatten() != savedStrokes ||
@@ -1081,34 +1080,30 @@ fun AnnotatePdfScreen(
     if (showExitWarning) {
         AlertDialog(
             onDismissRequest = { showExitWarning = false },
-            title = {
-                Text(
-                    if (generatedPdf) {
-                        context.getString(R.string.discard_changes)
-                    } else {
-                        context.getString(R.string.pdf_not_generated)
-                    },
-                )
-            },
-            text = {
-                Text(
-                    if (generatedPdf) {
-                        context.getString(R.string.discard_changes_message)
-                    } else {
-                        context.getString(R.string.pdf_not_generated_message)
-                    },
-                )
-            },
+            title = { Text(context.getString(R.string.markup_leave_title)) },
+            text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
-                TextButton(onClick = onNavigateBack) {
-                    Text(context.getString(R.string.discard))
+                Row {
+                    TextButton(onClick = { showExitWarning = false }) {
+                        Text(context.getString(R.string.cancel))
+                    }
+                    TextButton(onClick = onNavigateBack) {
+                        Text(context.getString(R.string.discard))
+                    }
+                    TextButton(
+                        onClick = {
+                            commitDrafts()
+                            showExitWarning = false
+                            val all = annotations.values.flatten()
+                            val allStrokes = strokes.values.flatten()
+                            viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                        },
+                    ) {
+                        Text(context.getString(R.string.save))
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showExitWarning = false }) {
-                    Text(context.getString(R.string.cancel))
-                }
-            },
+            dismissButton = {},
         )
     }
 

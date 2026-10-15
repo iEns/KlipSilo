@@ -394,6 +394,8 @@
     <string name="stroke_medium">Medium</string>
     <string name="stroke_thick">Thick</string>
     <string name="stroke_heavy">Heavy</string>
+    <string name="markup_leave_title">Save changes as a new PDF?</string>
+    <string name="markup_leave_message">The original PDF stays as it is.</string>
     <string name="pdf_not_generated">PDF not generated</string>
     <string name="pdf_not_generated_message">There are changes, but no PDF has been generated yet. If you leave now, they will be lost.</string>
     <string name="tool_use_cases">Where the app helps</string>
