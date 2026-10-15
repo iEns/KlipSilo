@@ -261,6 +261,10 @@
     <string name="fill_form_fields">Felter</string>
     <string name="no_form_fields">Ingen udfyldelige felter</string>
     <string name="form_filled">Formular udfyldt og gemt</string>
+    <string name="form_field_checkbox">Afkrydsningsfelt %1$d</string>
+    <string name="form_field_radio">Radioknap %1$d</string>
+    <string name="form_field_choice">Valg %1$d</string>
+    <string name="form_field_text">Felt %1$d</string>
     <string name="edit_pages">Rediger sider</string>
     <string name="move_up">Op</string>
     <string name="move_down">Ned</string>

@@ -261,6 +261,10 @@
     <string name="fill_form_fields">Campi</string>
     <string name="no_form_fields">Nessun campo compilabile</string>
     <string name="form_filled">Modulo compilato e salvato</string>
+    <string name="form_field_checkbox">Casella %1$d</string>
+    <string name="form_field_radio">Opzione %1$d</string>
+    <string name="form_field_choice">Elenco %1$d</string>
+    <string name="form_field_text">Campo %1$d</string>
     <string name="edit_pages">Modifica pagine</string>
     <string name="move_up">Su</string>
     <string name="move_down">Giù</string>

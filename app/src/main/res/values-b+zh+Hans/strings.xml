@@ -260,6 +260,10 @@
     <string name="fill_form_fields">字段</string>
     <string name="no_form_fields">没有可填写的字段</string>
     <string name="form_filled">表单已填写并保存</string>
+    <string name="form_field_checkbox">复选框 %1$d</string>
+    <string name="form_field_radio">单选 %1$d</string>
+    <string name="form_field_choice">选项 %1$d</string>
+    <string name="form_field_text">字段 %1$d</string>
     <string name="edit_pages">编辑页面</string>
     <string name="move_up">上移</string>
     <string name="move_down">下移</string>

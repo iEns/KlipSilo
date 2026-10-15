@@ -260,6 +260,10 @@
     <string name="fill_form_fields">フィールド</string>
     <string name="no_form_fields">入力できるフィールドがありません</string>
     <string name="form_filled">フォームを入力して保存しました</string>
+    <string name="form_field_checkbox">チェックボックス %1$d</string>
+    <string name="form_field_radio">ラジオ %1$d</string>
+    <string name="form_field_choice">選択 %1$d</string>
+    <string name="form_field_text">フィールド %1$d</string>
     <string name="edit_pages">ページを編集</string>
     <string name="move_up">上へ</string>
     <string name="move_down">下へ</string>

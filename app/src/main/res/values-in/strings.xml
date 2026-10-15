@@ -260,6 +260,10 @@
     <string name="fill_form_fields">Bidang</string>
     <string name="no_form_fields">Tidak ada bidang yang dapat diisi</string>
     <string name="form_filled">Formulir diisi dan disimpan</string>
+    <string name="form_field_checkbox">Kotak centang %1$d</string>
+    <string name="form_field_radio">Pilihan %1$d</string>
+    <string name="form_field_choice">Daftar %1$d</string>
+    <string name="form_field_text">Bidang %1$d</string>
     <string name="edit_pages">Edit halaman</string>
     <string name="move_up">Naik</string>
     <string name="move_down">Turun</string>

@@ -1,16 +1,23 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -41,17 +48,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
@@ -60,8 +82,10 @@ import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,6 +120,13 @@ fun FormFillScreen(
                 restore = { restored -> restored.mapValues { (_, v) -> v as String } },
             ),
     ) { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val focusRequesters = remember { mutableMapOf<String, FocusRequester>() }
+    var anchors by remember { mutableStateOf(mapOf<String, Int>()) }
+    var focusedField by remember { mutableStateOf<String?>(null) }
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
 
     val navigateBack by viewModel.navigateBack.collectAsState()
     LaunchedEffect(navigateBack) {
@@ -105,6 +136,12 @@ fun FormFillScreen(
             viewModel.clearNavigateBack()
             onNavigateBack()
         }
+    }
+    LaunchedEffect(imeBottom, focusedField) {
+        val name = focusedField ?: return@LaunchedEffect
+        if (imeBottom <= 0) return@LaunchedEffect
+        val y = anchors[name] ?: return@LaunchedEffect
+        scroll.animateScrollTo(y)
     }
 
     if (!lookupDone && entry == null) {
@@ -130,8 +167,8 @@ fun FormFillScreen(
         return
     }
 
-    LaunchedEffect(entry?.id) {
-        entry?.let { viewModel.loadFormFields(it) }
+    LaunchedEffect(entry.id) {
+        viewModel.loadFormFields(entry)
     }
     DisposableEffect(Unit) {
         onDispose {
@@ -154,7 +191,7 @@ fun FormFillScreen(
         }
     }
 
-    val filePath = entry?.filePath
+    val filePath = entry.filePath
     LaunchedEffect(filePath) {
         filePath?.let { path ->
             pageCount = withContext(Dispatchers.IO) { pdfPageCount(path) }
@@ -171,7 +208,7 @@ fun FormFillScreen(
         displayed.update(loaded.value)
     }
 
-    BackHandler {
+    fun leave() {
         if (dirty) {
             showDiscardDialog = true
         } else {
@@ -180,27 +217,31 @@ fun FormFillScreen(
         }
     }
 
+    fun focusField(name: String) {
+        val field = formFields.orEmpty().firstOrNull { it.fullyQualifiedName == name }
+        field?.hits?.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
+        focusedField = name
+        val requester = focusRequesters[name] ?: return
+        scope.launch {
+            runCatching { requester.requestFocus() }
+            anchors[name]?.let { y -> scroll.animateScrollTo(y) }
+        }
+    }
+
+    BackHandler { leave() }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(context.getString(R.string.fill_form)) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (dirty) {
-                            showDiscardDialog = true
-                        } else {
-                            viewModel.clearFormFields()
-                            onNavigateBack()
-                        }
-                    }) {
+                    IconButton(onClick = { leave() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
                     }
                 },
                 actions = {
                     Button(
-                        onClick = {
-                            viewModel.fillForm(entry, values)
-                        },
+                        onClick = { viewModel.fillForm(entry, values) },
                         enabled = entry.filePath != null && !isConverting,
                     ) {
                         Text(context.getString(R.string.save_pdf))
@@ -210,22 +251,16 @@ fun FormFillScreen(
         },
     ) { padding ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             displayed.bitmap?.let { bmp ->
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = context.getString(R.string.pdf),
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+                FormPdfPreview(
+                    bitmap = bmp,
+                    pageIndex = pageIndex,
+                    fields = formFields.orEmpty(),
+                    values = values,
+                    onFieldTap = { name -> focusField(name) },
+                )
             }
             if (pageCount > 1) {
                 Row(
@@ -255,7 +290,7 @@ fun FormFillScreen(
             when {
                 formFieldsLoading -> {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        modifier = Modifier.fillMaxWidth().weight(1f).padding(24.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         CircularProgressIndicator()
@@ -265,27 +300,48 @@ fun FormFillScreen(
                     Text(
                         text = context.getString(R.string.no_form_fields),
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.weight(1f).padding(16.dp),
                     )
                 }
                 else -> {
-                    Text(
-                        text = context.getString(R.string.fill_form_fields),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                    formFields.orEmpty().forEach { field ->
-                        FormFieldRow(
-                            field = field,
-                            value = values[field.fullyQualifiedName].orEmpty(),
-                            onValueChange = {
-                                values = values + (field.fullyQualifiedName to it)
-                                dirty = true
-                            },
+                    Column(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .imePadding()
+                                .verticalScroll(scroll),
+                    ) {
+                        Text(
+                            text = context.getString(R.string.fill_form_fields),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
+                        formFields.orEmpty().forEach { field ->
+                            val name = field.fullyQualifiedName
+                            val requester = focusRequesters.getOrPut(name) { FocusRequester() }
+                            FormFieldRow(
+                                field = field,
+                                value = values[name].orEmpty(),
+                                focusRequester = requester,
+                                onValueChange = {
+                                    values = values + (name to it)
+                                    dirty = true
+                                },
+                                onFocused = {
+                                    focusedField = name
+                                    field.hits.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
+                                    scope.launch {
+                                        anchors[name]?.let { y -> scroll.animateScrollTo(y) }
+                                    }
+                                },
+                                onPositioned = { y ->
+                                    if (anchors[name] != y) anchors = anchors + (name to y)
+                                },
+                            )
+                        }
+                        Spacer(Modifier.size(16.dp))
                     }
-                    Spacer(Modifier.size(16.dp))
                 }
             }
         }
@@ -315,33 +371,149 @@ fun FormFillScreen(
 }
 
 @Composable
+private fun FormPdfPreview(
+    bitmap: Bitmap,
+    pageIndex: Int,
+    fields: List<FormFieldInfo>,
+    values: Map<String, String>,
+    onFieldTap: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    val previewHeight = LocalConfiguration.current.screenHeightDp.dp * 0.40f
+    Box(
+        modifier = Modifier.fillMaxWidth().height(previewHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val aspect = bitmap.width.toFloat() / bitmap.height.toFloat().coerceAtLeast(1f)
+            val boxAspect = if (maxHeight > 0.dp) maxWidth / maxHeight else aspect
+            val imageWidth = if (aspect > boxAspect) maxWidth else maxHeight * aspect
+            val imageHeight = if (aspect == 0f) maxHeight else imageWidth / aspect
+            Box(
+                modifier =
+                    Modifier
+                        .size(imageWidth, imageHeight)
+                        .align(Alignment.Center)
+                        .pointerInput(fields, pageIndex) {
+                            detectTapGestures { offset ->
+                                val name =
+                                    hitField(
+                                        fields,
+                                        pageIndex,
+                                        offset.x,
+                                        offset.y,
+                                        size.width.toFloat(),
+                                        size.height.toFloat(),
+                                    )
+                                if (name != null) onFieldTap(name)
+                            }
+                        },
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = context.getString(R.string.pdf),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds,
+                )
+                fields.forEach { field ->
+                    val value = values[field.fullyQualifiedName].orEmpty()
+                    field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
+                        val shown = formOverlayText(field, hit, value)
+                        if (shown.isEmpty()) return@forEach
+                        FormValueOverlay(hit, shown, imageWidth, imageHeight)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FormValueOverlay(
+    hit: FormFieldHit,
+    text: String,
+    imageWidth: Dp,
+    imageHeight: Dp,
+) {
+    val width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f)
+    val height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f)
+    val fontSize =
+        with(LocalDensity.current) {
+            (height.toPx() * 0.62f).toSp()
+        }
+    Box(
+        modifier =
+            Modifier
+                .offset(x = imageWidth * hit.left, y = imageHeight * hit.top)
+                .size(width, height)
+                .clipToBounds()
+                .clearAndSetSemantics { },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = text,
+            color = Color.Black,
+            fontSize = fontSize,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
+    }
+}
+
+@Composable
 private fun FormFieldRow(
     field: FormFieldInfo,
     value: String,
+    focusRequester: FocusRequester,
     onValueChange: (String) -> Unit,
+    onFocused: () -> Unit,
+    onPositioned: (Int) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .onGloballyPositioned { coords ->
+                    onPositioned(coords.positionInParent().y.roundToInt())
+                },
     ) {
-        Text(
-            text = field.name,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         when (field.type) {
             FormFieldType.CHECKBOX -> {
-                Checkbox(
-                    checked = value == "true",
-                    onCheckedChange = { onValueChange(if (it) "true" else "false") },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = value == "true",
+                        onCheckedChange = { onValueChange(if (it) "true" else "false") },
+                        modifier =
+                            Modifier
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { state -> if (state.isFocused) onFocused() },
+                    )
+                    Text(field.label, style = MaterialTheme.typography.bodyLarge)
+                }
             }
             FormFieldType.RADIO, FormFieldType.CHOICE -> {
-                field.options.forEach { option ->
+                Text(
+                    text = field.label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                field.options.forEachIndexed { index, option ->
                     Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .clickable { onValueChange(option) },
+                                .clickable { onValueChange(option) }
+                                .then(
+                                    if (index == 0) {
+                                        Modifier
+                                            .focusRequester(focusRequester)
+                                            .onFocusChanged { state -> if (state.isFocused) onFocused() }
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = value == option, onClick = { onValueChange(option) })
@@ -353,9 +525,55 @@ private fun FormFieldRow(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(field.label) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { state -> if (state.isFocused) onFocused() },
                 )
             }
         }
     }
+}
+
+private fun formOverlayText(
+    field: FormFieldInfo,
+    hit: FormFieldHit,
+    value: String,
+): String {
+    return when (field.type) {
+        FormFieldType.CHECKBOX -> if (value == "true") "✓" else ""
+        FormFieldType.RADIO -> if (!hit.option.isNullOrEmpty() && value == hit.option) "●" else ""
+        else -> value
+    }
+}
+
+private fun hitField(
+    fields: List<FormFieldInfo>,
+    pageIndex: Int,
+    x: Float,
+    y: Float,
+    width: Float,
+    height: Float,
+): String? {
+    val slop = 12f
+    var bestName: String? = null
+    var bestArea = Float.POSITIVE_INFINITY
+    for (field in fields) {
+        for (hit in field.hits) {
+            if (hit.pageIndex != pageIndex) continue
+            val left = hit.left * width - slop
+            val right = hit.right * width + slop
+            val top = hit.top * height - slop
+            val bottom = hit.bottom * height + slop
+            if (x !in left..right || y !in top..bottom) continue
+            val area = ((hit.right - hit.left) * (hit.bottom - hit.top)).coerceAtLeast(0.0001f)
+            if (area < bestArea) {
+                bestArea = area
+                bestName = field.fullyQualifiedName
+            }
+        }
+    }
+    return bestName
 }

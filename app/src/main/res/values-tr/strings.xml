@@ -261,6 +261,10 @@
     <string name="fill_form_fields">Alanlar</string>
     <string name="no_form_fields">Doldurulabilir alan yok</string>
     <string name="form_filled">Form dolduruldu ve kaydedildi</string>
+    <string name="form_field_checkbox">Onay kutusu %1$d</string>
+    <string name="form_field_radio">Seçenek %1$d</string>
+    <string name="form_field_choice">Liste %1$d</string>
+    <string name="form_field_text">Alan %1$d</string>
     <string name="edit_pages">Sayfaları düzenle</string>
     <string name="move_up">Yukarı</string>
     <string name="move_down">Aşağı</string>

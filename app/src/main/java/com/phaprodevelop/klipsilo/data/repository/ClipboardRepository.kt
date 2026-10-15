@@ -35,17 +35,24 @@ import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_FONT_SCALE
 import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_MARGIN_PT
+import com.phaprodevelop.klipsilo.data.PdfTextRun
+import com.phaprodevelop.klipsilo.data.PdfUserRect
+import com.phaprodevelop.klipsilo.data.ResolvedFieldLabel
 import com.phaprodevelop.klipsilo.data.db.ClipboardItem
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemListRow
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.nearbyFieldText
+import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
+import com.phaprodevelop.klipsilo.data.widgetVisualFractions
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import com.tom_roush.pdfbox.pdmodel.PDDocument
@@ -57,10 +64,13 @@ import com.tom_roush.pdfbox.pdmodel.font.PDFont
 import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
+import com.tom_roush.pdfbox.pdmodel.interactive.form.PDButton
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckBox
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDComboBox
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDField
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDListBox
+import com.tom_roush.pdfbox.pdmodel.interactive.form.PDNonTerminalField
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDRadioButton
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDTextField
 import com.tom_roush.pdfbox.text.PDFTextStripper
@@ -2807,7 +2817,11 @@ class ClipboardRepository(
             if (!file.exists()) return emptyList()
             PDDocument.load(file).use { document ->
                 val acroForm = document.documentCatalog.acroForm ?: return emptyList()
-                acroForm.fields.mapNotNull { field -> toFormFieldInfo(field) }
+                val runs = extractFormTextRuns(document)
+                val counters = mutableMapOf<FormFieldType, Int>()
+                acroForm.fields
+                    .flatMap { field -> terminalFields(field) }
+                    .mapNotNull { field -> toFormFieldInfo(document, field, runs, counters) }
             }
         } catch (_: Exception) {
             emptyList()
@@ -2872,7 +2886,13 @@ class ClipboardRepository(
         }
     }
 
-    private fun toFormFieldInfo(field: PDField): FormFieldInfo? {
+    private fun toFormFieldInfo(
+        document: PDDocument,
+        field: PDField,
+        runs: Map<Int, List<PdfTextRun>>,
+        counters: MutableMap<FormFieldType, Int>,
+    ): FormFieldInfo? {
+        if (field is PDButton && field.isPushButton) return null
         val partial = field.partialName ?: field.fullyQualifiedName ?: return null
         val type =
             when (field) {
@@ -2888,13 +2908,183 @@ class ClipboardRepository(
                 is PDRadioButton -> field.exportValues
                 else -> emptyList()
             }
+        val hits = fieldHits(document, field)
+        val nearby = nearbyLabel(field, document, runs)
+        val resolved =
+            resolveFormFieldLabel(
+                partialName = partial,
+                alternateName = alternateName(field),
+                type = type,
+                nearbyText = nearby,
+                fallbackNumber = 1,
+            )
+        val labelSource =
+            if (resolved is ResolvedFieldLabel.Numbered) {
+                val number = (counters[type] ?: 0) + 1
+                counters[type] = number
+                resolved.copy(number = number)
+            } else {
+                resolved
+            }
         return FormFieldInfo(
             name = partial,
             fullyQualifiedName = field.fullyQualifiedName ?: partial,
             type = type,
             currentValue = field.valueAsString,
             options = options,
+            label = localizedFieldLabel(labelSource),
+            hits = hits,
         )
+    }
+
+    private fun terminalFields(field: PDField): List<PDField> {
+        if (field is PDNonTerminalField) {
+            val children =
+                try {
+                    field.children
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            if (children.isNotEmpty()) return children.flatMap { child -> terminalFields(child) }
+        }
+        return listOf(field)
+    }
+
+    private fun alternateName(field: PDField): String? {
+        field.alternateFieldName?.takeIf { it.isNotBlank() }?.let { return it }
+        return field.widgets.firstNotNullOfOrNull { widget ->
+            widget.cosObject.getString(COSName.TU)?.takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun nearbyLabel(
+        field: PDField,
+        document: PDDocument,
+        runs: Map<Int, List<PdfTextRun>>,
+    ): String? {
+        val widget = field.widgets.firstOrNull() ?: return null
+        val rect = widget.rectangle ?: return null
+        val pageRuns = runs[pageIndexOf(document, widget)].orEmpty()
+        if (pageRuns.isEmpty()) return null
+        return nearbyFieldText(
+            PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY),
+            pageRuns,
+        )
+    }
+
+    private fun fieldHits(
+        document: PDDocument,
+        field: PDField,
+    ): List<FormFieldHit> {
+        return field.widgets.mapNotNull { widget ->
+            val rect = widget.rectangle ?: return@mapNotNull null
+            val pageIndex = pageIndexOf(document, widget)
+            val page = document.getPage(pageIndex)
+            val box = page.cropBox ?: return@mapNotNull null
+            val visual =
+                widgetVisualFractions(
+                    widget = PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY),
+                    pageLeft = box.lowerLeftX,
+                    pageBottom = box.lowerLeftY,
+                    pageWidth = box.width,
+                    pageHeight = box.height,
+                    rotation = page.rotation,
+                ) ?: return@mapNotNull null
+            FormFieldHit(
+                pageIndex = pageIndex,
+                left = visual.left,
+                top = visual.top,
+                right = visual.right,
+                bottom = visual.bottom,
+                option = widgetOnValue(widget),
+            )
+        }
+    }
+
+    private fun pageIndexOf(
+        document: PDDocument,
+        widget: PDAnnotationWidget,
+    ): Int {
+        widget.page?.let { page ->
+            val index = document.pages.indexOf(page)
+            if (index >= 0) return index
+        }
+        val target = widget.cosObject
+        for (index in 0 until document.numberOfPages) {
+            val annotations =
+                try {
+                    document.getPage(index).annotations
+                } catch (_: Exception) {
+                    continue
+                }
+            if (annotations.any { it.cosObject == target }) return index
+        }
+        return 0
+    }
+
+    private fun widgetOnValue(widget: PDAnnotationWidget): String? {
+        return try {
+            val normal = widget.appearance?.normalAppearance ?: return null
+            if (!normal.isSubDictionary) return null
+            normal.subDictionary.keys
+                .map { it.name }
+                .firstOrNull { !it.equals("Off", ignoreCase = true) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun localizedFieldLabel(resolved: ResolvedFieldLabel): String {
+        return when (resolved) {
+            is ResolvedFieldLabel.Literal -> resolved.text
+            is ResolvedFieldLabel.Numbered -> {
+                val res =
+                    when (resolved.kind) {
+                        FormFieldType.CHECKBOX -> R.string.form_field_checkbox
+                        FormFieldType.RADIO -> R.string.form_field_radio
+                        FormFieldType.CHOICE -> R.string.form_field_choice
+                        else -> R.string.form_field_text
+                    }
+                context.getString(res, resolved.number)
+            }
+        }
+    }
+
+    private fun extractFormTextRuns(document: PDDocument): Map<Int, List<PdfTextRun>> {
+        return try {
+            val found = mutableMapOf<Int, MutableList<PdfTextRun>>()
+            val stripper =
+                object : PDFTextStripper() {
+                    override fun writeString(
+                        text: String,
+                        textPositions: List<TextPosition>,
+                    ) {
+                        val value = text.trim()
+                        val positions = textPositions
+                        if (value.isEmpty() || positions.isEmpty()) return
+                        val first = positions.first()
+                        val matrix = first.textMatrix
+                        val left = positions.minOf { it.textMatrix.translateX }
+                        val right = positions.maxOf { max(it.endX, it.textMatrix.translateX) }
+                        found.getOrPut(currentPageNo - 1) { mutableListOf() }.add(
+                            PdfTextRun(
+                                text = value,
+                                left = left,
+                                baseline = matrix.translateY,
+                                width = (right - left).coerceAtLeast(1f),
+                                height = positions.maxOf { it.height }.coerceAtLeast(8f),
+                            ),
+                        )
+                    }
+                }
+            stripper.sortByPosition = true
+            stripper.startPage = 1
+            stripper.endPage = document.numberOfPages
+            stripper.getText(document)
+            found
+        } catch (_: Exception) {
+            emptyMap()
+        }
     }
 
     suspend fun ocrPdfPage(
@@ -4109,12 +4299,23 @@ enum class FormFieldType {
     OTHER,
 }
 
+data class FormFieldHit(
+    val pageIndex: Int,
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+    val option: String? = null,
+)
+
 data class FormFieldInfo(
     val name: String,
     val fullyQualifiedName: String,
     val type: FormFieldType,
     val currentValue: String?,
     val options: List<String>,
+    val label: String = name,
+    val hits: List<FormFieldHit> = emptyList(),
 )
 
 data class ScannedItem(

@@ -262,6 +262,10 @@
     <string name="fill_form_fields">Champs</string>
     <string name="no_form_fields">Aucun champ à remplir</string>
     <string name="form_filled">Formulaire rempli et enregistré</string>
+    <string name="form_field_checkbox">Case %1$d</string>
+    <string name="form_field_radio">Option %1$d</string>
+    <string name="form_field_choice">Liste %1$d</string>
+    <string name="form_field_text">Champ %1$d</string>
     <string name="edit_pages">Modifier les pages</string>
     <string name="move_up">Haut</string>
     <string name="move_down">Bas</string>

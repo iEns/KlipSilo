@@ -260,6 +260,10 @@
     <string name="fill_form_fields">필드</string>
     <string name="no_form_fields">채울 수 있는 필드가 없습니다</string>
     <string name="form_filled">양식을 작성하고 저장했습니다</string>
+    <string name="form_field_checkbox">확인란 %1$d</string>
+    <string name="form_field_radio">라디오 %1$d</string>
+    <string name="form_field_choice">선택 %1$d</string>
+    <string name="form_field_text">필드 %1$d</string>
     <string name="edit_pages">페이지 편집</string>
     <string name="move_up">위로</string>
     <string name="move_down">아래로</string>

@@ -261,6 +261,10 @@
     <string name="fill_form_fields">Campos</string>
     <string name="no_form_fields">No hay campos rellenables</string>
     <string name="form_filled">Formulario rellenado y guardado</string>
+    <string name="form_field_checkbox">Casilla %1$d</string>
+    <string name="form_field_radio">Opción %1$d</string>
+    <string name="form_field_choice">Lista %1$d</string>
+    <string name="form_field_text">Campo %1$d</string>
     <string name="edit_pages">Editar páginas</string>
     <string name="move_up">Arriba</string>
     <string name="move_down">Abajo</string>

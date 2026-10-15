@@ -263,6 +263,10 @@
     <string name="fill_form_fields">Поля</string>
     <string name="no_form_fields">Нет заполняемых полей</string>
     <string name="form_filled">Форма заполнена и сохранена</string>
+    <string name="form_field_checkbox">Флажок %1$d</string>
+    <string name="form_field_radio">Переключатель %1$d</string>
+    <string name="form_field_choice">Список %1$d</string>
+    <string name="form_field_text">Поле %1$d</string>
     <string name="edit_pages">Изменить страницы</string>
     <string name="move_up">Вверх</string>
     <string name="move_down">Вниз</string>

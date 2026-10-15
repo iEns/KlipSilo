@@ -261,6 +261,10 @@
     <string name="fill_form_fields">Campos</string>
     <string name="no_form_fields">Não há campos preenchíveis</string>
     <string name="form_filled">Formulário preenchido e salvo</string>
+    <string name="form_field_checkbox">Caixa de seleção %1$d</string>
+    <string name="form_field_radio">Opção %1$d</string>
+    <string name="form_field_choice">Lista %1$d</string>
+    <string name="form_field_text">Campo %1$d</string>
     <string name="edit_pages">Editar páginas</string>
     <string name="move_up">Para cima</string>
     <string name="move_down">Para baixo</string>

@@ -304,6 +304,29 @@ class PdfOperationsTest {
             assertEquals("Name", byName["Name"]?.fullyQualifiedName)
             assertEquals(FormFieldType.CHECKBOX, byName["Agree"]?.type)
             assertEquals("Agree", byName["Agree"]?.fullyQualifiedName)
+            assertEquals("Name", byName["Name"]?.label)
+            assertEquals("Agree", byName["Agree"]?.label)
+        }
+
+    @Test
+    fun getPdfFormFields_tooltipAndNearbyText_becomeLabels() =
+        runTest {
+            val formFile = writeTooltipForm("tooltip-form.pdf")
+            assumeTrue(
+                "PDFBox AcroForm creation is not feasible under this Robolectric environment",
+                formFile != null,
+            )
+
+            val fields = repo.getPdfFormFields(formFile!!.absolutePath)
+            val byName = fields.associateBy { it.name }
+
+            assertEquals("Full name", byName["name"]?.label)
+            assertEquals("Phone", byName["s0"]?.label)
+            assertEquals("Email", byName["email"]?.label)
+            val hit = byName["name"]?.hits?.single()
+            assertEquals(0, hit?.pageIndex)
+            assertTrue((hit?.left ?: 0f) > 0.1f)
+            assertTrue((hit?.top ?: 1f) < (hit?.bottom ?: 0f))
         }
 
     @Test
@@ -774,6 +797,62 @@ class PdfOperationsTest {
             document.save(file)
         }
         return file
+    }
+
+    private fun writeTooltipForm(name: String): File? {
+        return try {
+            val dir = File(context.filesDir, "pdfs").apply { mkdirs() }
+            val file = File(dir, name)
+            PDDocument().use { document ->
+                val page = PDPage(PDRectangle.A4)
+                document.addPage(page)
+                val acroForm = PDAcroForm(document)
+                val resources = PDResources()
+                resources.put(COSName.HELV, PDType1Font.HELVETICA)
+                acroForm.defaultResources = resources
+                acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+                document.documentCatalog.acroForm = acroForm
+
+                val nameField = PDTextField(acroForm)
+                nameField.partialName = "name"
+                nameField.alternateFieldName = "Full name"
+                nameField.defaultAppearance = "/Helv 12 Tf 0 g"
+                val nameWidget = nameField.widgets.first()
+                nameWidget.rectangle = PDRectangle(100f, 760f, 200f, 18f)
+                nameWidget.page = page
+                nameWidget.isPrinted = true
+
+                val emailField = PDTextField(acroForm)
+                emailField.partialName = "email"
+                emailField.defaultAppearance = "/Helv 12 Tf 0 g"
+                val emailWidget = emailField.widgets.first()
+                emailWidget.rectangle = PDRectangle(100f, 730f, 200f, 18f)
+                emailWidget.page = page
+                emailWidget.isPrinted = true
+
+                val phoneField = PDCheckBox(acroForm)
+                phoneField.partialName = "s0"
+                val phoneWidget = phoneField.widgets.first()
+                phoneWidget.rectangle = PDRectangle(100f, 700f, 18f, 18f)
+                phoneWidget.page = page
+                phoneWidget.isPrinted = true
+                phoneWidget.appearance = checkboxAppearances(document)
+
+                acroForm.fields = listOf(nameField, emailField, phoneField)
+                page.annotations = listOf(nameWidget, emailWidget, phoneWidget)
+                PDPageContentStream(document, page).use { stream ->
+                    stream.beginText()
+                    stream.setFont(PDType1Font.HELVETICA, 12f)
+                    stream.newLineAtOffset(40f, 704f)
+                    stream.showText("Phone")
+                    stream.endText()
+                }
+                document.save(file)
+            }
+            file
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun writeAcroFormPdf(name: String): File? {
