@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -112,6 +112,7 @@ import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 
 private data class MarkupSnapshot(
     val annotations: Map<Int, List<PdfAnnotation>>,
@@ -1093,19 +1094,86 @@ fun AnnotatePdfScreen(
                         }
                     }
                 }
-                Column(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .imePadding()
-                        .navigationBarsPadding()
-                        .background(MaterialTheme.colorScheme.surface),
-                ) {
-                    if (tool == MarkupTool.SELECT && selectedIndex >= 0 && draft == null) {
+                // Floating Edit/Move/✕ chip anchored to the selection bounds (#36):
+                // above the item by default, flipped below near the top edge and
+                // clamped so it stays on screen, without ever covering the selection.
+                if (tool == MarkupTool.SELECT && draft == null && (selectedIndex >= 0 || selectedStroke >= 0)) {
+                    val chipBmp = baseBitmap
+                    val anchor =
+                        if (chipBmp != null && pageSize.width > 0) {
+                            val fractionBounds =
+                                if (selectedIndex >= 0) {
+                                    annotations[pageIndex].orEmpty().getOrNull(selectedIndex)?.let {
+                                        annotationBoundsFraction(it, chipBmp.width, chipBmp.height)
+                                    }
+                                } else {
+                                    strokes[pageIndex].orEmpty().getOrNull(selectedStroke)?.let {
+                                        strokeBoundsFraction(it, chipBmp.width, chipBmp.height)
+                                    }
+                                }
+                            fractionBounds?.let { bounds ->
+                                val fitted = fittedRect(pageSize, chipBmp.width, chipBmp.height)
+                                val zoom = if (scale > 0f) scale else 1f
+                                val screenWidth = pageSize.width.toFloat()
+                                val screenHeight = pageSize.height.toFloat()
+
+                                fun screenX(fraction: Float): Float {
+                                    val x = fitted.left + fraction * fitted.width
+                                    return (x - screenWidth / 2f) * zoom + screenWidth / 2f + offsetX
+                                }
+
+                                fun screenY(fraction: Float): Float {
+                                    val y = fitted.top + fraction * fitted.height
+                                    return (y - screenHeight / 2f) * zoom + screenHeight / 2f + offsetY
+                                }
+                                SelectionAnchor(
+                                    left = screenX(bounds.left),
+                                    top = screenY(bounds.top),
+                                    right = screenX(bounds.right),
+                                    bottom = screenY(bounds.bottom),
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    if (anchor != null) {
+                        val density = LocalDensity.current
+                        var chipSize by remember { mutableStateOf(IntSize.Zero) }
+                        val gapPx = with(density) { 8.dp.toPx() }
+                        val marginPx = with(density) { 8.dp.toPx() }
+                        val chipWidth =
+                            chipSize.width.takeIf { it > 0 }?.toFloat() ?: with(density) { 212.dp.toPx() }
+                        val chipHeight =
+                            chipSize.height.takeIf { it > 0 }?.toFloat() ?: with(density) { 48.dp.toPx() }
+                        val aboveTop = anchor.top - gapPx - chipHeight
+                        val chipTop =
+                            if (aboveTop >= marginPx) {
+                                aboveTop
+                            } else {
+                                (anchor.bottom + gapPx)
+                                    .coerceAtMost(pageSize.height - chipHeight - marginPx)
+                                    .coerceAtLeast(marginPx)
+                            }
+                        val chipLeft =
+                            ((anchor.left + anchor.right) / 2f - chipWidth / 2f)
+                                .coerceIn(marginPx, (pageSize.width - chipWidth - marginPx).toFloat())
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier =
+                                Modifier
+                                    .offset {
+                                        IntOffset(
+                                            chipLeft.roundToInt(),
+                                            chipTop.roundToInt(),
+                                        )
+                                    }
+                                    .onSizeChanged { chipSize = it }
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(20.dp),
+                                    )
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                                    .padding(horizontal = 6.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
                         ) {
                             TextButton(onClick = {
                                 val index = selectedIndex
@@ -1113,6 +1181,7 @@ fun AnnotatePdfScreen(
                                 if (index in list.indices) {
                                     val item = list[index]
                                     selectedIndex = -1
+                                    selectedStroke = -1
                                     beginDraft(
                                         DraftAnnotation(
                                             item.text,
@@ -1140,6 +1209,15 @@ fun AnnotatePdfScreen(
                             }
                         }
                     }
+                }
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .imePadding()
+                        .navigationBarsPadding()
+                        .background(MaterialTheme.colorScheme.surface),
+                ) {
                     val showTextOptions =
                         tool == MarkupTool.TEXT ||
                             draft != null ||
@@ -1787,4 +1865,50 @@ private fun distanceToSegment(
     val ox = fx - px
     val oy = fy - py
     return kotlin.math.sqrt(ox * ox + oy * oy)
+}
+
+/** On-screen bounds of the selected annotation or stroke, used to anchor the chip. */
+private data class SelectionAnchor(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+)
+
+/** Same text metrics as the hit test, expressed as fractions of the page bitmap. */
+private fun annotationBoundsFraction(
+    annotation: PdfAnnotation,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): Rect? {
+    if (annotation.text.isBlank() || bitmapWidth <= 0 || bitmapHeight <= 0) return null
+    val paint =
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = annotation.sizeFraction * bitmapHeight
+            typeface = android.graphics.Typeface.DEFAULT
+        }
+    val lines = wrapAnnotationText(annotation.text, paint, (bitmapWidth * 0.95f).toInt())
+    val widthPx = lines.maxOfOrNull { paint.measureText(it) } ?: 0f
+    val heightPx = lines.size * paint.fontSpacing
+    return Rect(
+        annotation.xFraction,
+        annotation.yFraction,
+        (annotation.xFraction + widthPx / bitmapWidth).coerceAtMost(1f),
+        (annotation.yFraction + heightPx / bitmapHeight).coerceAtMost(1f),
+    )
+}
+
+private fun strokeBoundsFraction(
+    stroke: PdfStroke,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): Rect? {
+    if (bitmapWidth <= 0 || bitmapHeight <= 0 || stroke.points.isEmpty()) return null
+    val bounds = strokeBounds(stroke, bitmapWidth, bitmapHeight)
+    return Rect(
+        (bounds.left / bitmapWidth).coerceIn(0f, 1f),
+        (bounds.top / bitmapHeight).coerceIn(0f, 1f),
+        (bounds.right / bitmapWidth).coerceIn(0f, 1f),
+        (bounds.bottom / bitmapHeight).coerceIn(0f, 1f),
+    )
 }
