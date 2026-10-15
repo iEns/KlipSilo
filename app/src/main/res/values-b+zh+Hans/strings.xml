@@ -77,6 +77,7 @@
     <string name="help_new_clip">手动新建剪贴</string>
     <string name="search_hint">搜索剪贴...</string>
     <string name="clear">清除</string>
+    <string name="clip_more_actions">更多操作</string>
     <string name="selected">已选</string>
     <string name="select_all">全选</string>
     <string name="select_paragraph">选择段落</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">删除并可撤消</string>
     <string name="tip_clips_delete_b">删除剪贴时可撤消；在维护中也可以按类型整批删除。已锁定的剪贴不会被删除。</string>
     <string name="tip_sheet_open_t">打开剪贴</string>
-    <string name="tip_sheet_open_b">点按剪贴可打开操作面板：查看内容、分享、保存到下载、转换、重命名、复制副本、锁定/解锁和删除。已锁定的剪贴上，重命名、删除和编辑会变灰。</string>
+    <string name="tip_sheet_open_b">点按剪贴即可打开。长按剪贴或点按 ⋮ 可打开操作面板：查看内容、分享、保存到下载、转换、重命名、复制副本、锁定/解锁和删除。已锁定的剪贴上，重命名、删除和编辑会变灰。</string>
     <string name="tip_sheet_links_t">查找链接和号码</string>
     <string name="tip_sheet_links_b">在文本和 PDF 剪贴中可以找出 URL 和电话号码，然后打开或拨打。</string>
     <string name="tip_sheet_convert_t">转换文件</string>

@@ -69,9 +69,6 @@ fun AppRoot(viewModel: ClipboardViewModel) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val navigateToNewClip by viewModel.navigateToNewClip.collectAsState()
-    var reopenSheetId by remember { mutableStateOf<Long?>(null) }
-    var sheetReopenRequest by remember { mutableStateOf<Long?>(null) }
-    var lastRoute by remember { mutableStateOf<String?>(null) }
     val isFullScreenRoute =
         currentRoute?.startsWith("scanner/") == true ||
             currentRoute?.startsWith("detail/") == true ||
@@ -130,18 +127,6 @@ fun AppRoot(viewModel: ClipboardViewModel) {
             navController.navigate("detail/$id")
             viewModel.clearNavigateToNewClip()
         }
-    }
-
-    LaunchedEffect(currentRoute) {
-        val route = currentRoute
-        if (route == BottomNavItem.KLIP.route && reopenSheetId != null &&
-            (lastRoute?.startsWith("detail/") == true || lastRoute?.startsWith("presentation/") == true)
-        ) {
-            sheetReopenRequest = reopenSheetId
-        } else if (route == BottomNavItem.VÆRKTØJER.route || route == BottomNavItem.INDSTILLINGER.route) {
-            reopenSheetId = null
-        }
-        lastRoute = route
     }
 
     Scaffold(
@@ -203,23 +188,12 @@ fun AppRoot(viewModel: ClipboardViewModel) {
             composable(BottomNavItem.KLIP.route) {
                 KlipScreen(
                     viewModel = viewModel,
-                    onOpenClipFromSheet = { id ->
-                        reopenSheetId = id
-                        navController.navigate("detail/$id")
-                    },
-                    onOpenPresentation = { id ->
-                        reopenSheetId = id
-                        navController.navigate("presentation/$id")
-                    },
+                    onOpenClip = { id -> navController.navigate("detail/$id") },
+                    onOpenPresentation = { id -> navController.navigate("presentation/$id") },
                     onOcrImage = { id -> navController.navigate("scanner/image/$id") },
                     onAnnotatePdf = { id -> navController.navigate("annotate/$id") },
                     onFillForm = { id -> navController.navigate("form/$id") },
                     onEditPages = { id -> navController.navigate("pages/$id") },
-                    sheetReopenId = sheetReopenRequest,
-                    onSheetReopened = {
-                        sheetReopenRequest = null
-                        reopenSheetId = null
-                    },
                 )
             }
             composable(BottomNavItem.VÆRKTØJER.route) {

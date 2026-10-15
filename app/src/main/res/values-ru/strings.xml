@@ -77,6 +77,7 @@
     <string name="help_new_clip">Создать клип вручную</string>
     <string name="search_hint">Поиск клипов...</string>
     <string name="clear">Очистить</string>
+    <string name="clip_more_actions">Другие действия</string>
     <string name="selected">выбрано</string>
     <string name="select_all">Выбрать все</string>
     <string name="select_paragraph">Выбрать абзац</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Удаление с отменой</string>
     <string name="tip_clips_delete_b">Удаляйте клипы с возможностью отмены; в «Обслуживании» можно удалить целый тип. Заблокированные клипы не удаляются.</string>
     <string name="tip_sheet_open_t">Открыть клип</string>
-    <string name="tip_sheet_open_b">Коснитесь клипа, чтобы открыть панель действий: Смотреть содержимое, Поделиться, Сохранить в «Загрузки», конвертации, Переименовать, Дублировать, Заблокировать/разблокировать и Удалить. У заблокированных клипов Переименовать, Удалить и Изменить неактивны.</string>
+    <string name="tip_sheet_open_b">Коснитесь клипа, чтобы открыть его. Удерживайте клип или нажмите ⋮, чтобы открыть панель действий: Смотреть содержимое, Поделиться, Сохранить в «Загрузки», конвертации, Переименовать, Дублировать, Заблокировать/разблокировать и Удалить. У заблокированных клипов Переименовать, Удалить и Изменить неактивны.</string>
     <string name="tip_sheet_links_t">Найти ссылки и номера</string>
     <string name="tip_sheet_links_b">В текстовых и PDF-клипах можно найти URL и телефоны и открыть их или позвонить.</string>
     <string name="tip_sheet_convert_t">Конвертировать файлы</string>

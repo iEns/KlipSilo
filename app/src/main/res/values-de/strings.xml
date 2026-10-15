@@ -77,6 +77,7 @@
     <string name="help_new_clip">Neuen Clip manuell erstellen</string>
     <string name="search_hint">Clips suchen...</string>
     <string name="clear">Leeren</string>
+    <string name="clip_more_actions">Weitere Aktionen</string>
     <string name="selected">ausgewählt</string>
     <string name="select_all">Alle auswählen</string>
     <string name="select_paragraph">Absatz auswählen</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Löschen mit Rückgängig</string>
     <string name="tip_clips_delete_b">Lösche Clips mit Rückgängig — unter Wartung kannst du auch einen ganzen Typ löschen. Gesperrte Clips werden nicht gelöscht.</string>
     <string name="tip_sheet_open_t">Clip öffnen</string>
-    <string name="tip_sheet_open_b">Tippe einen Clip an, um das Aktionsmenü zu öffnen: Inhalt ansehen, Teilen, In Downloads speichern, Konvertierungen, Umbenennen, Duplizieren, Sperren/entsperren und Löschen. Bei gesperrten Clips sind Umbenennen, Löschen und Bearbeiten abgeblendet.</string>
+    <string name="tip_sheet_open_b">Tippe einen Clip an, um ihn zu öffnen. Halte den Clip gedrückt, oder tippe auf ⋮, um das Aktionsmenü zu öffnen: Inhalt ansehen, Teilen, In Downloads speichern, Konvertierungen, Umbenennen, Duplizieren, Sperren/entsperren und Löschen. Bei gesperrten Clips sind Umbenennen, Löschen und Bearbeiten abgeblendet.</string>
     <string name="tip_sheet_links_t">Links und Nummern finden</string>
     <string name="tip_sheet_links_b">Bei Text- und PDF-Clips kannst du URLs und Telefonnummern finden und sie öffnen oder anrufen.</string>
     <string name="tip_sheet_convert_t">Dateien konvertieren</string>

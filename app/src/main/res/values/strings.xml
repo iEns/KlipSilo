@@ -77,6 +77,7 @@
     <string name="help_new_clip">Create a new clip manually</string>
     <string name="search_hint">Search clips...</string>
     <string name="clear">Clear</string>
+    <string name="clip_more_actions">More actions</string>
     <string name="selected">selected</string>
     <string name="select_all">Select all</string>
     <string name="select_paragraph">Select paragraph</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Delete with undo</string>
     <string name="tip_clips_delete_b">Delete clips with an undo option — you can also delete a whole type under Maintenance. Locked clips cannot be deleted.</string>
     <string name="tip_sheet_open_t">Open a clip</string>
-    <string name="tip_sheet_open_b">Tap a clip to open its action sheet with actions like View content, Share, Save to Downloads, conversions, Rename, Duplicate, Lock/unlock and Delete. On locked clips, Rename, Delete and Text editor are dimmed.</string>
+    <string name="tip_sheet_open_b">Tap a clip to open it. Long-press the clip, or tap ⋮, for the action sheet: View content, Share, Save to Downloads, conversions, Rename, Duplicate, Lock/unlock and Delete. On locked clips, Rename, Delete and Text editor are dimmed.</string>
     <string name="tip_sheet_links_t">Find links &amp; numbers</string>
     <string name="tip_sheet_links_b">On text and PDF clips you can find URLs and phone numbers and open or call them.</string>
     <string name="tip_sheet_convert_t">Convert files</string>

@@ -1,7 +1,9 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.TextFields
@@ -84,14 +87,12 @@ import java.io.File
 @Composable
 fun KlipScreen(
     viewModel: ClipboardViewModel,
-    onOpenClipFromSheet: (Long) -> Unit,
-    onOpenPresentation: (Long) -> Unit = onOpenClipFromSheet,
+    onOpenClip: (Long) -> Unit,
+    onOpenPresentation: (Long) -> Unit = onOpenClip,
     onOcrImage: (Long) -> Unit,
     onAnnotatePdf: (Long) -> Unit,
     onFillForm: (Long) -> Unit,
     onEditPages: (Long) -> Unit,
-    sheetReopenId: Long? = null,
-    onSheetReopened: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -117,13 +118,6 @@ fun KlipScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reloadClips()
-    }
-
-    LaunchedEffect(sheetReopenId) {
-        sheetReopenId?.let { id ->
-            clips.find { it.id == id }?.let { sheetEntry = it }
-            onSheetReopened()
-        }
     }
 
     LaunchedEffect(scrollToTop) {
@@ -173,7 +167,7 @@ fun KlipScreen(
         ClipActionSheet(
             entry = entry,
             viewModel = viewModel,
-            onView = { onOpenClipFromSheet(entry.id) },
+            onView = { onOpenClip(entry.id) },
             onViewPresentation = { onOpenPresentation(entry.id) },
             onRename =
                 if (entry.contentType == ContentType.LOCATION) {
@@ -360,7 +354,7 @@ fun KlipScreen(
                         ) {
                             ClipItemRow(
                                 entry = entry,
-                                onClick = { sheetEntry = entry },
+                                onClick = { openClip(entry, viewModel, onOpenClip, onOpenPresentation) },
                                 onDoubleTap =
                                     when (entry.contentType) {
                                         ContentType.URL -> ({ viewModel.openUrl(entry) })
@@ -529,6 +523,37 @@ private fun FilterRow(
     }
 }
 
+internal enum class ClipOpenTarget {
+    DETAIL,
+    PRESENTATION,
+    URL,
+    LOCATION,
+}
+
+/** Where a single tap on a list row goes. The action sheet stays on long-press and ⋮. */
+internal fun defaultClipOpen(type: ContentType): ClipOpenTarget =
+    when (type) {
+        ContentType.TEXT -> ClipOpenTarget.PRESENTATION
+        ContentType.URL -> ClipOpenTarget.URL
+        ContentType.LOCATION -> ClipOpenTarget.LOCATION
+        ContentType.PDF, ContentType.IMAGE, ContentType.FILE -> ClipOpenTarget.DETAIL
+    }
+
+private fun openClip(
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
+    onOpenClip: (Long) -> Unit,
+    onOpenPresentation: (Long) -> Unit,
+) {
+    when (defaultClipOpen(entry.contentType)) {
+        ClipOpenTarget.PRESENTATION -> onOpenPresentation(entry.id)
+        ClipOpenTarget.URL -> viewModel.openUrl(entry)
+        ClipOpenTarget.LOCATION -> viewModel.openLocation(entry)
+        ClipOpenTarget.DETAIL -> onOpenClip(entry.id)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ClipItemRow(
     entry: ClipboardEntry,
@@ -539,12 +564,20 @@ private fun ClipItemRow(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    val openRow = {
+        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+        onClick()
+    }
+    val openMenu = {
+        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.LONG_PRESS)
+        onOpenSheet()
+    }
     Card(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
-                .hapticClickable(onClick = onClick),
+                .combinedClickable(onClick = openRow, onLongClick = openMenu),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
     ) {
@@ -559,8 +592,9 @@ private fun ClipItemRow(
                             .size(40.dp)
                             .pointerInput(entry.id) {
                                 detectTapGestures(
-                                    onTap = { onClick() },
+                                    onTap = { openRow() },
                                     onDoubleTap = { onDoubleTap() },
+                                    onLongPress = { openMenu() },
                                 )
                             },
                     contentAlignment = Alignment.Center,
@@ -627,19 +661,26 @@ private fun ClipItemRow(
                     )
                 }
                 if (entry.isLocked) {
-                    IconButton(
-                        onClick = {
-                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            onOpenSheet()
-                        },
-                        modifier = Modifier.size(40.dp),
-                    ) {
+                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Filled.Lock,
                             contentDescription = context.getString(R.string.lock_or_unlock),
+                            modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
+                }
+                IconButton(
+                    onClick = {
+                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                        onOpenSheet()
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = context.getString(R.string.clip_more_actions),
+                    )
                 }
             }
         }

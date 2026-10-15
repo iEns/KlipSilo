@@ -77,6 +77,7 @@
     <string name="help_new_clip">Buat klip baru secara manual</string>
     <string name="search_hint">Cari klip...</string>
     <string name="clear">Bersihkan</string>
+    <string name="clip_more_actions">Tindakan lainnya</string>
     <string name="selected">dipilih</string>
     <string name="select_all">Pilih semua</string>
     <string name="select_paragraph">Pilih paragraf</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Hapus dengan urungkan</string>
     <string name="tip_clips_delete_b">Hapus klip dengan opsi urungkan; Anda juga dapat menghapus satu jenis di Pemeliharaan. Klip terkunci tidak dihapus.</string>
     <string name="tip_sheet_open_t">Buka klip</string>
-    <string name="tip_sheet_open_b">Ketuk klip untuk membuka lembar tindakan: Lihat konten, Bagikan, Simpan ke Download, konversi, Ganti nama, Duplikat, Kunci/buka kunci, dan Hapus. Pada klip terkunci, Ganti nama, Hapus, dan Edit redup.</string>
+    <string name="tip_sheet_open_b">Ketuk klip untuk membukanya. Tekan lama klip, atau ketuk ⋮, untuk membuka lembar tindakan: Lihat konten, Bagikan, Simpan ke Download, konversi, Ganti nama, Duplikat, Kunci/buka kunci, dan Hapus. Pada klip terkunci, Ganti nama, Hapus, dan Edit redup.</string>
     <string name="tip_sheet_links_t">Temukan tautan &amp; nomor</string>
     <string name="tip_sheet_links_b">Pada klip teks dan PDF Anda dapat menemukan URL dan nomor telepon, lalu membuka atau menelponnya.</string>
     <string name="tip_sheet_convert_t">Konversi file</string>

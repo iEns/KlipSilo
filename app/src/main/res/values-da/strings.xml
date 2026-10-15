@@ -77,6 +77,7 @@
     <string name="help_new_clip">Opret et nyt klip manuelt</string>
     <string name="search_hint">Søg i klip...</string>
     <string name="clear">Ryd</string>
+    <string name="clip_more_actions">Flere handlinger</string>
     <string name="selected">valgte</string>
     <string name="select_all">Vælg alle</string>
     <string name="select_paragraph">Vælg afsnit</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Slet med fortryd</string>
     <string name="tip_clips_delete_b">Slet klip med mulighed for fortryd — du kan også slette en hel type under Vedligehold. Låste klip kan ikke slettes.</string>
     <string name="tip_sheet_open_t">Åbn et klip</string>
-    <string name="tip_sheet_open_b">Tryk på et klip for at åbne dets action-sheet med handlinger som Vis indhold, Del, Gem til Downloads, konverteringer, Omdøb, Duplikér, Lås/lås op og Slet. På låste klip er Omdøb, Slet og Tekst-editor dæmpet.</string>
+    <string name="tip_sheet_open_b">Tryk på et klip for at åbne det. Hold nede på klippet, eller tryk på ⋮, for at åbne action-sheetet: Vis indhold, Del, Gem til Downloads, konverteringer, Omdøb, Duplikér, Lås/lås op og Slet. På låste klip er Omdøb, Slet og Tekst-editor dæmpet.</string>
     <string name="tip_sheet_links_t">Find links &amp; numre</string>
     <string name="tip_sheet_links_b">På tekst- og PDF-klip kan du finde URL\'er og telefonnumre og åbne eller ringe til dem.</string>
     <string name="tip_sheet_convert_t">Konverter filer</string>

@@ -77,6 +77,7 @@
     <string name="help_new_clip">Crear un recorte nuevo a mano</string>
     <string name="search_hint">Buscar recortes...</string>
     <string name="clear">Borrar</string>
+    <string name="clip_more_actions">Más acciones</string>
     <string name="selected">seleccionados</string>
     <string name="select_all">Seleccionar todo</string>
     <string name="select_paragraph">Seleccionar párrafo</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Eliminar con deshacer</string>
     <string name="tip_clips_delete_b">Elimina recortes con opción de deshacer; también puedes borrar un tipo entero en Mantenimiento. Los bloqueados no se eliminan.</string>
     <string name="tip_sheet_open_t">Abrir un recorte</string>
-    <string name="tip_sheet_open_b">Toca un recorte para abrir su hoja de acciones: Ver contenido, Compartir, Guardar en Descargas, conversiones, Cambiar nombre, Duplicar, Bloquear/desbloquear y Eliminar. En los bloqueados, Cambiar nombre, Eliminar y Editar aparecen atenuados.</string>
+    <string name="tip_sheet_open_b">Toca un recorte para abrirlo. Mantén pulsado el recorte, o toca ⋮, para abrir la hoja de acciones: Ver contenido, Compartir, Guardar en Descargas, conversiones, Cambiar nombre, Duplicar, Bloquear/desbloquear y Eliminar. En los bloqueados, Cambiar nombre, Eliminar y Editar aparecen atenuados.</string>
     <string name="tip_sheet_links_t">Buscar enlaces y números</string>
     <string name="tip_sheet_links_b">En recortes de texto y PDF puedes encontrar URL y teléfonos y abrirlos o llamarlos.</string>
     <string name="tip_sheet_convert_t">Convertir archivos</string>

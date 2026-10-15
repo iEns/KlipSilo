@@ -77,6 +77,7 @@
     <string name="help_new_clip">Crea un ritaglio a mano</string>
     <string name="search_hint">Cerca ritagli...</string>
     <string name="clear">Cancella</string>
+    <string name="clip_more_actions">Altre azioni</string>
     <string name="selected">selezionati</string>
     <string name="select_all">Seleziona tutto</string>
     <string name="select_paragraph">Seleziona paragrafo</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Elimina con annulla</string>
     <string name="tip_clips_delete_b">Elimina i ritagli con possibilità di annullare; in Manutenzione puoi anche eliminare un intero tipo. I ritagli bloccati non si eliminano.</string>
     <string name="tip_sheet_open_t">Apri un ritaglio</string>
-    <string name="tip_sheet_open_b">Tocca un ritaglio per aprire la scheda azioni: Vedi contenuto, Condividi, Salva in Download, conversioni, Rinomina, Duplica, Blocca/sblocca ed Elimina. Nei ritagli bloccati, Rinomina, Elimina e Modifica sono attenuati.</string>
+    <string name="tip_sheet_open_b">Tocca un ritaglio per aprirlo. Tieni premuto il ritaglio, oppure tocca ⋮, per aprire la scheda azioni: Vedi contenuto, Condividi, Salva in Download, conversioni, Rinomina, Duplica, Blocca/sblocca ed Elimina. Nei ritagli bloccati, Rinomina, Elimina e Modifica sono attenuati.</string>
     <string name="tip_sheet_links_t">Trova link e numeri</string>
     <string name="tip_sheet_links_b">Nei ritagli di testo e PDF puoi trovare URL e numeri di telefono e aprirli o chiamarli.</string>
     <string name="tip_sheet_convert_t">Converti file</string>

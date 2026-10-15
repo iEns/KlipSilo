@@ -77,6 +77,7 @@
     <string name="help_new_clip">새 클립을 직접 만들기</string>
     <string name="search_hint">클립 검색...</string>
     <string name="clear">지우기</string>
+    <string name="clip_more_actions">추가 작업</string>
     <string name="selected">선택됨</string>
     <string name="select_all">모두 선택</string>
     <string name="select_paragraph">문단 선택</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">실행 취소가 있는 삭제</string>
     <string name="tip_clips_delete_b">실행 취소가 가능한 삭제로 클립을 지웁니다. 유지 관리에서 한 유형 전체를 지울 수도 있습니다. 잠긴 클립은 삭제되지 않습니다.</string>
     <string name="tip_sheet_open_t">클립 열기</string>
-    <string name="tip_sheet_open_b">클립을 탭하면 작업 시트가 열립니다. 내용 보기, 공유, 다운로드에 저장, 변환, 이름 바꾸기, 복제, 잠금/잠금 해제, 삭제가 있습니다. 잠긴 클립에서는 이름 바꾸기, 삭제, 편집이 흐리게 표시됩니다.</string>
+    <string name="tip_sheet_open_b">클립을 탭하면 클립이 열립니다. 길게 누르거나 ⋮ 를 탭하면 작업 시트가 열립니다. 내용 보기, 공유, 다운로드에 저장, 변환, 이름 바꾸기, 복제, 잠금/잠금 해제, 삭제가 있습니다. 잠긴 클립에서는 이름 바꾸기, 삭제, 편집이 흐리게 표시됩니다.</string>
     <string name="tip_sheet_links_t">링크와 번호 찾기</string>
     <string name="tip_sheet_links_b">텍스트와 PDF 클립에서 URL과 전화번호를 찾아 열거나 전화할 수 있습니다.</string>
     <string name="tip_sheet_convert_t">파일 변환</string>

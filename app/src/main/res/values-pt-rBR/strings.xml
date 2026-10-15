@@ -77,6 +77,7 @@
     <string name="help_new_clip">Criar um recorte novo manualmente</string>
     <string name="search_hint">Pesquisar recortes...</string>
     <string name="clear">Limpar</string>
+    <string name="clip_more_actions">Mais ações</string>
     <string name="selected">selecionados</string>
     <string name="select_all">Selecionar tudo</string>
     <string name="select_paragraph">Selecionar parágrafo</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Excluir com desfazer</string>
     <string name="tip_clips_delete_b">Exclua recortes com opção de desfazer; também dá para excluir um tipo inteiro em Manutenção. Recortes bloqueados não são excluídos.</string>
     <string name="tip_sheet_open_t">Abrir um recorte</string>
-    <string name="tip_sheet_open_b">Toque um recorte para abrir a folha de ações: Ver conteúdo, Compartilhar, Salvar em Downloads, conversões, Renomear, Duplicar, Bloquear/desbloquear e Excluir. Em recortes bloqueados, Renomear, Excluir e Editar ficam esmaecidos.</string>
+    <string name="tip_sheet_open_b">Toque um recorte para abri-lo. Mantenha pressionado o recorte, ou toque em ⋮, para abrir a folha de ações: Ver conteúdo, Compartilhar, Salvar em Downloads, conversões, Renomear, Duplicar, Bloquear/desbloquear e Excluir. Em recortes bloqueados, Renomear, Excluir e Editar ficam esmaecidos.</string>
     <string name="tip_sheet_links_t">Encontrar links e números</string>
     <string name="tip_sheet_links_b">Em recortes de texto e PDF você pode achar URLs e telefones e abri-los ou ligar.</string>
     <string name="tip_sheet_convert_t">Converter arquivos</string>

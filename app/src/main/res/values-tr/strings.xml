@@ -77,6 +77,7 @@
     <string name="help_new_clip">Yeni bir klip elle oluştur</string>
     <string name="search_hint">Klip ara...</string>
     <string name="clear">Temizle</string>
+    <string name="clip_more_actions">Diğer işlemler</string>
     <string name="selected">seçili</string>
     <string name="select_all">Tümünü seç</string>
     <string name="select_paragraph">Paragrafı seç</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Geri alarak sil</string>
     <string name="tip_clips_delete_b">Geri alma seçeneğiyle klipleri silin; Bakım altında bir türün tümünü de silebilirsiniz. Kilitli klipler silinmez.</string>
     <string name="tip_sheet_open_t">Klip aç</string>
-    <string name="tip_sheet_open_b">Bir klibe dokununca işlem sayfası açılır: İçeriği görüntüle, Paylaş, İndirilenler\'e kaydet, dönüşümler, Yeniden adlandır, Çoğalt, Kilitle/kilidi aç ve Sil. Kilitli kliplerde Yeniden adlandır, Sil ve Düzenle soluktur.</string>
+    <string name="tip_sheet_open_b">Bir klibe dokununca klip açılır. İşlem sayfası için klibe uzun basın veya ⋮ simgesine dokunun: İçeriği görüntüle, Paylaş, İndirilenler\'e kaydet, dönüşümler, Yeniden adlandır, Çoğalt, Kilitle/kilidi aç ve Sil. Kilitli kliplerde Yeniden adlandır, Sil ve Düzenle soluktur.</string>
     <string name="tip_sheet_links_t">Bağlantıları ve numaraları bul</string>
     <string name="tip_sheet_links_b">Metin ve PDF kliplerinde URL ve telefon numaralarını bulup açabilir veya arayabilirsiniz.</string>
     <string name="tip_sheet_convert_t">Dosyaları dönüştür</string>

@@ -77,6 +77,7 @@
     <string name="help_new_clip">Créer un extrait à la main</string>
     <string name="search_hint">Rechercher des extraits...</string>
     <string name="clear">Effacer</string>
+    <string name="clip_more_actions">Plus d\'actions</string>
     <string name="selected">sélectionnés</string>
     <string name="select_all">Tout sélectionner</string>
     <string name="select_paragraph">Sélectionner le paragraphe</string>
@@ -282,7 +283,7 @@
     <string name="tip_clips_delete_t">Supprimer avec annulation</string>
     <string name="tip_clips_delete_b">Supprimez des extraits avec une annulation possible ; vous pouvez aussi supprimer tout un type dans Maintenance. Les extraits verrouillés ne sont pas supprimés.</string>
     <string name="tip_sheet_open_t">Ouvrir un extrait</string>
-    <string name="tip_sheet_open_b">Touchez un extrait pour ouvrir sa feuille d\'actions : Voir le contenu, Partager, Enregistrer dans Téléchargements, conversions, Renommer, Dupliquer, Verrouiller/déverrouiller et Supprimer. Sur un extrait verrouillé, Renommer, Supprimer et Modifier sont grisés.</string>
+    <string name="tip_sheet_open_b">Touchez un extrait pour l\'ouvrir. Appuyez longuement sur l\'extrait, ou touchez ⋮, pour ouvrir la feuille d\'actions : Voir le contenu, Partager, Enregistrer dans Téléchargements, conversions, Renommer, Dupliquer, Verrouiller/déverrouiller et Supprimer. Sur un extrait verrouillé, Renommer, Supprimer et Modifier sont grisés.</string>
     <string name="tip_sheet_links_t">Trouver liens et numéros</string>
     <string name="tip_sheet_links_b">Dans les extraits de texte et PDF, vous pouvez trouver des URL et des numéros, puis les ouvrir ou les appeler.</string>
     <string name="tip_sheet_convert_t">Convertir des fichiers</string>
