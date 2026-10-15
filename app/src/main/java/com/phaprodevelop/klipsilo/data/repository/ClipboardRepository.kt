@@ -33,10 +33,13 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_FONT_SCALE
+import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_MARGIN_PT
 import com.phaprodevelop.klipsilo.data.db.ClipboardItem
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemListRow
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
@@ -1586,7 +1589,7 @@ class ClipboardRepository(
     ): List<Bitmap> {
         return try {
             if (text.isBlank()) return emptyList()
-            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing)
+            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, forPreview = true)
             if (pdfBytes.isEmpty()) return emptyList()
             val tempFile = File(context.cacheDir, "preview_${System.nanoTime()}.pdf")
             FileOutputStream(tempFile).use { it.write(pdfBytes) }
@@ -1611,6 +1614,7 @@ class ClipboardRepository(
         text: String,
         fontSizePt: Float?,
         lineSpacing: Float?,
+        forPreview: Boolean = false,
     ): ByteArray {
         val baseLayout = pdfLayout()
         val layout =
@@ -1623,7 +1627,18 @@ class ClipboardRepository(
             }
         return when {
             looksLikeHtml(text) -> renderHtmlPdf(text, layout)
-            looksLikeMarkdown(text) -> renderMarkdownPdf(text, layout)
+            looksLikeMarkdown(text) -> {
+                val mdLayout =
+                    if (forPreview) {
+                        layout.copy(
+                            marginTopBottomPt = MARKDOWN_PREVIEW_MARGIN_PT,
+                            fontSizePt = layout.fontSizePt * MARKDOWN_PREVIEW_FONT_SCALE,
+                        )
+                    } else {
+                        layout
+                    }
+                renderMarkdownPdf(text, mdLayout, compactHeadings = forPreview)
+            }
             else -> renderPlainPdf(text, layout)
         }
     }
@@ -1750,6 +1765,7 @@ class ClipboardRepository(
     private fun renderMarkdownPdf(
         text: String,
         layout: PdfLayout,
+        compactHeadings: Boolean = false,
     ): ByteArray {
         val document = PdfDocument()
         val parser =
@@ -1757,10 +1773,16 @@ class ClipboardRepository(
                 .extensions(listOf(StrikethroughExtension.create()))
                 .build()
         val root = parser.parse(text)
-        val lines = collectMdLines(root, layout)
+        val lines = collectMdLines(root, layout, compactHeadings)
+        val firstBaseline =
+            if (compactHeadings) {
+                layout.marginTopBottomPt + layout.fontSizePt * 0.85f
+            } else {
+                layout.marginTopBottomPt
+            }
 
         var pageNumber = 1
-        var y = layout.marginTopBottomPt
+        var y = firstBaseline
         var page =
             document.startPage(
                 PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, pageNumber).create(),
@@ -1773,7 +1795,7 @@ class ClipboardRepository(
                     document.startPage(
                         PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, pageNumber).create(),
                     )
-                y = layout.marginTopBottomPt
+                y = firstBaseline
             }
             drawMdLine(page.canvas, line, y, layout)
             y += line.lineHeight
@@ -1789,19 +1811,23 @@ class ClipboardRepository(
     private fun collectMdLines(
         root: Node,
         layout: PdfLayout,
+        compactHeadings: Boolean = false,
     ): List<MdLine> {
         val out = mutableListOf<MdLine>()
         val visitor =
             object : AbstractVisitor() {
                 override fun visit(heading: Heading) {
-                    val size = headingFontSize(heading.level, layout)
+                    val size = headingFontSize(heading.level, layout, compactHeadings)
                     val lineHeight = size * layout.lineSpacing
                     val runs = collectInlineRuns(heading, baseMdPaint(size, bold = true, font = layout.font))
-                    out.add(MdLine(emptyList(), lineHeight * 0.5f))
+                    val gap = lineHeight * if (compactHeadings) 0.2f else 0.5f
+                    if (out.isNotEmpty() || !compactHeadings) {
+                        out.add(MdLine(emptyList(), gap))
+                    }
                     wrapRuns(runs, layout.textWidth).forEach {
                         out.add(MdLine(it, lineHeight))
                     }
-                    out.add(MdLine(emptyList(), lineHeight * 0.5f))
+                    out.add(MdLine(emptyList(), gap))
                 }
 
                 override fun visit(paragraph: Paragraph) {
@@ -2060,14 +2086,8 @@ class ClipboardRepository(
     private fun headingFontSize(
         level: Int,
         layout: PdfLayout,
-    ): Float =
-        when (level) {
-            1 -> layout.fontSizePt * 1.8f
-            2 -> layout.fontSizePt * 1.5f
-            3 -> layout.fontSizePt * 1.3f
-            4 -> layout.fontSizePt * 1.15f
-            else -> layout.fontSizePt
-        }
+        compact: Boolean = false,
+    ): Float = layout.fontSizePt * markdownHeadingFactor(level, compact)
 
     private class HtmlLine(
         val runs: List<MdRun>,

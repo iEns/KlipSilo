@@ -1532,7 +1532,7 @@ private fun PreviewPageItem(
     var offsetY by remember(bitmap) { mutableFloatStateOf(0f) }
     androidx.compose.runtime.LaunchedEffect(scale) { onScaleChanged(scale) }
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
         modifier =
             Modifier
                 .fillMaxSize()
@@ -1583,6 +1583,7 @@ private fun PreviewPageItem(
                     )
                     .clickable { onTap() },
             contentScale = ContentScale.Fit,
+            alignment = Alignment.TopCenter,
         )
     }
 }
