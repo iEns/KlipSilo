@@ -52,7 +52,12 @@ sdk.dir=/path/to/Android/Sdk
 ./gradlew test
 ./gradlew :app:assembleDebug
 ./gradlew :app:assembleRelease
+./gradlew :app:assembleBeta
 ```
+
+`beta` is a second build type. Its application id is `com.phaprodevelop.klipsilo.beta`, the launcher name is "KlipSilo Beta", and the icon is orange, so it installs beside the Play app. The release build type is unchanged: application id `com.phaprodevelop.klipsilo`, versionName `1.1.0`, versionCode `11000`.
+
+The beta version comes from a tag such as `v1.2.0-beta.1` (versionCode `11901`). `DEPLOYTOOL_ARTIFACT_REF` wins when it is set, because a deploy builds from `git archive` and that tree has no `.git`. Otherwise Gradle uses `git describe`. A checkout that is not on a beta tag falls back to `1.2.0-beta.1`. The same release keystore signs the beta APK when `DEPLOYTOOL_SIGNING_*` is set.
 
 Debug builds are signed with the debug keystore. Release builds are signed only when these environment variables are set:
 

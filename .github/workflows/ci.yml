@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -30,4 +31,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests and debug APK
-        run: ./gradlew test :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew test :app:assembleDebug :app:assembleBeta --no-daemon --stacktrace

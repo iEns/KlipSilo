@@ -49,6 +49,17 @@ android {
                 "proguard-rules.pro",
             )
         }
+        // Side-by-side with the Play app. applicationIdSuffix keeps providers,
+        // FileProvider and the share target on ${applicationId}. Release stays
+        // com.phaprodevelop.klipsilo / 1.1.0 (versionCode 11000).
+        create("beta") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".beta"
+            matchingFallbacks += listOf("release")
+            if (!signingStore.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -78,6 +89,50 @@ android {
     }
     sourceSets {
         getByName("test").assets.srcDir("$projectDir/schemas")
+    }
+}
+
+// Beta versionName follows a tag such as v1.2.0-beta.1.
+// versionCode = major*10000 + minor*1000 + patch*100 + betaNumber - 100,
+// so 1.1.0 is 11000 and 1.2.0-beta.1 is 11901 (above the Play build, below 1.2.0).
+// DEPLOYTOOL_ARTIFACT_REF wins, because a deploy unpacks the tag with git archive
+// and that tree has no .git. Otherwise git describe is used. A checkout that is
+// not on a beta tag (local main before the tag exists) falls back to 1.2.0-beta.1.
+val betaVersionNameProvider =
+    providers.environmentVariable("DEPLOYTOOL_ARTIFACT_REF").orElse(
+        providers.exec {
+            commandLine("git", "describe", "--tags", "--always", "--match", "v[0-9]*")
+            workingDir(rootProject.layout.projectDirectory)
+            isIgnoreExitValue = true
+        }.standardOutput.asText,
+    ).map { raw -> betaVersionName(raw) }
+
+fun betaVersionName(raw: String): String {
+    val match = Regex("""^v?(\d+\.\d+\.\d+)-beta\.(\d+)""").find(raw.trim())
+    return if (match != null) {
+        "${match.groupValues[1]}-beta.${match.groupValues[2]}"
+    } else {
+        "1.2.0-beta.1"
+    }
+}
+
+fun betaVersionCode(versionName: String): Int {
+    val match = Regex("""(\d+)\.(\d+)\.(\d+)-beta\.(\d+)""").find(versionName) ?: return 11901
+    val major = match.groupValues[1].toInt()
+    val minor = match.groupValues[2].toInt()
+    val patch = match.groupValues[3].toInt()
+    val beta = match.groupValues[4].toInt().coerceAtLeast(1)
+    val base = major * 10000 + minor * 1000 + patch * 100
+    return (base - 100 + beta).coerceAtLeast(11000)
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("beta")) { variant ->
+        val code = betaVersionNameProvider.map { betaVersionCode(it) }
+        variant.outputs.forEach { output ->
+            output.versionName.set(betaVersionNameProvider)
+            output.versionCode.set(code)
+        }
     }
 }
 
