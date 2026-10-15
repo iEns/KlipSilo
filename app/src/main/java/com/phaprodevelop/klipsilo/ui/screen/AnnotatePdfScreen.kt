@@ -14,11 +14,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -429,7 +434,12 @@ fun AnnotatePdfScreen(
             )
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars)),
+        ) {
             Box(
                 modifier =
                     Modifier
@@ -917,6 +927,7 @@ fun AnnotatePdfScreen(
                         draft = newDraft
                     },
                     onCommit = { persistAnnotateSettings() },
+                    onConfirm = { commitDrafts() },
                 )
             }
 
@@ -1069,6 +1080,7 @@ private fun AnnotationPanel(
     pointSize: Float,
     onDraftChange: (DraftAnnotation) -> Unit,
     onCommit: () -> Unit,
+    onConfirm: () -> Unit,
 ) {
     val context = LocalContext.current
     val colors =
@@ -1091,6 +1103,14 @@ private fun AnnotationPanel(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text(context.getString(R.string.enter_text)) },
             )
+            Spacer(Modifier.width(4.dp))
+            IconButton(onClick = onConfirm) {
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = context.getString(R.string.ok),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
