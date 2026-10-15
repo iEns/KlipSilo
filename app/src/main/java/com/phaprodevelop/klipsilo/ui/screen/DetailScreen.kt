@@ -1,7 +1,6 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import android.graphics.Bitmap
-import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -104,7 +103,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -117,6 +115,8 @@ import com.phaprodevelop.klipsilo.data.repository.extractRtfText
 import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
+import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
+import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -895,29 +895,9 @@ fun DetailScreen(
                         } else if (isHtmlDocument && !htmlSourceShown) {
                             // Read in composition so a body that arrives after the first
                             // frame (TEXT list rows store no textContent) still loads.
-                            val htmlBody = editedText.text
-                            AndroidView(
-                                factory = { ctx ->
-                                    WebView(ctx).apply {
-                                        settings.javaScriptEnabled = false
-                                        settings.builtInZoomControls = true
-                                        settings.displayZoomControls = false
-                                        settings.loadWithOverviewMode = true
-                                        settings.useWideViewPort = true
-                                    }
-                                },
-                                update = { webView ->
-                                    webView.loadData(
-                                        htmlBody,
-                                        "text/html",
-                                        null,
-                                    )
-                                },
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth()
-                                        .imePadding(),
+                            HtmlClipPane(
+                                html = editedText.text,
+                                modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                             )
                         } else {
                             OutlinedTextField(
@@ -1407,11 +1387,6 @@ private fun PdfBarAction(
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-private fun looksLikeHtmlDocument(text: String?): Boolean {
-    val head = text.orEmpty().trimStart().take(64).lowercase()
-    return head.startsWith("<!doctype html") || head.startsWith("<html")
 }
 
 private fun pdfFileTitle(entry: ClipboardEntry): String {
