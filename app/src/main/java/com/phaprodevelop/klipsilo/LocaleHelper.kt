@@ -41,6 +41,29 @@ object LocaleHelper {
 
     private val pickerTags: Set<String> = pickerLanguages.map { it.tag }.toSet()
 
+    /**
+     * Emoji flag for a picker tag. Null (system default) is a globe.
+     * English uses the UK flag. Indonesian is `id` even though resources live in `values-in`.
+     */
+    internal fun languageFlag(tag: String?): String =
+        when (tag) {
+            null -> "🌐"
+            "id" -> "🇮🇩"
+            "da" -> "🇩🇰"
+            "de" -> "🇩🇪"
+            "en" -> "🇬🇧"
+            "es" -> "🇪🇸"
+            "fr" -> "🇫🇷"
+            "it" -> "🇮🇹"
+            "pt-BR" -> "🇧🇷"
+            "tr" -> "🇹🇷"
+            "ru" -> "🇷🇺"
+            "ja" -> "🇯🇵"
+            "ko" -> "🇰🇷"
+            "zh-Hans" -> "🇨🇳"
+            else -> "🌐"
+        }
+
     /** Tag from the per-app language API. Null means follow the device language list. */
     fun selectedLanguageTag(context: Context): String? {
         val locales = readPlatformLocales(context)

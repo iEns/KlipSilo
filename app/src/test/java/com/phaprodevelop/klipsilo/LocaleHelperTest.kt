@@ -200,6 +200,22 @@ class LocaleHelperTest {
     }
 
     @Test
+    fun languageFlag_systemIsGlobe_andEveryPickerLanguageHasAFlag() {
+        assertEquals("🌐", LocaleHelper.languageFlag(null))
+        assertEquals("🇬🇧", LocaleHelper.languageFlag("en"))
+        assertEquals("🇪🇸", LocaleHelper.languageFlag("es"))
+        assertEquals("🇧🇷", LocaleHelper.languageFlag("pt-BR"))
+        assertEquals("🇨🇳", LocaleHelper.languageFlag("zh-Hans"))
+        assertEquals("🌐", LocaleHelper.languageFlag("nl"))
+
+        LocaleHelper.pickerLanguages.forEach { language ->
+            val flag = LocaleHelper.languageFlag(language.tag)
+            assertTrue(language.tag, flag.isNotBlank())
+            assertTrue(language.tag, flag != "🌐")
+        }
+    }
+
+    @Test
     fun resources_keepPlaceholders() {
         val localized = contextWithLocale("es")
         assertEquals("Página 2 / 5", localized.getString(R.string.reader_page, 2, 5))
