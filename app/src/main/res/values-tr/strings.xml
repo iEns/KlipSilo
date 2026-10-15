@@ -244,7 +244,7 @@
     <string name="no_qr_found">QR kodu bulunamadı</string>
     <string name="analyzing">Analiz ediliyor…</string>
     <string name="tool_annotate_pdf">PDF\'ye metin ve çizgi ekle</string>
-    <string name="annotate_title">Ekle</string>
+    <string name="annotate_title">İşaretle</string>
     <string name="add_text_annotation">Metin ekle</string>
     <string name="save_pdf">PDF\'yi kaydet</string>
     <string name="done">Bitti</string>

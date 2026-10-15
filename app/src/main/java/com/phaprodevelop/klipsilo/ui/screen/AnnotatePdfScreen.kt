@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,16 +25,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,10 +78,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.core.view.HapticFeedbackConstantsCompat
-import androidx.core.view.ViewCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
@@ -93,7 +96,17 @@ import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+
+private fun markupFileName(entry: ClipboardEntry): String {
+    val path = entry.filePath
+    if (!path.isNullOrBlank()) {
+        val name = File(path).name
+        if (name.isNotBlank()) return name
+    }
+    return entry.previewText
+}
 
 private data class DraftAnnotation(
     val text: String,
@@ -360,7 +373,25 @@ fun AnnotatePdfScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(context.getString(R.string.annotate_title)) },
+                title = {
+                    Column {
+                        Text(
+                            text = context.getString(R.string.annotate_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        val fileName = markupFileName(entry)
+                        if (fileName.isNotBlank()) {
+                            Text(
+                                text = fileName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (dirty) {
@@ -376,49 +407,7 @@ fun AnnotatePdfScreen(
                     }
                 },
                 actions = {
-                    if (drawMode) {
-                        TextButton(
-                            onClick = {
-                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                showClearStrokesConfirm = true
-                            },
-                            enabled = strokes.isNotEmpty(),
-                        ) {
-                            Text(context.getString(R.string.delete))
-                        }
-                    }
-                    if (annotationMode && draft?.editingIndex != null) {
-                        TextButton(
-                            onClick = {
-                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                val d = draft
-                                if (d != null && d.editingIndex != null) {
-                                    val list = annotations[pageIndex].orEmpty().toMutableList()
-                                    if (d.editingIndex < list.size) {
-                                        list.removeAt(d.editingIndex)
-                                        annotations[pageIndex] = list
-                                    }
-                                }
-                                draft = null
-                            },
-                        ) {
-                            Text(context.getString(R.string.delete))
-                        }
-                    }
-                    IconButton(
-                        onClick = {
-                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            val hadStroke = draftStroke != null
-                            commitDrafts()
-                            if (hadStroke) {
-                                strokeSavedFlash = true
-                            }
-                        },
-                        enabled = draft != null || draftStroke != null,
-                    ) {
-                        Icon(Icons.Filled.Check, contentDescription = context.getString(R.string.ok))
-                    }
-                    IconButton(
+                    TextButton(
                         onClick = {
                             commitDrafts()
                             val all = annotations.values.flatten()
@@ -427,11 +416,7 @@ fun AnnotatePdfScreen(
                         },
                         enabled = entry.filePath != null,
                     ) {
-                        Icon(
-                            Icons.Filled.PictureAsPdf,
-                            contentDescription = context.getString(R.string.save_pdf),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
+                        Text(context.getString(R.string.save_pdf))
                     }
                 },
             )
@@ -869,7 +854,11 @@ fun AnnotatePdfScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 40.dp) {
@@ -905,30 +894,16 @@ fun AnnotatePdfScreen(
                         )
                     }
                     Spacer(Modifier.weight(1f))
-                    if (annotationMode) {
-                        CompactIconButton(
-                            onClick = {
-                                commitDrafts()
-                                annotationMode = false
-                                selectedIndex = -1
-                                showDeleteConfirm = false
-                            },
-                            icon = Icons.Filled.Edit,
-                            contentDescription = context.getString(R.string.done),
-                            active = annotationMode,
-                        )
-                    } else {
-                        CompactIconButton(
-                            onClick = {
-                                commitDrafts()
-                                annotationMode = true
-                                drawMode = false
-                            },
-                            icon = Icons.Filled.Edit,
-                            contentDescription = context.getString(R.string.add_text_annotation),
-                            active = annotationMode,
-                        )
-                    }
+                    CompactIconButton(
+                        onClick = {
+                            commitDrafts()
+                            annotationMode = true
+                            drawMode = false
+                        },
+                        icon = Icons.Filled.Edit,
+                        contentDescription = context.getString(R.string.add_text_annotation),
+                        active = annotationMode,
+                    )
                     Spacer(Modifier.width(8.dp))
                     CompactIconButton(
                         onClick = {
@@ -962,6 +937,61 @@ fun AnnotatePdfScreen(
                         icon = Icons.Filled.Gesture,
                         contentDescription = context.getString(R.string.freehand),
                         active = drawMode && !straightMode,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    CompactIconButton(
+                        onClick = {},
+                        icon = Icons.AutoMirrored.Filled.Undo,
+                        contentDescription = context.getString(R.string.undo),
+                        enabled = false,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    CompactIconButton(
+                        onClick = {},
+                        icon = Icons.AutoMirrored.Filled.Redo,
+                        contentDescription = context.getString(R.string.redo),
+                        enabled = false,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    CompactIconButton(
+                        onClick = {
+                            val editing = draft?.editingIndex
+                            if (editing != null) {
+                                val list = annotations[pageIndex].orEmpty().toMutableList()
+                                if (editing < list.size) {
+                                    list.removeAt(editing)
+                                    annotations[pageIndex] = list
+                                }
+                                draft = null
+                            } else if (selectedIndex >= 0) {
+                                showDeleteConfirm = true
+                            } else if (drawMode && strokes.values.any { it.isNotEmpty() }) {
+                                showClearStrokesConfirm = true
+                            }
+                        },
+                        icon = Icons.Filled.Delete,
+                        contentDescription = context.getString(R.string.delete),
+                        enabled =
+                            selectedIndex >= 0 ||
+                                draft?.editingIndex != null ||
+                                (drawMode && strokes.values.any { it.isNotEmpty() }),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    CompactIconButton(
+                        onClick = {
+                            val hadStroke = draftStroke != null
+                            commitDrafts()
+                            if (hadStroke) {
+                                strokeSavedFlash = true
+                            }
+                            annotationMode = false
+                            drawMode = false
+                            selectedIndex = -1
+                            showDeleteConfirm = false
+                        },
+                        icon = Icons.Filled.Check,
+                        contentDescription = context.getString(R.string.done),
+                        enabled = annotationMode || drawMode || draft != null || draftStroke != null,
                     )
                 }
             }

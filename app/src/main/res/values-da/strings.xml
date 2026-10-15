@@ -244,7 +244,7 @@
     <string name="no_qr_found">Ingen QR-kode fundet</string>
     <string name="analyzing">Analyserer…</string>
     <string name="tool_annotate_pdf">Tilføj tekst og streger til PDF</string>
-    <string name="annotate_title">Markér PDF</string>
+    <string name="annotate_title">Markér</string>
     <string name="add_text_annotation">Tilføj tekst</string>
     <string name="save_pdf">Gem PDF</string>
     <string name="done">Færdig</string>

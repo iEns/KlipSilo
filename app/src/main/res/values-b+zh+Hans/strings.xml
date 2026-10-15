@@ -243,7 +243,7 @@
     <string name="no_qr_found">未找到二维码</string>
     <string name="analyzing">正在分析…</string>
     <string name="tool_annotate_pdf">向 PDF 添加文本和笔迹</string>
-    <string name="annotate_title">添加</string>
+    <string name="annotate_title">标注</string>
     <string name="add_text_annotation">添加文本</string>
     <string name="save_pdf">保存 PDF</string>
     <string name="done">完成</string>

@@ -243,7 +243,7 @@
     <string name="no_qr_found">Kode QR tidak ditemukan</string>
     <string name="analyzing">Menganalisis…</string>
     <string name="tool_annotate_pdf">Tambahkan teks &amp; goresan ke PDF</string>
-    <string name="annotate_title">Tambah</string>
+    <string name="annotate_title">Tandai</string>
     <string name="add_text_annotation">Tambahkan teks</string>
     <string name="save_pdf">Simpan PDF</string>
     <string name="done">Selesai</string>

@@ -246,7 +246,7 @@
     <string name="no_qr_found">QR-код не найден</string>
     <string name="analyzing">Анализ…</string>
     <string name="tool_annotate_pdf">Добавить текст и штрихи в PDF</string>
-    <string name="annotate_title">Добавить</string>
+    <string name="annotate_title">Разметка</string>
     <string name="add_text_annotation">Добавить текст</string>
     <string name="save_pdf">Сохранить PDF</string>
     <string name="done">Готово</string>

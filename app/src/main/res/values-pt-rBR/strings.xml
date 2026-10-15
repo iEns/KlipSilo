@@ -244,7 +244,7 @@
     <string name="no_qr_found">Nenhum código QR encontrado</string>
     <string name="analyzing">Analisando…</string>
     <string name="tool_annotate_pdf">Adicionar texto e traços ao PDF</string>
-    <string name="annotate_title">Adicionar</string>
+    <string name="annotate_title">Marcar</string>
     <string name="add_text_annotation">Adicionar texto</string>
     <string name="save_pdf">Salvar PDF</string>
     <string name="done">Concluído</string>
