@@ -1,12 +1,11 @@
 package com.phaprodevelop.klipsilo
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,12 +14,8 @@ import com.phaprodevelop.klipsilo.ui.navigation.AppRoot
 import com.phaprodevelop.klipsilo.ui.theme.KlipSiloTheme
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val viewModel: ClipboardViewModel by viewModels()
-
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

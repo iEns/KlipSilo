@@ -4,6 +4,8 @@ import android.app.Activity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -43,6 +46,7 @@ import com.phaprodevelop.klipsilo.data.settings.ThemeMode
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun IndstillingerScreen(
     viewModel: ClipboardViewModel,
@@ -50,8 +54,7 @@ fun IndstillingerScreen(
     onNavigateToPrivacy: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val language = remember { LocaleHelper.getLanguage(context) }
-    var isDanish by remember { mutableStateOf(language == "da") }
+    var selectedLanguage by remember { mutableStateOf(LocaleHelper.selectedLanguageTag(context)) }
     var pdfSettings by remember { mutableStateOf(PdfSettingsStore.load(context)) }
     val themeMode by viewModel.themeMode.collectAsState()
 
@@ -79,47 +82,25 @@ fun IndstillingerScreen(
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf(
-                true to context.getString(R.string.language_danish),
-                false to context.getString(R.string.language_english),
-            )
-                .forEach { (danish, label) ->
-                    val selected = isDanish == danish
-                    Card(
-                        modifier =
-                            Modifier.weight(1f).clickable {
-                                isDanish = danish
-                                LocaleHelper.setLanguage(context, if (danish) "da" else "en")
-                                (context as? Activity)?.recreate()
-                            },
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                            ),
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color =
-                                if (selected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
+            val options =
+                listOf(null to context.getString(R.string.language_system)) +
+                    LocaleHelper.pickerLanguages.map { it.tag to it.nativeName }
+            options.forEach { (tag, label) ->
+                FilterChip(
+                    selected = selectedLanguage == tag,
+                    onClick = {
+                        selectedLanguage = tag
+                        LocaleHelper.setLanguage(context, tag)
+                        (context as? Activity)?.recreate()
+                    },
+                    label = { Text(label) },
+                )
+            }
         }
 
         Spacer(Modifier.size(24.dp))

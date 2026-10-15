@@ -4,14 +4,19 @@ package com.phaprodevelop.klipsilo
 
 import android.content.Context
 import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.test.core.app.ApplicationProvider
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
@@ -21,128 +26,189 @@ class LocaleHelperTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .clear()
-            .commit()
+        legacyPrefs().edit().clear().commit()
+        LocaleHelper.setLanguage(context, null)
+    }
+
+    @After
+    fun tearDown() {
+        LocaleHelper.setLanguage(context, null)
+        legacyPrefs().edit().clear().commit()
     }
 
     @Test
-    fun getLanguage_noStored_daSystem_returnsDa() {
-        // Arrange
-        val daContext = contextWithLocale("da")
+    fun getLanguage_noOverride_daSystem_returnsDa() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("da"))
 
-        // Act
-        val language = LocaleHelper.getLanguage(daContext)
-
-        // Assert
         assertEquals("da", language)
     }
 
     @Test
-    fun getLanguage_noStored_enSystem_returnsEn() {
-        // Arrange
-        val enContext = contextWithLocale("en")
+    fun getLanguage_noOverride_enSystem_returnsEn() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("en"))
 
-        // Act
-        val language = LocaleHelper.getLanguage(enContext)
-
-        // Assert
         assertEquals("en", language)
     }
 
     @Test
-    fun getLanguage_noStored_deSystem_returnsEn() {
-        // Arrange
-        val deContext = contextWithLocale("de")
+    fun getLanguage_noOverride_deSystem_returnsDe() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("de"))
 
-        // Act
-        val language = LocaleHelper.getLanguage(deContext)
+        assertEquals("de", language)
+    }
 
-        // Assert
+    @Test
+    fun getLanguage_noOverride_unsupportedSystem_returnsEn() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("nl"))
+
         assertEquals("en", language)
     }
 
     @Test
-    fun setLanguage_da_getLanguageReturnsDa() {
-        // Arrange
+    fun getLanguage_noOverride_ptBr_returnsPtBr() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("pt-BR"))
+
+        assertEquals("pt-BR", language)
+    }
+
+    @Test
+    fun getLanguage_noOverride_europeanPortuguese_returnsEn() {
+        // Privacy text exists only in Danish and English. pt-PT is not stored as a choice;
+        // string resources follow the device locale list on their own.
+        val language = LocaleHelper.getLanguage(contextWithLocale("pt-PT"))
+
+        assertEquals("en", language)
+    }
+
+    @Test
+    fun getLanguage_noOverride_simplifiedChinese_returnsZhHans() {
+        assertEquals("zh-Hans", LocaleHelper.getLanguage(contextWithLocale("zh-Hans")))
+        assertEquals("zh-Hans", LocaleHelper.getLanguage(contextWithLocale("zh-CN")))
+    }
+
+    @Test
+    fun getLanguage_noOverride_traditionalChinese_returnsEn() {
+        val language = LocaleHelper.getLanguage(contextWithLocale("zh-TW"))
+
+        assertEquals("en", language)
+    }
+
+    @Test
+    fun setLanguage_da_usesPlatformApiAndDoesNotWriteLegacyPrefs() {
         LocaleHelper.setLanguage(context, "da")
 
-        // Act
-        val language = LocaleHelper.getLanguage(context)
-
-        // Assert
-        assertEquals("da", language)
-    }
-
-    @Test
-    fun getLanguage_storedFr_fallsBackToSystem() {
-        // Arrange
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LANG, "fr")
-            .commit()
-        val daContext = contextWithLocale("da")
-        val enContext = contextWithLocale("en")
-
-        // Act
-        val fromDa = LocaleHelper.getLanguage(daContext)
-        val fromEn = LocaleHelper.getLanguage(enContext)
-
-        // Assert
-        assertEquals("da", fromDa)
-        assertEquals("en", fromEn)
-    }
-
-    @Test
-    fun toggleLanguage_fromDa_returnsAndPersistsEn() {
-        // Arrange
-        LocaleHelper.setLanguage(context, "da")
-
-        // Act
-        val next = LocaleHelper.toggleLanguage(context)
-
-        // Assert
-        assertEquals("en", next)
-        assertEquals("en", LocaleHelper.getLanguage(context))
-    }
-
-    @Test
-    fun toggleLanguage_fromEn_returnsAndPersistsDa() {
-        // Arrange
-        LocaleHelper.setLanguage(context, "en")
-
-        // Act
-        val next = LocaleHelper.toggleLanguage(context)
-
-        // Assert
-        assertEquals("da", next)
         assertEquals("da", LocaleHelper.getLanguage(context))
+        assertEquals("da", LocaleHelper.selectedLanguageTag(context))
+        assertFalse(legacyPrefs().contains(LEGACY_KEY))
     }
 
     @Test
-    fun applyLocale_storedDa_configurationLanguageIsDa() {
-        // Arrange
+    fun setLanguage_null_followsSystem() {
+        LocaleHelper.setLanguage(context, "es")
+        LocaleHelper.setLanguage(context, null)
+
+        assertNull(LocaleHelper.selectedLanguageTag(context))
+        assertEquals("en", LocaleHelper.getLanguage(contextWithLocale("en")))
+        assertFalse(legacyPrefs().contains(LEGACY_KEY))
+    }
+
+    @Test
+    fun migrate_legacyDanish_movesToPlatformAndDeletesPreference() {
+        legacyPrefs().edit().putString(LEGACY_KEY, "da").commit()
+
+        LocaleHelper.migrateLegacyLanguagePreference(context)
+
+        assertEquals("da", LocaleHelper.selectedLanguageTag(context))
+        assertFalse(legacyPrefs().contains(LEGACY_KEY))
+    }
+
+    @Test
+    fun migrate_unknownLegacyValue_deletesPreferenceAndFollowsSystem() {
+        legacyPrefs().edit().putString(LEGACY_KEY, "xx").commit()
+
+        LocaleHelper.migrateLegacyLanguagePreference(context)
+
+        assertNull(LocaleHelper.selectedLanguageTag(context))
+        assertFalse(legacyPrefs().contains(LEGACY_KEY))
+        assertEquals("da", LocaleHelper.getLanguage(contextWithLocale("da")))
+    }
+
+    @Test
+    fun migrate_keepsSystemAppInfoChoiceAndDeletesPreference() {
+        LocaleHelper.setLanguage(context, "fr")
+        legacyPrefs().edit().putString(LEGACY_KEY, "da").commit()
+
+        LocaleHelper.migrateLegacyLanguagePreference(context)
+
+        assertEquals("fr", LocaleHelper.selectedLanguageTag(context))
+        assertFalse(legacyPrefs().contains(LEGACY_KEY))
+    }
+
+    @Test
+    fun applyLocale_selectedDa_configurationLanguageIsDa() {
         LocaleHelper.setLanguage(context, "da")
 
-        // Act
         val localized = LocaleHelper.applyLocale(context)
         val language = localized.resources.configuration.locales[0].language
 
-        // Assert
         assertTrue(language.startsWith("da"))
     }
 
     @Test
-    fun applyLocale_noStoredLang_returnsSameContext() {
-        // Arrange: empty locale_prefs from setUp
-
-        // Act
+    fun applyLocale_systemDefault_returnsSameContext() {
         val result = LocaleHelper.applyLocale(context)
 
-        // Assert
         assertSame(context, result)
     }
+
+    @Test
+    @Config(sdk = [28])
+    fun setLanguage_beforeAndroid13_updatesAppCompatDelegate() {
+        LocaleHelper.setLanguage(context, "de")
+
+        assertEquals("de", AppCompatDelegate.getApplicationLocales().toLanguageTags())
+
+        LocaleHelper.setLanguage(context, null)
+
+        assertTrue(AppCompatDelegate.getApplicationLocales().isEmpty)
+    }
+
+    @Test
+    fun resources_followSelectedLanguage() {
+        assertEquals("Ajustes", stringFor("es", R.string.settings))
+        assertEquals("Einstellungen", stringFor("de", R.string.settings))
+        assertEquals("Configurações", stringFor("pt-BR", R.string.settings))
+        assertEquals("Setelan", stringFor("id", R.string.settings))
+        assertEquals("设置", stringFor("zh-Hans", R.string.settings))
+        assertEquals("Настройки", stringFor("ru", R.string.settings))
+        assertEquals("設定", stringFor("ja", R.string.settings))
+        assertEquals("설정", stringFor("ko", R.string.settings))
+        assertEquals("Ayarlar", stringFor("tr", R.string.settings))
+        assertEquals("Paramètres", stringFor("fr", R.string.settings))
+        assertEquals("Impostazioni", stringFor("it", R.string.settings))
+    }
+
+    @Test
+    fun resources_simplifiedChineseRegion_usesHansFolder() {
+        assertEquals("设置", stringFor("zh-CN", R.string.settings))
+    }
+
+    @Test
+    fun resources_europeanPortuguese_usesBrazilianPortuguese() {
+        // No values-pt-rPT folder. Android's resource match resolves pt-PT to values-pt-rBR.
+        assertEquals("Configurações", stringFor("pt-PT", R.string.settings))
+    }
+
+    @Test
+    fun resources_keepPlaceholders() {
+        val localized = contextWithLocale("es")
+        assertEquals("Página 2 / 5", localized.getString(R.string.reader_page, 2, 5))
+    }
+
+    private fun stringFor(
+        language: String,
+        resId: Int,
+    ): String = contextWithLocale(language).getString(resId)
 
     private fun contextWithLocale(language: String): Context {
         val config = Configuration(context.resources.configuration)
@@ -150,8 +216,10 @@ class LocaleHelperTest {
         return context.createConfigurationContext(config)
     }
 
+    private fun legacyPrefs() = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+
     private companion object {
-        const val PREFS_NAME = "locale_prefs"
-        const val KEY_LANG = "language"
+        const val LEGACY_PREFS = "locale_prefs"
+        const val LEGACY_KEY = "language"
     }
 }

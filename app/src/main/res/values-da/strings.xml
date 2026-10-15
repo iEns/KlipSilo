@@ -54,8 +54,7 @@
     <string name="ok">OK</string>
     <string name="icons">Ikoner</string>
     <string name="language">Sprog</string>
-    <string name="language_danish">Dansk</string>
-    <string name="language_english">English</string>
+    <string name="language_system">Systemstandard</string>
     <string name="help_save_clipboard">Gem nuværende udklipsholder</string>
     <string name="help_copy_clipboard">Kopier til udklipsholder</string>
     <string name="help_share">Del</string>

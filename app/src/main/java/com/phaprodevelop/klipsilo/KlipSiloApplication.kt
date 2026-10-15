@@ -11,6 +11,7 @@ class KlipSiloApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        LocaleHelper.migrateLegacyLanguagePreference(this)
         registerActivityLifecycleCallbacks(
             object : ActivityLifecycleCallbacks {
                 override fun onActivityCreated(
