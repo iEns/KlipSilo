@@ -1,5 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
+import android.app.Activity
+import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -106,6 +108,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.db.ContentType
@@ -183,9 +188,8 @@ fun DetailScreen(
         return
     }
 
-    val recentNewId by viewModel.recentNewClipId.collectAsState()
-    val isNewEmpty = entry.id == recentNewId && entry.textContent.isNullOrBlank() && entry.previewText.isBlank()
-    val canAutoDelete = isNewEmpty && !entry.isLocked
+    val isNewEmpty = viewModel.isNewEmptyDraft(entry)
+    val canAutoDelete = isNewEmpty
 
     var editedText by rememberSaveable(
         entryId,
@@ -532,6 +536,29 @@ fun DetailScreen(
             showDiscardDialog = true
         } else {
             onNavigateBack()
+        }
+    }
+
+    // Leaving the app (Home, app switch, process stop) with a new, still-empty draft
+    // discards it instead of saving an "(untitled)" clip (#39). Skip configuration
+    // changes, where the recreated screen resumes the edit.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val hostActivity =
+        remember(context) {
+            var ctx = context
+            while (ctx is ContextWrapper && ctx !is Activity) ctx = ctx.baseContext
+            ctx as? Activity
+        }
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP && hostActivity?.isChangingConfigurations != true) {
+                    viewModel.discardEmptyNewClipOnLifecycleExit(entry, editedText.text)
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 

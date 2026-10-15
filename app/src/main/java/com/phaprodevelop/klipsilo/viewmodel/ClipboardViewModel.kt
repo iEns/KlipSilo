@@ -375,6 +375,30 @@ class ClipboardViewModel(
         }
     }
 
+    /** True for a freshly created new text clip that is still an empty, unsaved draft (#39). */
+    fun isNewEmptyDraft(entry: ClipboardEntry?): Boolean =
+        entry != null &&
+            entry.id == _recentNewClipId.value &&
+            !entry.isLocked &&
+            entry.previewText.isBlank() &&
+            entry.textContent.isNullOrBlank()
+
+    /**
+     * Leaving the editor through the lifecycle (Home, app switch, process stop) with a
+     * new, still-empty draft discards the clip instead of leaving "(untitled)" behind (#39).
+     * Returns true when the draft was discarded.
+     */
+    fun discardEmptyNewClipOnLifecycleExit(
+        entry: ClipboardEntry,
+        text: String,
+    ): Boolean {
+        if (text.isNotBlank() || !isNewEmptyDraft(entry)) return false
+        _recentNewClipId.value = null
+        _navigateBack.value = true
+        deleteClip(entry)
+        return true
+    }
+
     fun saveScannedText(
         text: String,
         navigate: Boolean = true,
