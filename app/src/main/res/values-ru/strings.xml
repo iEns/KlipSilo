@@ -261,8 +261,8 @@
     <string name="markup_tool_draw">Кисть</string>
     <string name="markup_tool_select">Выбор</string>
     <string name="markup_tool_highlight">Маркер</string>
-    <string name="markup_undo">Назад</string>
-    <string name="markup_redo">Вперёд</string>
+    <string name="markup_undo">Отменить</string>
+    <string name="markup_redo">Повторить</string>
     <string name="markup_delete">Удалить</string>
     <string name="markup_move">Двигать</string>
     <string name="markup_size_s">S</string>

@@ -260,7 +260,7 @@
     <string name="markup_tool_select">Scegli</string>
     <string name="markup_tool_highlight">Segna</string>
     <string name="markup_undo">Annulla</string>
-    <string name="markup_redo">Rifai</string>
+    <string name="markup_redo">Ripeti</string>
     <string name="markup_delete">Elimina</string>
     <string name="markup_move">Sposta</string>
     <string name="markup_size_s">S</string>

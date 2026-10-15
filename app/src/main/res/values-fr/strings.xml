@@ -261,7 +261,7 @@
     <string name="markup_tool_select">Choix</string>
     <string name="markup_tool_highlight">Marque</string>
     <string name="markup_undo">Annuler</string>
-    <string name="markup_redo">Refaire</string>
+    <string name="markup_redo">Rétablir</string>
     <string name="markup_delete">Effacer</string>
     <string name="markup_move">Déplacer</string>
     <string name="markup_size_s">S</string>

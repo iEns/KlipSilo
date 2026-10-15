@@ -258,8 +258,8 @@
     <string name="markup_tool_draw">描く</string>
     <string name="markup_tool_select">選択</string>
     <string name="markup_tool_highlight">マーカー</string>
-    <string name="markup_undo">戻す</string>
-    <string name="markup_redo">進む</string>
+    <string name="markup_undo">元に戻す</string>
+    <string name="markup_redo">やり直し</string>
     <string name="markup_delete">削除</string>
     <string name="markup_move">移動</string>
     <string name="markup_size_s">S</string>
