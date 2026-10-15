@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -144,14 +145,19 @@ fun KlipScreen(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text(context.getString(R.string.delete)) },
-            text = { Text(context.getString(R.string.delete_selected_confirm, 1)) },
+            text = {
+                Text(context.resources.getQuantityString(R.plurals.delete_clip_count, 1, 1))
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirm = false
-                    val entry = pendingDelete!!
-                    viewModel.deleteClipWithUndo(entry)
-                }) {
-                    Text(context.getString(R.string.confirm))
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        val entry = pendingDelete!!
+                        viewModel.deleteClipWithUndo(entry)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text(context.getString(R.string.delete))
                 }
             },
             dismissButton = {

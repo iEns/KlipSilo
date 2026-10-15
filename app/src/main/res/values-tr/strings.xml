@@ -85,7 +85,10 @@
     <string name="select_sentence">Cümle</string>
     <string name="select_cycle">Kelime / cümle / paragraf seç</string>
     <string name="deselect_all">Seçimi kaldır</string>
-    <string name="delete_selected_confirm">%d seçili klip silinsin mi?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">%d klip silinsin mi?</item>
+        <item quantity="other">%d klip silinsin mi?</item>
+    </plurals>
     <string name="save_location">Konumu kaydet</string>
     <string name="help_save_location">Konumunuzu kaydedin</string>
     <string name="links">Bağlantılar</string>

@@ -85,7 +85,10 @@
     <string name="select_sentence">Sentence</string>
     <string name="select_cycle">Select word / sentence / paragraph</string>
     <string name="deselect_all">Deselect all</string>
-    <string name="delete_selected_confirm">Delete %d selected clips?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">Delete %d clip?</item>
+        <item quantity="other">Delete %d clips?</item>
+    </plurals>
     <string name="save_location">Save location</string>
     <string name="help_save_location">Save your location</string>
     <string name="links">Links</string>

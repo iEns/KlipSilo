@@ -85,7 +85,11 @@
     <string name="select_sentence">Phrase</string>
     <string name="select_cycle">Sélectionner mot / phrase / paragraphe</string>
     <string name="deselect_all">Tout désélectionner</string>
-    <string name="delete_selected_confirm">Supprimer %d extraits sélectionnés ?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">Supprimer %d extrait ?</item>
+        <item quantity="many">Supprimer %d extraits ?</item>
+        <item quantity="other">Supprimer %d extraits ?</item>
+    </plurals>
     <string name="save_location">Enregistrer la position</string>
     <string name="help_save_location">Enregistrer votre position</string>
     <string name="links">Liens</string>

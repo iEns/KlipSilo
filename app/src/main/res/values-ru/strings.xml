@@ -85,7 +85,12 @@
     <string name="select_sentence">Предложение</string>
     <string name="select_cycle">Выбрать слово / предложение / абзац</string>
     <string name="deselect_all">Снять выбор</string>
-    <string name="delete_selected_confirm">Удалить выбранные клипы: %d?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">Удалить %d клип?</item>
+        <item quantity="few">Удалить %d клипа?</item>
+        <item quantity="many">Удалить %d клипов?</item>
+        <item quantity="other">Удалить %d клипа?</item>
+    </plurals>
     <string name="save_location">Сохранить место</string>
     <string name="help_save_location">Сохранить ваше местоположение</string>
     <string name="links">Ссылки</string>

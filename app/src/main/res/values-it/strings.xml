@@ -85,7 +85,10 @@
     <string name="select_sentence">Frase</string>
     <string name="select_cycle">Seleziona parola / frase / paragrafo</string>
     <string name="deselect_all">Deseleziona tutto</string>
-    <string name="delete_selected_confirm">Eliminare %d ritagli selezionati?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">Eliminare %d ritaglio?</item>
+        <item quantity="other">Eliminare %d ritagli?</item>
+    </plurals>
     <string name="save_location">Salva posizione</string>
     <string name="help_save_location">Salva la tua posizione</string>
     <string name="links">Link</string>

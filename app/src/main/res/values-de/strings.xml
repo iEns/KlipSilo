@@ -85,7 +85,10 @@
     <string name="select_sentence">Satz</string>
     <string name="select_cycle">Wort / Satz / Absatz auswählen</string>
     <string name="deselect_all">Auswahl aufheben</string>
-    <string name="delete_selected_confirm">%d ausgewählte Clips löschen?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">%d Clip löschen?</item>
+        <item quantity="other">%d Clips löschen?</item>
+    </plurals>
     <string name="save_location">Standort speichern</string>
     <string name="help_save_location">Deinen Standort speichern</string>
     <string name="links">Links</string>

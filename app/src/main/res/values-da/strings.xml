@@ -85,7 +85,10 @@
     <string name="select_sentence">Sætning</string>
     <string name="select_cycle">Vælg ord / sætning / afsnit</string>
     <string name="deselect_all">Fravælg alle</string>
-    <string name="delete_selected_confirm">Slet %d valgte klip?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">Slet %d klip?</item>
+        <item quantity="other">Slet %d klip?</item>
+    </plurals>
     <string name="save_location">Gem lokation</string>
     <string name="help_save_location">Gem din lokation</string>
     <string name="links">Links</string>

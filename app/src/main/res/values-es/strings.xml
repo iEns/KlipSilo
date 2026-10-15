@@ -85,7 +85,10 @@
     <string name="select_sentence">Oración</string>
     <string name="select_cycle">Seleccionar palabra / oración / párrafo</string>
     <string name="deselect_all">Quitar selección</string>
-    <string name="delete_selected_confirm">¿Eliminar %d recortes seleccionados?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="one">¿Eliminar %d recorte?</item>
+        <item quantity="other">¿Eliminar %d recortes?</item>
+    </plurals>
     <string name="save_location">Guardar ubicación</string>
     <string name="help_save_location">Guardar tu ubicación</string>
     <string name="links">Enlaces</string>

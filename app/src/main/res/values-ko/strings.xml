@@ -85,7 +85,9 @@
     <string name="select_sentence">문장</string>
     <string name="select_cycle">단어 / 문장 / 문단 선택</string>
     <string name="deselect_all">모두 선택 해제</string>
-    <string name="delete_selected_confirm">선택한 클립 %d개를 삭제할까요?</string>
+    <plurals name="delete_clip_count">
+        <item quantity="other">클립 %d개를 삭제할까요?</item>
+    </plurals>
     <string name="save_location">위치 저장</string>
     <string name="help_save_location">내 위치 저장</string>
     <string name="links">링크</string>

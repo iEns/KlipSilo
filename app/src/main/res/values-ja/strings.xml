@@ -85,7 +85,9 @@
     <string name="select_sentence">文</string>
     <string name="select_cycle">単語 / 文 / 段落を選択</string>
     <string name="deselect_all">選択をすべて解除</string>
-    <string name="delete_selected_confirm">選択した %d 件のクリップを削除しますか？</string>
+    <plurals name="delete_clip_count">
+        <item quantity="other">クリップを %d 件削除しますか？</item>
+    </plurals>
     <string name="save_location">位置情報を保存</string>
     <string name="help_save_location">現在地を保存</string>
     <string name="links">リンク</string>
