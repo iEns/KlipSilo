@@ -581,6 +581,15 @@ private fun openClip(
     }
 }
 
+/** One fixed-width leading slot for every clip row so all titles share a left edge. */
+internal val LeadingSlotSize = 48.dp
+
+/** Icon centred inside the slot: same slot width for icons and thumbnails (#37). */
+internal val LeadingIconSize = 24.dp
+
+/** Identical gap between the leading slot and the text column in every row type. */
+internal val LeadingSlotSpacing = 12.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ClipItemRow(
@@ -613,44 +622,46 @@ private fun ClipItemRow(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (onDoubleTap != null) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(40.dp)
-                            .pointerInput(entry.id) {
-                                detectTapGestures(
-                                    onTap = { openRow() },
-                                    onDoubleTap = { onDoubleTap() },
-                                    onLongPress = { openMenu() },
-                                )
+            val hasThumbnail = entry.contentType == ContentType.IMAGE && entry.filePath != null
+            Box(
+                modifier =
+                    Modifier
+                        .size(LeadingSlotSize)
+                        .then(
+                            if (onDoubleTap != null) {
+                                Modifier.pointerInput(entry.id) {
+                                    detectTapGestures(
+                                        onTap = { openRow() },
+                                        onDoubleTap = { onDoubleTap() },
+                                        onLongPress = { openMenu() },
+                                    )
+                                }
+                            } else {
+                                Modifier
                             },
-                    contentAlignment = Alignment.Center,
-                ) {
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (hasThumbnail) {
+                    AsyncImage(
+                        model = File(entry.filePath),
+                        contentDescription = null,
+                        modifier =
+                            Modifier
+                                .size(LeadingSlotSize)
+                                .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
                     Icon(
                         imageVector = typeIcon(entry.contentType),
                         contentDescription = null,
+                        modifier = Modifier.size(LeadingIconSize),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
-            } else if (entry.contentType == ContentType.IMAGE && entry.filePath != null) {
-                AsyncImage(
-                    model = File(entry.filePath),
-                    contentDescription = null,
-                    modifier =
-                        Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                Icon(
-                    imageVector = typeIcon(entry.contentType),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(LeadingSlotSpacing))
             Column(Modifier.weight(1f)) {
                 Text(
                     text =
