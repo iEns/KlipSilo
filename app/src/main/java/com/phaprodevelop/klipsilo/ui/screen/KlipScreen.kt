@@ -333,7 +333,7 @@ fun KlipScreen(
                     ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
                     viewModel.saveCurrentClipboard()
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             ) {
                 Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))

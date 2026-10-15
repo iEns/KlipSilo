@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -38,8 +39,10 @@ fun PrivacyPolicyScreen(onNavigateBack: () -> Unit) {
         }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(context.getString(R.string.privacy_policy)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

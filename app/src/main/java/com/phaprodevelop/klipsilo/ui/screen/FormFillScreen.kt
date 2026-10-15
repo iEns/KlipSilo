@@ -231,8 +231,10 @@ fun FormFillScreen(
     BackHandler { leave() }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(context.getString(R.string.fill_form)) },
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {

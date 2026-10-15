@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -168,6 +169,7 @@ fun VaerktøjerScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { scaffoldPadding ->
         Column(
             modifier =
@@ -175,6 +177,7 @@ fun VaerktøjerScreen(
                     .fillMaxSize()
                     .padding(scaffoldPadding)
                     .verticalScroll(rememberScrollState())
+                    .padding(top = 12.dp)
                     .padding(horizontal = 12.dp),
         ) {
             Text(
