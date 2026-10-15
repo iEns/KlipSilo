@@ -64,6 +64,7 @@ import com.tom_roush.pdfbox.pdmodel.font.PDFont
 import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDButton
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckBox
@@ -1053,8 +1054,15 @@ class ClipboardRepository(
         val points = stroke.points
         if (points.isEmpty()) return
         val (red, green, blue) = rgbOf(stroke.color)
+        if (stroke.highlight) stream.saveGraphicsState()
         stream.setStrokingColor(red / 255f, green / 255f, blue / 255f)
-        stream.setLineWidth((stroke.widthFraction * visualHeight).coerceAtLeast(0.1f))
+        if (stroke.highlight) {
+            val graphics = PDExtendedGraphicsState()
+            graphics.strokingAlphaConstant = 0.35f
+            stream.setGraphicsStateParameters(graphics)
+        }
+        val widthScale = if (stroke.highlight) 3f else 1f
+        stream.setLineWidth((stroke.widthFraction * visualHeight * widthScale).coerceAtLeast(0.1f))
         val start = points.first()
         stream.moveTo(start.first * visualWidth, (1f - start.second) * visualHeight)
         if (stroke.straight && points.size > 1) {
@@ -1066,6 +1074,7 @@ class ClipboardRepository(
             }
         }
         stream.stroke()
+        if (stroke.highlight) stream.restoreGraphicsState()
     }
 
     private fun pdfSafeText(
@@ -4340,6 +4349,7 @@ data class PdfStroke(
     val color: Int = android.graphics.Color.BLACK,
     val straight: Boolean = false,
     val zOrder: Long = 0L,
+    val highlight: Boolean = false,
 )
 
 private const val MIN_EXTRACT_IMAGE_PX = 64

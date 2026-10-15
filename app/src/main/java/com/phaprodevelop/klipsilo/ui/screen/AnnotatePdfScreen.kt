@@ -10,50 +10,53 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -68,6 +71,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -76,19 +81,26 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.MARKUP_TEXT_SIZES
+import com.phaprodevelop.klipsilo.data.MARKUP_WIDTHS
 import com.phaprodevelop.klipsilo.data.MarkupHistory
-import com.phaprodevelop.klipsilo.data.STROKE_PRESETS
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
-import com.phaprodevelop.klipsilo.data.nearestStrokePreset
+import com.phaprodevelop.klipsilo.data.nearestMarkupTextSize
+import com.phaprodevelop.klipsilo.data.nearestMarkupWidth
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
@@ -102,22 +114,12 @@ import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 private data class MarkupSnapshot(
     val annotations: Map<Int, List<PdfAnnotation>>,
     val strokes: Map<Int, List<PdfStroke>>,
 )
-
-private fun markupFileName(entry: ClipboardEntry): String {
-    val path = entry.filePath
-    if (!path.isNullOrBlank()) {
-        val name = File(path).name
-        if (name.isNotBlank()) return name
-    }
-    return entry.previewText
-}
 
 private data class DraftAnnotation(
     val text: String,
@@ -129,10 +131,18 @@ private data class DraftAnnotation(
     val zOrder: Long = 0L,
 )
 
+private enum class MarkupTool {
+    SELECT,
+    TEXT,
+    LINE,
+    DRAW,
+    HIGHLIGHT,
+}
+
 private sealed class DrawItem(val z: Long) {
     class Text(val index: Int, val ann: PdfAnnotation, z: Long) : DrawItem(z)
 
-    class Stroke(val stroke: PdfStroke, z: Long) : DrawItem(z)
+    class Stroke(val index: Int, val stroke: PdfStroke, z: Long) : DrawItem(z)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,10 +198,13 @@ fun AnnotatePdfScreen(
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
-    var annotationMode by remember { mutableStateOf(false) }
+    var tool by remember { mutableStateOf(MarkupTool.SELECT) }
     var draft by remember { mutableStateOf<DraftAnnotation?>(null) }
-    var drawMode by remember { mutableStateOf(false) }
-    var straightMode by remember { mutableStateOf(false) }
+    var draftEpoch by remember { mutableIntStateOf(0) }
+    val annotationMode = tool == MarkupTool.TEXT
+    val drawMode = tool == MarkupTool.LINE || tool == MarkupTool.DRAW || tool == MarkupTool.HIGHLIGHT
+    val straightMode = tool == MarkupTool.LINE
+    val focusRequester = remember { FocusRequester() }
     val strokes = remember { mutableStateMapOf<Int, List<PdfStroke>>() }
     var draftStroke by remember { mutableStateOf<PdfStroke?>(null) }
     val savedAnnotate = remember { AnnotateSettingsStore.load(context) }
@@ -217,18 +230,11 @@ fun AnnotatePdfScreen(
             ),
         )
     }
-    var showClearStrokesConfirm by remember { mutableStateOf(false) }
-    var strokeSavedFlash by remember { mutableStateOf(false) }
-    LaunchedEffect(strokeSavedFlash) {
-        if (strokeSavedFlash) {
-            kotlinx.coroutines.delay(1200)
-            strokeSavedFlash = false
-        }
-    }
     var movingIndex by remember { mutableIntStateOf(-1) }
     var movingDraft by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableIntStateOf(-1) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var selectedStroke by remember { mutableIntStateOf(-1) }
+    var pageSize by remember { mutableStateOf(IntSize.Zero) }
     var showExitWarning by remember { mutableStateOf(false) }
     val annotations = remember { mutableStateMapOf<Int, List<PdfAnnotation>>() }
     var pageHeightPt by remember { mutableFloatStateOf(0f) }
@@ -277,6 +283,7 @@ fun AnnotatePdfScreen(
             applyMarkupSnapshot(restored)
             draftStroke = null
             selectedIndex = -1
+            selectedStroke = -1
             historyTick++
             return
         }
@@ -284,6 +291,7 @@ fun AnnotatePdfScreen(
             draftStroke = null
             draft = null
             selectedIndex = -1
+            selectedStroke = -1
             historyTick++
             return
         }
@@ -292,6 +300,7 @@ fun AnnotatePdfScreen(
         draft = null
         draftStroke = null
         selectedIndex = -1
+        selectedStroke = -1
         historyTick++
     }
 
@@ -301,7 +310,109 @@ fun AnnotatePdfScreen(
         draft = null
         draftStroke = null
         selectedIndex = -1
+        selectedStroke = -1
         historyTick++
+    }
+
+    fun beginDraft(next: DraftAnnotation) {
+        draft = next
+        draftEpoch += 1
+    }
+
+    fun replaceSelectedText(transform: (PdfAnnotation) -> PdfAnnotation) {
+        val index = selectedIndex
+        val list = annotations[pageIndex].orEmpty().toMutableList()
+        if (index !in list.indices) return
+        recordMarkup()
+        list[index] = transform(list[index])
+        annotations[pageIndex] = list
+    }
+
+    fun replaceSelectedStroke(transform: (PdfStroke) -> PdfStroke) {
+        val index = selectedStroke
+        val list = strokes[pageIndex].orEmpty().toMutableList()
+        if (index !in list.indices) return
+        recordMarkup()
+        list[index] = transform(list[index])
+        strokes[pageIndex] = list
+    }
+
+    fun deleteSelection() {
+        val editing = draft?.editingIndex
+        if (editing != null) {
+            recordMarkup()
+            val list = annotations[pageIndex].orEmpty().toMutableList()
+            if (editing < list.size) {
+                list.removeAt(editing)
+                annotations[pageIndex] = list
+            }
+            draft = null
+            selectedIndex = -1
+            return
+        }
+        if (selectedIndex >= 0) {
+            recordMarkup()
+            val list = annotations[pageIndex].orEmpty().toMutableList()
+            if (selectedIndex in list.indices) {
+                list.removeAt(selectedIndex)
+                annotations[pageIndex] = list
+            }
+            selectedIndex = -1
+            return
+        }
+        if (selectedStroke >= 0) {
+            recordMarkup()
+            val list = strokes[pageIndex].orEmpty().toMutableList()
+            if (selectedStroke in list.indices) {
+                list.removeAt(selectedStroke)
+                strokes[pageIndex] = list
+            }
+            selectedStroke = -1
+        }
+    }
+
+    fun applyTextSize(size: Float) {
+        textSizeFraction = size
+        persistAnnotateSettings()
+        val current = draft
+        if (current != null) {
+            draft = current.copy(sizeFraction = size)
+        } else if (selectedIndex >= 0) {
+            replaceSelectedText { it.copy(sizeFraction = size) }
+        }
+    }
+
+    fun applyTextColor(color: Int) {
+        textColor = color
+        persistAnnotateSettings()
+        val current = draft
+        if (current != null) {
+            draft = current.copy(color = color)
+        } else if (selectedIndex >= 0) {
+            replaceSelectedText { it.copy(color = color) }
+        }
+    }
+
+    fun applyStrokeWidth(width: Float) {
+        strokeWidth = width
+        persistAnnotateSettings()
+        val current = draftStroke
+        if (current != null) {
+            draftStroke = current.copy(widthFraction = width)
+        } else if (selectedStroke >= 0) {
+            replaceSelectedStroke { it.copy(widthFraction = width) }
+        }
+    }
+
+    fun applyStrokeColor(color: Int) {
+        strokeColor = color
+        persistAnnotateSettings()
+        val current = draftStroke
+        if (current != null) {
+            draftStroke = current.copy(color = color)
+        } else if (selectedStroke >= 0) {
+            replaceSelectedStroke { it.copy(color = color) }
+        }
     }
 
     fun commitDrafts() {
@@ -379,7 +490,7 @@ fun AnnotatePdfScreen(
             movingIndex = -1
             movingDraft = false
             selectedIndex = -1
-            showDeleteConfirm = false
+            selectedStroke = -1
         }
     }
 
@@ -407,6 +518,7 @@ fun AnnotatePdfScreen(
         movingIndex,
         movingDraft,
         selectedIndex,
+        selectedStroke,
     ) {
         val base = baseBitmap ?: return@LaunchedEffect
         baseUse.acquire(base)
@@ -435,7 +547,7 @@ fun AnnotatePdfScreen(
                     drawGate,
                     produce = {
                         withContext(Dispatchers.IO) {
-                            drawAnnotations(base, shown, shownStrokes, highlight)
+                            drawAnnotations(base, shown, shownStrokes, highlight, selectedStroke)
                         }
                     },
                     discard = { bitmap ->
@@ -448,44 +560,60 @@ fun AnnotatePdfScreen(
         }
     }
 
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val keyboardDraftY = draft?.yFraction
+    LaunchedEffect(draftEpoch, imeBottom, pageSize, baseBitmap) {
+        val yFraction = keyboardDraftY ?: return@LaunchedEffect
+        val bmp = baseBitmap ?: return@LaunchedEffect
+        if (imeBottom <= 0 || pageSize.height == 0) return@LaunchedEffect
+        val rect = fittedRect(pageSize, bmp.width, bmp.height)
+        val yOnPage = rect.top + yFraction * rect.height
+        val reserve = with(density) { 168.dp.toPx() }
+        val visibleBottom = pageSize.height - imeBottom - reserve
+        if (yOnPage + offsetY > visibleBottom) {
+            offsetY = visibleBottom - yOnPage
+        }
+    }
+    LaunchedEffect(draftEpoch) {
+        if (draft != null) {
+            kotlinx.coroutines.delay(50)
+            try {
+                focusRequester.requestFocus()
+            } catch (_: IllegalStateException) {
+            }
+        }
+    }
+
     Scaffold(
+        contentWindowInsets =
+            WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = context.getString(R.string.annotate_title),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        val fileName = markupFileName(entry)
-                        if (fileName.isNotBlank()) {
-                            Text(
-                                text = fileName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    Text(
+                        text = context.getString(R.string.annotate_title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (dirty) {
-                            showExitWarning = true
-                        } else {
-                            onNavigateBack()
-                        }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = context.getString(R.string.back),
-                        )
+                    TextButton(
+                        onClick = {
+                            if (dirty) {
+                                showExitWarning = true
+                            } else {
+                                onNavigateBack()
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Filled.Close, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text(context.getString(R.string.cancel))
                     }
                 },
                 actions = {
-                    TextButton(
+                    Button(
                         onClick = {
                             commitDrafts()
                             val all = annotations.values.flatten()
@@ -493,8 +621,9 @@ fun AnnotatePdfScreen(
                             viewModel.saveAnnotatedPdf(entry, all, allStrokes)
                         },
                         enabled = entry.filePath != null,
+                        modifier = Modifier.padding(end = 8.dp),
                     ) {
-                        Text(context.getString(R.string.save_pdf))
+                        Text(context.getString(R.string.save))
                     }
                 },
             )
@@ -503,29 +632,58 @@ fun AnnotatePdfScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars)),
+                .padding(padding),
         ) {
+            MarkupHistoryRow(
+                canUndo = historyTick >= 0 && (markupHistory.canUndo || draftStroke != null || draft != null),
+                canRedo = historyTick >= 0 && markupHistory.canRedo,
+                canDelete = selectedIndex >= 0 || selectedStroke >= 0 || draft?.editingIndex != null,
+                pageIndex = pageIndex,
+                pageCount = pageCount,
+                onUndo = { undoMarkup() },
+                onRedo = { redoMarkup() },
+                onDelete = { deleteSelection() },
+                onPrev = {
+                    if (pageIndex > 0) {
+                        commitDrafts()
+                        pageIndex--
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+                onNext = {
+                    if (pageIndex < pageCount - 1) {
+                        commitDrafts()
+                        pageIndex++
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+            )
             Box(
                 modifier =
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .clipToBounds(),
+                        .clipToBounds()
+                        .onSizeChanged { pageSize = it },
             ) {
                 Box(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .pointerInput(annotationMode, drawMode, straightMode, baseBitmap, pageIndex) {
+                            .pointerInput(tool, selectedIndex, baseBitmap, pageIndex) {
                                 val touchSlop = viewConfiguration.touchSlop
-                                if (annotationMode) {
+                                if (annotationMode || tool == MarkupTool.SELECT) {
                                     var lastTapUpTime = 0L
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false)
                                         val downPos = down.position
                                         var targetIndex = -1
                                         var targetIsDraft = false
+                                        var targetStroke = -1
                                         var fx = 0.5f
                                         var fy = 0.5f
                                         val bmp = baseBitmap
@@ -558,6 +716,7 @@ fun AnnotatePdfScreen(
                                             if (idx >= 0) {
                                                 targetIndex = idx
                                                 targetIsDraft = false
+                                                selectedStroke = -1
                                             } else if (
                                                 draft != null &&
                                                 annotationHitTest(
@@ -573,6 +732,9 @@ fun AnnotatePdfScreen(
                                             ) {
                                                 targetIndex = -1
                                                 targetIsDraft = true
+                                            } else {
+                                                targetStroke =
+                                                    strokeHitIndex(strokes[pageIndex].orEmpty(), fx, fy)
                                             }
                                         }
                                         val targetOnText = targetIndex >= 0 || targetIsDraft
@@ -591,12 +753,18 @@ fun AnnotatePdfScreen(
                                                     val now = SystemClock.uptimeMillis()
                                                     val isDoubleTap =
                                                         lastTapUpTime > 0 && now - lastTapUpTime < 300L
-                                                    if (isDoubleTap && targetOnText && !targetIsDraft) {
+                                                    if (
+                                                        (isDoubleTap || selectedIndex == targetIndex) &&
+                                                        targetOnText &&
+                                                        !targetIsDraft &&
+                                                        tool == MarkupTool.TEXT
+                                                    ) {
                                                         val list = annotations[pageIndex].orEmpty()
                                                         if (targetIndex in list.indices) {
                                                             val a = list[targetIndex]
                                                             selectedIndex = -1
-                                                            draft =
+                                                            selectedStroke = -1
+                                                            beginDraft(
                                                                 DraftAnnotation(
                                                                     a.text,
                                                                     a.sizeFraction,
@@ -605,29 +773,41 @@ fun AnnotatePdfScreen(
                                                                     targetIndex,
                                                                     a.color,
                                                                     nextZ(),
-                                                                )
+                                                                ),
+                                                            )
                                                         }
                                                         lastTapUpTime = 0L
+                                                    } else if (targetOnText && !targetIsDraft) {
+                                                        if (draft != null) commitDrafts()
+                                                        selectedIndex = targetIndex
+                                                        selectedStroke = -1
+                                                        lastTapUpTime = now
+                                                    } else if (targetStroke >= 0 && tool == MarkupTool.SELECT) {
+                                                        if (draft != null) commitDrafts()
+                                                        selectedStroke = targetStroke
+                                                        selectedIndex = -1
+                                                        lastTapUpTime = 0L
+                                                    } else if (tool == MarkupTool.TEXT && !targetOnText) {
+                                                        if (draft != null) commitDrafts()
+                                                        selectedIndex = -1
+                                                        selectedStroke = -1
+                                                        beginDraft(
+                                                            DraftAnnotation(
+                                                                "",
+                                                                nearestMarkupTextSize(textSizeFraction),
+                                                                fx,
+                                                                fy,
+                                                                null,
+                                                                textColor,
+                                                                nextZ(),
+                                                            ),
+                                                        )
+                                                        lastTapUpTime = 0L
                                                     } else {
-                                                        if (targetOnText && !targetIsDraft) {
-                                                            selectedIndex = targetIndex
-                                                        } else {
-                                                            if (selectedIndex < 0 && draft == null && !targetOnText) {
-                                                                draft =
-                                                                    DraftAnnotation(
-                                                                        "",
-                                                                        textSizeFraction,
-                                                                        fx,
-                                                                        fy,
-                                                                        null,
-                                                                        textColor,
-                                                                        nextZ(),
-                                                                    )
-                                                            } else {
-                                                                selectedIndex = -1
-                                                            }
-                                                        }
-                                                        lastTapUpTime = if (targetOnText && !targetIsDraft) now else 0L
+                                                        if (draft != null) commitDrafts()
+                                                        selectedIndex = -1
+                                                        selectedStroke = -1
+                                                        lastTapUpTime = 0L
                                                     }
                                                 }
                                                 break
@@ -712,6 +892,30 @@ fun AnnotatePdfScreen(
                                                             }
                                                         }
                                                     }
+                                                } else if (targetStroke >= 0 && tool == MarkupTool.SELECT) {
+                                                    val curBmp = baseBitmap ?: break
+                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    if (rect.width > 0f && rect.height > 0f && scale > 0f) {
+                                                        val dfx = delta.x / (scale * rect.width)
+                                                        val dfy = delta.y / (scale * rect.height)
+                                                        val list = strokes[pageIndex].orEmpty().toMutableList()
+                                                        if (targetStroke in list.indices) {
+                                                            if (movingIndex < 0) {
+                                                                recordMarkup()
+                                                                movingIndex = targetStroke
+                                                            }
+                                                            val s = list[targetStroke]
+                                                            list[targetStroke] =
+                                                                s.copy(
+                                                                    points =
+                                                                        s.points.map {
+                                                                            (it.first + dfx).coerceIn(0f, 1f) to
+                                                                                (it.second + dfy).coerceIn(0f, 1f)
+                                                                        },
+                                                                )
+                                                            strokes[pageIndex] = list
+                                                        }
+                                                    }
                                                 } else if (scale > 1f) {
                                                     offsetX += delta.x
                                                     offsetY += delta.y
@@ -740,9 +944,13 @@ fun AnnotatePdfScreen(
                                             if (pressed.isEmpty()) {
                                                 if (started) {
                                                     val d = draftStroke
-                                                    if (d != null && d.points.size < 2) {
-                                                        draftStroke = null
+                                                    if (d != null && d.points.size >= 2) {
+                                                        recordMarkup()
+                                                        val list = strokes[d.pageIndex].orEmpty().toMutableList()
+                                                        list.add(d)
+                                                        strokes[d.pageIndex] = list
                                                     }
+                                                    draftStroke = null
                                                 }
                                                 break
                                             }
@@ -800,6 +1008,7 @@ fun AnnotatePdfScreen(
                                                             color = strokeColor,
                                                             straight = straightMode,
                                                             zOrder = nextZ(),
+                                                            highlight = tool == MarkupTool.HIGHLIGHT,
                                                         )
                                                     lastFraction = mapped
                                                 } else {
@@ -854,255 +1063,132 @@ fun AnnotatePdfScreen(
                                 filterQuality = FilterQuality.High,
                             )
                         }
+                        val editing = draft
+                        val bmp = baseBitmap
+                        if (editing != null && bmp != null && pageSize.width > 0) {
+                            val rect = fittedRect(pageSize, bmp.width, bmp.height)
+                            val x = rect.left + editing.xFraction * rect.width
+                            val y = rect.top + editing.yFraction * rect.height
+                            BasicTextField(
+                                value = editing.text,
+                                onValueChange = { value -> draft = draft?.copy(text = value) },
+                                modifier =
+                                    Modifier
+                                        .offset { IntOffset(x.toInt(), y.toInt()) }
+                                        .widthIn(min = 48.dp, max = 220.dp)
+                                        .focusRequester(focusRequester)
+                                        .background(
+                                            if (editing.color == android.graphics.Color.WHITE) {
+                                                Color(0xFF333333)
+                                            } else {
+                                                Color.White.copy(alpha = 0.92f)
+                                            },
+                                        )
+                                        .border(1.dp, Color(0xFF3F51B5)),
+                                textStyle =
+                                    TextStyle(
+                                        color = Color(editing.color),
+                                        fontSize = with(density) { (editing.sizeFraction * rect.height).toSp() },
+                                    ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { commitDrafts() }),
+                            )
+                        }
                     }
                 }
                 Column(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .imePadding()
+                        .navigationBarsPadding()
                         .background(MaterialTheme.colorScheme.surface),
                 ) {
-                    if (annotationMode && selectedIndex >= 0 && draft == null) {
+                    if (tool == MarkupTool.SELECT && selectedIndex >= 0 && draft == null) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                            horizontalArrangement = Arrangement.Center,
                         ) {
                             TextButton(onClick = {
+                                val index = selectedIndex
                                 val list = annotations[pageIndex].orEmpty()
-                                if (selectedIndex in list.indices) {
-                                    val a = list[selectedIndex]
-                                    draft =
+                                if (index in list.indices) {
+                                    val item = list[index]
+                                    selectedIndex = -1
+                                    beginDraft(
                                         DraftAnnotation(
-                                            a.text,
-                                            a.sizeFraction,
-                                            a.xFraction,
-                                            a.yFraction,
-                                            selectedIndex,
-                                            a.color,
+                                            item.text,
+                                            item.sizeFraction,
+                                            item.xFraction,
+                                            item.yFraction,
+                                            index,
+                                            item.color,
                                             nextZ(),
-                                        )
+                                        ),
+                                    )
                                 }
-                                selectedIndex = -1
                             }) {
                                 Text(context.getString(R.string.edit))
                             }
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(onClick = { showDeleteConfirm = true }) {
-                                Text(
-                                    context.getString(R.string.delete),
-                                    color = MaterialTheme.colorScheme.error,
+                            TextButton(onClick = {}) {
+                                Text(context.getString(R.string.markup_move))
+                            }
+                            IconButton(onClick = { deleteSelection() }) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = context.getString(R.string.delete),
+                                    tint = MaterialTheme.colorScheme.error,
                                 )
                             }
                         }
                     }
-                    if (annotationMode && draft != null) {
-                        AnnotationPanel(
-                            draft = draft!!,
-                            pointSize = if (pageHeightPt > 0f) draft!!.sizeFraction * pageHeightPt else 0f,
-                            onDraftChange = { newDraft ->
-                                if (newDraft.sizeFraction != draft?.sizeFraction) {
-                                    textSizeFraction = newDraft.sizeFraction
-                                }
-                                if (newDraft.color != draft?.color) {
-                                    textColor = newDraft.color
-                                }
-                                draft = newDraft
-                            },
-                            onCommit = { persistAnnotateSettings() },
-                            onConfirm = { commitDrafts() },
+                    val showTextOptions =
+                        tool == MarkupTool.TEXT ||
+                            draft != null ||
+                            (tool == MarkupTool.SELECT && selectedIndex >= 0)
+                    val showStrokeOptions =
+                        !showTextOptions &&
+                            (drawMode || (tool == MarkupTool.SELECT && selectedStroke >= 0))
+                    if (showTextOptions) {
+                        val size = draft?.sizeFraction ?: textSizeFraction
+                        val color = draft?.color ?: textColor
+                        val pointSize =
+                            if (pageHeightPt > 0f) (nearestMarkupTextSize(size) * pageHeightPt).toInt() else 0
+                        MarkupChoices(
+                            sizes = MARKUP_TEXT_SIZES,
+                            selectedSize = nearestMarkupTextSize(size),
+                            color = color,
+                            includeYellow = false,
+                            pointLabel = context.getString(R.string.markup_font_size, pointSize),
+                            onSize = { applyTextSize(it) },
+                            onColor = { applyTextColor(it) },
+                        )
+                    } else if (showStrokeOptions) {
+                        val selected = strokes[pageIndex].orEmpty().getOrNull(selectedStroke)
+                        MarkupChoices(
+                            sizes = MARKUP_WIDTHS,
+                            selectedSize = nearestMarkupWidth(selected?.widthFraction ?: strokeWidth),
+                            color = selected?.color ?: strokeColor,
+                            includeYellow = true,
+                            pointLabel = null,
+                            onSize = { applyStrokeWidth(it) },
+                            onColor = { applyStrokeColor(it) },
                         )
                     }
-                    if (drawMode) {
-                        StrokePanel(
-                            thickness = strokeWidth,
-                            color = strokeColor,
-                            onThicknessChange = { strokeWidth = it },
-                            onColorChange = {
-                                strokeColor = it
-                                draftStroke = draftStroke?.copy(color = it)
-                            },
-                            onCommit = { persistAnnotateSettings() },
-                            saved = strokeSavedFlash,
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 40.dp) {
-                    if (pageCount > 1) {
-                        CompactIconButton(
-                            onClick = {
-                                if (pageIndex > 0) {
-                                    pageIndex--
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                    scale = 1f
-                                }
-                            },
-                            enabled = pageIndex > 0,
-                            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = null,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text("${pageIndex + 1} / $pageCount", style = MaterialTheme.typography.labelMedium)
-                        Spacer(Modifier.width(4.dp))
-                        CompactIconButton(
-                            onClick = {
-                                if (pageIndex < pageCount - 1) {
-                                    pageIndex++
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                    scale = 1f
-                                }
-                            },
-                            enabled = pageIndex < pageCount - 1,
-                            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    CompactIconButton(
-                        onClick = {
-                            commitDrafts()
-                            annotationMode = true
-                            drawMode = false
-                        },
-                        icon = Icons.Filled.Title,
-                        contentDescription = context.getString(R.string.markup_tool_text),
-                        label = context.getString(R.string.markup_tool_text),
-                        active = annotationMode,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = {
-                            commitDrafts()
-                            if (drawMode && straightMode) {
-                                drawMode = false
-                            } else {
-                                drawMode = true
-                                straightMode = true
-                                annotationMode = false
-                                selectedIndex = -1
-                            }
-                        },
-                        icon = Icons.Filled.ShowChart,
-                        contentDescription = context.getString(R.string.markup_tool_line),
-                        label = context.getString(R.string.markup_tool_line),
-                        active = drawMode && straightMode,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = {
-                            commitDrafts()
-                            if (drawMode && !straightMode) {
-                                drawMode = false
-                            } else {
-                                drawMode = true
-                                straightMode = false
-                                annotationMode = false
-                                selectedIndex = -1
-                            }
-                        },
-                        icon = Icons.Filled.Gesture,
-                        contentDescription = context.getString(R.string.markup_tool_draw),
-                        label = context.getString(R.string.markup_tool_draw),
-                        active = drawMode && !straightMode,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = { undoMarkup() },
-                        icon = Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = context.getString(R.string.undo),
-                        enabled =
-                            historyTick >= 0 &&
-                                (markupHistory.canUndo || draftStroke != null || draft != null),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = { redoMarkup() },
-                        icon = Icons.AutoMirrored.Filled.Redo,
-                        contentDescription = context.getString(R.string.redo),
-                        enabled = historyTick >= 0 && markupHistory.canRedo,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = {
-                            val editing = draft?.editingIndex
-                            if (editing != null) {
-                                recordMarkup()
-                                val list = annotations[pageIndex].orEmpty().toMutableList()
-                                if (editing < list.size) {
-                                    list.removeAt(editing)
-                                    annotations[pageIndex] = list
-                                }
-                                draft = null
-                            } else if (selectedIndex >= 0) {
-                                showDeleteConfirm = true
-                            } else if (drawMode && strokes.values.any { it.isNotEmpty() }) {
-                                showClearStrokesConfirm = true
-                            }
-                        },
-                        icon = Icons.Filled.Delete,
-                        contentDescription = context.getString(R.string.delete),
-                        enabled =
-                            selectedIndex >= 0 ||
-                                draft?.editingIndex != null ||
-                                (drawMode && strokes.values.any { it.isNotEmpty() }),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    CompactIconButton(
-                        onClick = {
-                            val hadStroke = draftStroke != null
-                            commitDrafts()
-                            if (hadStroke) {
-                                strokeSavedFlash = true
-                            }
-                            annotationMode = false
-                            drawMode = false
+                    MarkupToolBar(tool = tool) { next ->
+                        commitDrafts()
+                        if (next == MarkupTool.HIGHLIGHT && tool != MarkupTool.HIGHLIGHT) {
+                            strokeColor = android.graphics.Color.YELLOW
+                        }
+                        tool = next
+                        if (next != MarkupTool.SELECT && next != MarkupTool.TEXT) {
                             selectedIndex = -1
-                            showDeleteConfirm = false
-                        },
-                        icon = Icons.Filled.Check,
-                        contentDescription = context.getString(R.string.done),
-                        enabled = annotationMode || drawMode || draft != null || draftStroke != null,
-                    )
+                        }
+                    }
                 }
             }
         }
-    }
-
-    if (showClearStrokesConfirm) {
-        AlertDialog(
-            onDismissRequest = { showClearStrokesConfirm = false },
-            title = { Text(context.getString(R.string.clear_all_strokes)) },
-            text = { Text(context.getString(R.string.clear_all_strokes_confirm)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    recordMarkup()
-                    strokes.clear()
-                    showClearStrokesConfirm = false
-                }) {
-                    Text(
-                        context.getString(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearStrokesConfirm = false }) {
-                    Text(context.getString(R.string.cancel))
-                }
-            },
-        )
     }
 
     if (showExitWarning) {
@@ -1134,35 +1220,227 @@ fun AnnotatePdfScreen(
             dismissButton = {},
         )
     }
+}
 
-    if (showDeleteConfirm && selectedIndex >= 0) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(context.getString(R.string.delete)) },
-            text = { Text(context.getString(R.string.delete_annotation_confirm)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    recordMarkup()
-                    val list = annotations[pageIndex].orEmpty().toMutableList()
-                    if (selectedIndex in list.indices) {
-                        list.removeAt(selectedIndex)
-                        annotations[pageIndex] = list
-                    }
-                    selectedIndex = -1
-                    showDeleteConfirm = false
-                }) {
-                    Text(
-                        context.getString(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(context.getString(R.string.cancel))
-                }
-            },
+@Composable
+private fun MarkupHistoryRow(
+    canUndo: Boolean,
+    canRedo: Boolean,
+    canDelete: Boolean,
+    pageIndex: Int,
+    pageCount: Int,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onDelete: () -> Unit,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val context = LocalContext.current
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MarkupHistoryButton(
+            icon = Icons.AutoMirrored.Filled.Undo,
+            label = context.getString(R.string.markup_undo),
+            enabled = canUndo,
+            onClick = onUndo,
         )
+        MarkupHistoryButton(
+            icon = Icons.AutoMirrored.Filled.Redo,
+            label = context.getString(R.string.markup_redo),
+            enabled = canRedo,
+            onClick = onRedo,
+        )
+        MarkupHistoryButton(
+            icon = Icons.Filled.Delete,
+            label = context.getString(R.string.markup_delete),
+            enabled = canDelete,
+            onClick = onDelete,
+        )
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = onPrev, enabled = pageIndex > 0) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = context.getString(R.string.markup_prev_page),
+            )
+        }
+        Text(
+            text = "${pageIndex + 1} / ${pageCount.coerceAtLeast(1)}",
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+        )
+        IconButton(onClick = onNext, enabled = pageCount > 1 && pageIndex < pageCount - 1) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = context.getString(R.string.markup_next_page),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MarkupHistoryButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .padding(horizontal = 2.dp)
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            modifier = Modifier.size(18.dp),
+            tint =
+                if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
+        )
+        Spacer(Modifier.width(2.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            color =
+                if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
+        )
+    }
+}
+
+@Composable
+private fun MarkupToolBar(
+    tool: MarkupTool,
+    onTool: (MarkupTool) -> Unit,
+) {
+    val context = LocalContext.current
+    val items =
+        listOf(
+            Triple(MarkupTool.SELECT, Icons.Filled.TouchApp, R.string.markup_tool_select),
+            Triple(MarkupTool.TEXT, Icons.Filled.Title, R.string.markup_tool_text),
+            Triple(MarkupTool.LINE, Icons.AutoMirrored.Filled.ShowChart, R.string.markup_tool_line),
+            Triple(MarkupTool.DRAW, Icons.Filled.Gesture, R.string.markup_tool_draw),
+            Triple(MarkupTool.HIGHLIGHT, Icons.Filled.Highlight, R.string.markup_tool_highlight),
+        )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items.forEach { (mode, icon, labelRes) ->
+            val label = context.getString(labelRes)
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                CompactIconButton(
+                    onClick = { onTool(mode) },
+                    icon = icon,
+                    contentDescription = label,
+                    label = label,
+                    active = tool == mode,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MarkupChoices(
+    sizes: FloatArray,
+    selectedSize: Float,
+    color: Int,
+    includeYellow: Boolean,
+    pointLabel: String?,
+    onSize: (Float) -> Unit,
+    onColor: (Int) -> Unit,
+) {
+    val context = LocalContext.current
+    val sizeLabels =
+        listOf(
+            R.string.markup_size_s to R.string.markup_size_small,
+            R.string.markup_size_m to R.string.markup_size_medium,
+            R.string.markup_size_l to R.string.markup_size_large,
+        )
+    val colors =
+        buildList {
+            add(android.graphics.Color.BLACK to R.string.markup_color_black)
+            add(android.graphics.Color.WHITE to R.string.markup_color_white)
+            add(android.graphics.Color.RED to R.string.markup_color_red)
+            if (includeYellow) add(android.graphics.Color.YELLOW to R.string.markup_color_yellow)
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        sizes.forEachIndexed { index, width ->
+            val chosen = kotlin.math.abs(selectedSize - width) < 0.0001f
+            val visible = context.getString(sizeLabels[index].first)
+            val description = context.getString(sizeLabels[index].second)
+            Box(
+                modifier =
+                    Modifier
+                        .padding(end = 4.dp)
+                        .size(36.dp)
+                        .semantics { contentDescription = description }
+                        .border(
+                            width = if (chosen) 2.dp else 1.dp,
+                            color =
+                                if (chosen) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                            shape = CircleShape,
+                        )
+                        .clickable { onSize(width) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(visible, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        colors.forEach { (argb, labelRes) ->
+            val selected = color == argb
+            val description = context.getString(labelRes)
+            Box(
+                modifier =
+                    Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(28.dp)
+                        .semantics { contentDescription = description }
+                        .clip(CircleShape)
+                        .background(Color(argb))
+                        .border(
+                            width = if (selected) 2.dp else 1.dp,
+                            color =
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                            shape = CircleShape,
+                        )
+                        .clickable { onColor(argb) },
+            )
+        }
+        if (pointLabel != null) {
+            Spacer(Modifier.width(8.dp))
+            Text(pointLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
     }
 }
 
@@ -1215,215 +1493,19 @@ private fun CompactIconButton(
     }
 }
 
-@Composable
-private fun AnnotationPanel(
-    draft: DraftAnnotation,
-    pointSize: Float,
-    onDraftChange: (DraftAnnotation) -> Unit,
-    onCommit: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    val context = LocalContext.current
-    val colors =
-        listOf(
-            android.graphics.Color.BLACK to Color.Black,
-            android.graphics.Color.WHITE to Color.White,
-            android.graphics.Color.RED to Color.Red,
-        )
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = draft.text,
-                onValueChange = { onDraftChange(draft.copy(text = it)) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(context.getString(R.string.enter_text)) },
-            )
-            Spacer(Modifier.width(4.dp))
-            IconButton(onClick = onConfirm) {
-                Icon(
-                    Icons.Filled.Check,
-                    contentDescription = context.getString(R.string.ok),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.FormatSize,
-                contentDescription = context.getString(R.string.font_size),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(8.dp))
-            Slider(
-                value = draft.sizeFraction,
-                onValueChange = { onDraftChange(draft.copy(sizeFraction = it)) },
-                onValueChangeFinished = onCommit,
-                valueRange = 0.005f..0.05f,
-                steps = 8,
-                modifier = Modifier.weight(1f),
-            )
-            colors.forEach { (argb, composeColor) ->
-                val selected = draft.color == argb
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(composeColor)
-                            .border(
-                                width = if (selected) 2.dp else 1.dp,
-                                color =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                shape = CircleShape,
-                            )
-                            .clickable {
-                                onDraftChange(draft.copy(color = argb))
-                                onCommit()
-                            },
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = String.format(java.util.Locale.US, "%.0f pt", pointSize),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StrokePanel(
-    thickness: Float,
-    color: Int,
-    onThicknessChange: (Float) -> Unit,
-    onColorChange: (Int) -> Unit,
-    onCommit: () -> Unit,
-    saved: Boolean,
-) {
-    val context = LocalContext.current
-    val colors =
-        listOf(
-            android.graphics.Color.BLACK to Color.Black,
-            android.graphics.Color.WHITE to Color.White,
-            android.graphics.Color.RED to Color.Red,
-        )
-    val selectedColor = colors.firstOrNull { it.first == color }?.second ?: Color.Black
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        if (saved) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-            ) {
-                Text(
-                    text = context.getString(R.string.stroke_saved),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-        val presetLabels =
-            listOf(
-                R.string.stroke_thin,
-                R.string.stroke_medium,
-                R.string.stroke_thick,
-                R.string.stroke_heavy,
-            )
-        val dotSizes = listOf(6.dp, 10.dp, 16.dp, 22.dp)
-        val selected = nearestStrokePreset(thickness)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            STROKE_PRESETS.forEachIndexed { index, width ->
-                val chosen = kotlin.math.abs(selected - width) < 0.0001f
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(end = 4.dp)
-                            .size(36.dp)
-                            .semantics { contentDescription = context.getString(presetLabels[index]) }
-                            .clickable {
-                                onThicknessChange(width)
-                                onCommit()
-                            },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(dotSizes[index])
-                                .clip(CircleShape)
-                                .background(selectedColor)
-                                .border(
-                                    width = if (chosen) 2.dp else 1.dp,
-                                    color =
-                                        if (chosen) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                    shape = CircleShape,
-                                ),
-                    )
-                }
-            }
-            Spacer(Modifier.width(4.dp))
-            colors.forEach { (argb, composeColor) ->
-                val selected = color == argb
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(composeColor)
-                            .border(
-                                width = if (selected) 2.dp else 1.dp,
-                                color =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                shape = CircleShape,
-                            )
-                            .clickable {
-                                onColorChange(argb)
-                                onCommit()
-                            },
-                )
-            }
-        }
-    }
-}
-
 private fun drawAnnotations(
     base: Bitmap,
     annotations: List<PdfAnnotation>,
     strokes: List<PdfStroke>,
     highlightIndex: Int? = null,
+    selectedStrokeIndex: Int = -1,
 ): Bitmap {
     val out = base.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = android.graphics.Canvas(out)
     val items =
         buildList {
             annotations.forEachIndexed { index, ann -> add(DrawItem.Text(index, ann, ann.zOrder)) }
-            strokes.forEach { add(DrawItem.Stroke(it, it.zOrder)) }
+            strokes.forEachIndexed { index, stroke -> add(DrawItem.Stroke(index, stroke, stroke.zOrder)) }
         }.sortedBy { it.z }
     for (item in items) {
         when (item) {
@@ -1457,6 +1539,7 @@ private fun drawAnnotations(
                         10f,
                         highlight,
                     )
+                    drawHandles(canvas, x - pad, topY - pad, x + textWidth + pad, topY + textHeight + pad)
                 }
                 var y = topY - paint.ascent()
                 lines.forEach { line ->
@@ -1469,11 +1552,23 @@ private fun drawAnnotations(
                 val paint =
                     android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
                         color = stroke.color
-                        strokeWidth = stroke.widthFraction * out.height
+                        strokeWidth = stroke.widthFraction * out.height * if (stroke.highlight) 3f else 1f
                         style = android.graphics.Paint.Style.STROKE
                         strokeCap = android.graphics.Paint.Cap.ROUND
                         strokeJoin = android.graphics.Paint.Join.ROUND
+                        if (stroke.highlight) alpha = 90
                     }
+                if (item.index == selectedStrokeIndex && stroke.points.isNotEmpty()) {
+                    val bounds = strokeBounds(stroke, out.width, out.height)
+                    val outline =
+                        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                            color = 0xFF3F51B5.toInt()
+                            style = android.graphics.Paint.Style.STROKE
+                            strokeWidth = 4f
+                        }
+                    canvas.drawRect(bounds, outline)
+                    drawHandles(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom)
+                }
                 val pts = stroke.points
                 if (pts.isNotEmpty()) {
                     val path = android.graphics.Path()
@@ -1589,4 +1684,99 @@ private fun mapTapToFraction(
     val px = ((cx - rect.left) / rect.width * bmpW).coerceIn(0f, bmpW.toFloat())
     val py = ((cy - rect.top) / rect.height * bmpH).coerceIn(0f, bmpH.toFloat())
     return px / bmpW to py / bmpH
+}
+
+private fun drawHandles(
+    canvas: android.graphics.Canvas,
+    left: Float,
+    top: Float,
+    right: Float,
+    bottom: Float,
+) {
+    val paint =
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF3F51B5.toInt()
+            style = android.graphics.Paint.Style.FILL
+        }
+    val half = 8f
+    listOf(left to top, right to top, left to bottom, right to bottom).forEach { (x, y) ->
+        canvas.drawRect(x - half, y - half, x + half, y + half, paint)
+    }
+}
+
+private fun strokeBounds(
+    stroke: PdfStroke,
+    width: Int,
+    height: Int,
+): android.graphics.RectF {
+    val pts =
+        if (stroke.straight && stroke.points.size > 1) {
+            listOf(stroke.points.first(), stroke.points.last())
+        } else {
+            stroke.points
+        }
+    var minX = Float.MAX_VALUE
+    var minY = Float.MAX_VALUE
+    var maxX = 0f
+    var maxY = 0f
+    pts.forEach { (fx, fy) ->
+        val x = fx * width
+        val y = fy * height
+        minX = minOf(minX, x)
+        minY = minOf(minY, y)
+        maxX = maxOf(maxX, x)
+        maxY = maxOf(maxY, y)
+    }
+    val pad = 12f
+    return android.graphics.RectF(minX - pad, minY - pad, maxX + pad, maxY + pad)
+}
+
+private fun strokeHitIndex(
+    strokes: List<PdfStroke>,
+    fx: Float,
+    fy: Float,
+): Int {
+    for (index in strokes.indices.reversed()) {
+        if (strokeContains(strokes[index], fx, fy)) return index
+    }
+    return -1
+}
+
+private fun strokeContains(
+    stroke: PdfStroke,
+    fx: Float,
+    fy: Float,
+): Boolean {
+    val pts = stroke.points
+    if (pts.isEmpty()) return false
+    val pad = (if (stroke.highlight) 0.04f else 0.02f) + stroke.widthFraction
+    val seq = if (stroke.straight && pts.size > 1) listOf(pts.first(), pts.last()) else pts
+    if (seq.size == 1) {
+        val point = seq.first()
+        return kotlin.math.abs(point.first - fx) + kotlin.math.abs(point.second - fy) <= pad
+    }
+    for (index in 0 until seq.size - 1) {
+        if (distanceToSegment(fx, fy, seq[index], seq[index + 1]) <= pad) return true
+    }
+    return false
+}
+
+private fun distanceToSegment(
+    fx: Float,
+    fy: Float,
+    start: Pair<Float, Float>,
+    end: Pair<Float, Float>,
+): Float {
+    val dx = end.first - start.first
+    val dy = end.second - start.second
+    val len2 = dx * dx + dy * dy
+    if (len2 <= 0.0000001f) {
+        return kotlin.math.abs(fx - start.first) + kotlin.math.abs(fy - start.second)
+    }
+    val t = (((fx - start.first) * dx + (fy - start.second) * dy) / len2).coerceIn(0f, 1f)
+    val px = start.first + t * dx
+    val py = start.second + t * dy
+    val ox = fx - px
+    val oy = fy - py
+    return kotlin.math.sqrt(ox * ox + oy * oy)
 }
