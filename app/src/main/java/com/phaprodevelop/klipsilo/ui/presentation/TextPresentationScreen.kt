@@ -341,7 +341,7 @@ private fun PresentationScrollMode(
             text = text.ifEmpty { stringResource(R.string.reader_empty) },
             fontSize = fontSize.sp,
             lineHeight = (fontSize * PRESENTATION_LINE_SPACING).sp,
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(6.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
             color = if (text.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else textColor,
         )
         if (isAutoScrolling) {
@@ -384,6 +384,7 @@ private fun PresentationPageModeContent(
     var contentSize by remember { mutableStateOf(IntSize.Zero) }
     val fontSizeSp = fontSize.sp
     val density = LocalDensity.current
+    // 2 × 16 dp reader padding — must match the page padding used below (#40).
     val verticalPaddingPx = with(density) { 32.dp.toPx() }
 
     val linesPerPage =
@@ -426,7 +427,7 @@ private fun PresentationPageModeContent(
                 fontSize = fontSizeSp,
                 lineHeight = (fontSize * PRESENTATION_LINE_SPACING).sp,
                 onTextLayout = { layoutResult = it },
-                modifier = Modifier.fillMaxSize().padding(6.dp).graphicsLayer { alpha = 0.001f },
+                modifier = Modifier.fillMaxSize().padding(16.dp).graphicsLayer { alpha = 0.001f },
                 softWrap = true,
             )
         }
@@ -436,7 +437,7 @@ private fun PresentationPageModeContent(
                 fontSize = fontSizeSp,
                 lineHeight = (fontSize * PRESENTATION_LINE_SPACING).sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxSize().padding(6.dp),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
             )
         } else {
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -452,7 +453,8 @@ private fun PresentationPageModeContent(
                             text = pageText,
                             fontSize = fontSizeSp,
                             lineHeight = (fontSize * PRESENTATION_LINE_SPACING).sp,
-                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(6.dp),
+                            modifier =
+                                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                             color = textColor,
                         )
                     }
