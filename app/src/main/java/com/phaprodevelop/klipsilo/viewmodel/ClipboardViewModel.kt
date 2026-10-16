@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -148,7 +149,8 @@ class ClipboardViewModel(
         toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
     }
 
-    suspend fun getClip(id: Long): ClipboardEntry? = withContext(ioDispatcher) { repository.getClip(id) }
+    suspend fun getClip(id: Long): ClipboardEntry? =
+        pendingNewDraft.value?.takeIf { it.id == id } ?: repository.getClip(id)
 
     suspend fun readTextBody(entry: ClipboardEntry): String? =
         withContext(ioDispatcher) { repository.readTextBody(entry) }
@@ -335,6 +337,13 @@ class ClipboardViewModel(
     private val _recentNewClipId = MutableStateFlow<Long?>(null)
     val recentNewClipId: StateFlow<Long?> = _recentNewClipId.asStateFlow()
 
+    /**
+     * A "New text clip" draft that has no database row yet (#42). The row is created
+     * only when non-empty content is saved (Back/Save, or ON_STOP), so closing the app
+     * can never leave an empty "(untitled)" clip behind.
+     */
+    private val pendingNewDraft = MutableStateFlow<ClipboardEntry?>(null)
+
     fun clearRecentNewClipId() {
         _recentNewClipId.value = null
     }
@@ -357,22 +366,23 @@ class ClipboardViewModel(
     }
 
     fun createEmptyClip() {
-        viewModelScope.launch {
-            val id = System.nanoTime()
-            val entry =
-                ClipboardEntry(
-                    id = id,
-                    contentType = ContentType.TEXT,
-                    textContent = null,
-                    filePath = null,
-                    previewText = "",
-                    timestamp = System.currentTimeMillis(),
-                )
-            repository.insertEntry(entry)
-            _recentNewClipId.value = id
-            _navigateToNewClip.value = id
-            triggerScrollToTop()
-        }
+        // #42: the new-text editor starts from an in-memory draft. No clip row is
+        // inserted up front — the row is created only when non-empty content is
+        // saved (Back/Save, or ON_STOP), so closing the app can never leave an
+        // empty "(untitled)" clip behind (regression of #39).
+        val id = System.nanoTime()
+        val draft =
+            ClipboardEntry(
+                id = id,
+                contentType = ContentType.TEXT,
+                textContent = null,
+                filePath = null,
+                previewText = "",
+                timestamp = System.currentTimeMillis(),
+            )
+        pendingNewDraft.value = draft
+        _recentNewClipId.value = id
+        _navigateToNewClip.value = id
     }
 
     /** True for a freshly created new text clip that is still an empty, unsaved draft (#39). */
@@ -384,20 +394,67 @@ class ClipboardViewModel(
             entry.textContent.isNullOrBlank()
 
     /**
-     * Leaving the editor through the lifecycle (Home, app switch, process stop) with a
-     * new, still-empty draft discards the clip instead of leaving "(untitled)" behind (#39).
-     * Returns true when the draft was discarded.
+     * ON_STOP while the text editor is open — the same lifecycle exit the #39 fix
+     * handles (Home, app switch, stop before a process kill; configuration changes
+     * are skipped by the caller) (#42):
+     * - A new draft with non-blank text gets its clip row created right here. The
+     *   write runs blocking so a process killed immediately after ON_STOP cannot
+     *   lose the typed text.
+     * - A new draft without text stays an in-memory draft: nothing is persisted
+     *   and no "(untitled)" row can appear.
+     * - An existing clip with unsaved edits is persisted the same way.
+     * Returns true when the edit was persisted.
      */
-    fun discardEmptyNewClipOnLifecycleExit(
+    fun saveDraftOnLifecycleExit(
         entry: ClipboardEntry,
         text: String,
+        committedText: String,
     ): Boolean {
-        if (text.isNotBlank() || !isNewEmptyDraft(entry)) return false
-        _recentNewClipId.value = null
-        _navigateBack.value = true
-        deleteClip(entry)
-        return true
+        if (entry.isLocked) return false
+        if (entry.contentType != ContentType.TEXT && entry.contentType != ContentType.URL) return false
+        // Only non-empty, actually new content is persisted. Blank edits are left
+        // to the explicit Save/Back flow (an existing clip keeps its content).
+        if (text.isBlank() || text == committedText) return false
+        val isDraft = pendingNewDraft.value?.id == entry.id
+        val incoming =
+            entry.copy(
+                textContent = text,
+                previewText = if (isDraft) textClipTitle(text) else entry.previewText,
+            )
+        return persistTextEntryBlocking(incoming, isDraft)
     }
+
+    /**
+     * One blocking, non-cancellable-style write used for the ON_STOP save (#42):
+     * the DB write completes even when this call happens right before the process
+     * is killed.
+     */
+    private fun persistTextEntryBlocking(
+        entry: ClipboardEntry,
+        isDraft: Boolean,
+    ): Boolean =
+        runBlocking {
+            try {
+                if (isDraft) {
+                    // First save: create the row exactly once, never empty.
+                    pendingNewDraft.value = null
+                    _recentNewClipId.value = null
+                    repository.insertEntry(entry)
+                } else {
+                    val full = repository.getClip(entry.id) ?: return@runBlocking false
+                    if (full.isLocked) return@runBlocking false
+                    repository.updateClip(
+                        full.copy(
+                            textContent = entry.textContent ?: full.textContent,
+                            previewText = previewForUpdatedClip(full, entry),
+                        ),
+                    )
+                }
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
 
     fun saveScannedText(
         text: String,
@@ -711,7 +768,7 @@ class ClipboardViewModel(
                 textContent = text.ifBlank { null },
                 previewText = preview,
             )
-        repository.updateClip(updated)
+        saveEntryRow(updated)
         if (base.previewText.isBlank() && text.isNotBlank() && _recentNewClipId.value == base.id) {
             _recentNewClipId.value = null
         }
@@ -1197,6 +1254,26 @@ class ClipboardViewModel(
         }
     }
 
+    /**
+     * Persists a clip row: the first save of a #42 draft creates the row with its
+     * content (never an empty one); afterwards the same row is updated, so repeated
+     * saves cannot produce duplicates.
+     */
+    private suspend fun saveEntryRow(entry: ClipboardEntry) {
+        if (pendingNewDraft.value?.id == entry.id) {
+            pendingNewDraft.value = null
+            _recentNewClipId.value = null
+            // The row is created only when the draft has non-empty content; a draft
+            // whose text was typed and then erased is discarded in memory, leaving no
+            // "(untitled)" artifact behind (#42).
+            if (entry.textContent.isNullOrBlank() && entry.filePath == null) return
+            repository.insertEntry(entry)
+            triggerScrollToTop()
+        } else {
+            repository.updateClip(entry)
+        }
+    }
+
     fun updateClip(entry: ClipboardEntry) {
         if (isLockedEntry(entry.id)) {
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
@@ -1220,7 +1297,7 @@ class ClipboardViewModel(
                     } else {
                         entry
                     }
-                repository.updateClip(toSave)
+                saveEntryRow(toSave)
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_saved))
             } catch (_: Exception) {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1935,6 +2012,10 @@ class ClipboardViewModel(
     }
 
     fun deleteClip(entry: ClipboardEntry) {
+        if (pendingNewDraft.value?.id == entry.id) {
+            // #42: the draft row was never created — nothing to delete from the DB.
+            pendingNewDraft.value = null
+        }
         if (entry.isLocked) {
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
             return

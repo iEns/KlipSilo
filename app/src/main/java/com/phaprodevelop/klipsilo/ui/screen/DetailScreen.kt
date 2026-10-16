@@ -95,6 +95,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
@@ -539,9 +540,12 @@ fun DetailScreen(
         }
     }
 
-    // Leaving the app (Home, app switch, process stop) with a new, still-empty draft
-    // discards it instead of saving an "(untitled)" clip (#39). Skip configuration
-    // changes, where the recreated screen resumes the edit.
+    // Leaving the app through the lifecycle (Home, app switch, stop before process
+    // kill) while the editor holds unsaved text (#42, same hook as the #39 fix):
+    // a new draft with typed text gets its clip row created right here — blocking,
+    // so a process killed immediately after cannot lose it — and an existing clip's
+    // edits are persisted too. Blank drafts stay in memory only; configuration
+    // changes are skipped since the recreated screen resumes the edit.
     val lifecycleOwner = LocalLifecycleOwner.current
     val hostActivity =
         remember(context) {
@@ -553,7 +557,9 @@ fun DetailScreen(
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_STOP && hostActivity?.isChangingConfigurations != true) {
-                    viewModel.discardEmptyNewClipOnLifecycleExit(entry, editedText.text)
+                    if (viewModel.saveDraftOnLifecycleExit(entry, editedText.text, committedText)) {
+                        committedText = editedText.text
+                    }
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -939,7 +945,12 @@ fun DetailScreen(
                                     }
                                 },
                                 readOnly = entry.isLocked,
-                                modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .imePadding()
+                                        .testTag("klips_editor_text_field"),
                                 textStyle =
                                     MaterialTheme.typography.bodyLarge.copy(
                                         fontSize = fontSize.sp,
