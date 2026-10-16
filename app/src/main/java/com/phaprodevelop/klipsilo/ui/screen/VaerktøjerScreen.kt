@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.clipPickerTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.hasLocationPermission
@@ -709,7 +710,12 @@ private fun CombineDialog(
                                     Spacer(Modifier.width(8.dp))
                                 }
                                 Text(
-                                    text = entry.previewText.ifBlank { "" },
+                                    text =
+                                        clipPickerTitle(
+                                            entry.contentType,
+                                            entry.previewText,
+                                            context.getString(R.string.untitled_clip),
+                                        ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,

@@ -189,3 +189,13 @@ internal fun clipListTitle(
     // Nothing derivable (e.g. a stored raw preview): fall back to its first line.
     return truncateTitle(firstTitleLine(preview), TEXT_CLIP_TITLE_MAX)
 }
+
+/**
+ * Picker row label that must never render as an empty row: the clip list
+ * title, or [untitledLabel] when nothing is derivable for the clip (#43).
+ */
+internal fun clipPickerTitle(
+    type: ContentType,
+    preview: String,
+    untitledLabel: String,
+): String = clipListTitle(type, preview).ifBlank { untitledLabel }

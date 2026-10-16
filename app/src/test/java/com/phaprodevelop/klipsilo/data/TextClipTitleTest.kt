@@ -55,6 +55,21 @@ class TextClipTitleTest {
     }
 
     @Test
+    fun clipPickerTitle_usesTheClipListTitleWhenDerivable() {
+        assertEquals("Buy milk", clipPickerTitle(ContentType.TEXT, "- Buy milk\n- [ ] Bread", "(untitled)"))
+        assertEquals("notes.pdf", clipPickerTitle(ContentType.PDF, "notes.pdf", "(untitled)"))
+    }
+
+    @Test
+    fun clipPickerTitle_neverReturnsAnEmptyRow() {
+        // An untitled text clip without a derivable title must show the
+        // "(untitled)" fallback instead of a blank row (#43).
+        assertEquals("(untitled)", clipPickerTitle(ContentType.TEXT, "", "(untitled)"))
+        assertEquals("(untitled)", clipPickerTitle(ContentType.TEXT, "\n\n", "(untitled)"))
+        assertEquals("(untitled)", clipPickerTitle(ContentType.IMAGE, "", "(untitled)"))
+    }
+
+    @Test
     fun setextHeading_wins_overLaterAtxHeading() {
         val recipe =
             "Citronpasta med hvidløg\n" +
