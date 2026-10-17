@@ -2,7 +2,12 @@ package com.phaprodevelop.klipsilo.data
 
 internal val STROKE_PRESETS = floatArrayOf(0.002f, 0.005f, 0.01f, 0.018f)
 
-internal val MARKUP_TEXT_SIZES = floatArrayOf(0.014f, 0.022f, 0.034f)
+/**
+ * Text-size ladder for the #50 stepper: the old S/M/L sizes (0.014, 0.022 and
+ * 0.034 of the page height) stay on the ladder and a bit beyond both ends.
+ */
+internal val MARKUP_TEXT_SIZES =
+    floatArrayOf(0.010f, 0.012f, 0.014f, 0.018f, 0.022f, 0.026f, 0.030f, 0.034f)
 
 /**
  * Stroke-width ladder for the #50 stepper: the old S/M/L presets (0.003, 0.008
