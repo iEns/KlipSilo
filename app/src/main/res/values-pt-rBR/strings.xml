@@ -485,8 +485,8 @@
     <string name="location_disabled">Ative a localização para salvar sua posição</string>
     <string name="location_unavailable">Não foi possível obter uma localização. Tente de novo ao ar livre ou com a localização ativada.</string>
     <string name="location_finding">Buscando localização…</string>
-    <string name="show_password">Show password</string>
-    <string name="hide_password">Hide password</string>
-    <string name="form_password_saved_note">This will be saved in the PDF as readable text.</string>
-    <string name="form_password_saved_badge">Saved as readable text</string>
+    <string name="show_password">Mostrar senha</string>
+    <string name="hide_password">Ocultar senha</string>
+    <string name="form_password_saved_note">Isso será salvo no PDF como texto legível.</string>
+    <string name="form_password_saved_badge">Texto legível</string>
 </resources>

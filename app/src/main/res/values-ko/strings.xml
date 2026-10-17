@@ -484,8 +484,8 @@
     <string name="location_disabled">위치를 저장하려면 위치를 켜세요</string>
     <string name="location_unavailable">위치를 가져오지 못했습니다. 야외에서 또는 위치를 켠 채로 다시 시도하세요.</string>
     <string name="location_finding">위치 찾는 중…</string>
-    <string name="show_password">Show password</string>
-    <string name="hide_password">Hide password</string>
-    <string name="form_password_saved_note">This will be saved in the PDF as readable text.</string>
-    <string name="form_password_saved_badge">Saved as readable text</string>
+    <string name="show_password">비밀번호 표시</string>
+    <string name="hide_password">비밀번호 숨기기</string>
+    <string name="form_password_saved_note">PDF에 읽을 수 있는 텍스트로 저장됩니다.</string>
+    <string name="form_password_saved_badge">텍스트로 저장</string>
 </resources>
