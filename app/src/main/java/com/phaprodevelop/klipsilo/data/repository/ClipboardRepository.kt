@@ -4645,10 +4645,22 @@ private fun wrapAnnotationText(
     paint: Paint,
     maxWidthPx: Int,
 ): List<String> {
-    if (maxWidthPx <= 0) return listOf(text)
+    // Explicit line breaks (#59) always break the annotation; each segment then word-wraps.
+    return if (maxWidthPx <= 0) {
+        text.split('\n')
+    } else {
+        text.split('\n').flatMap { wrapSegment(it, paint, maxWidthPx) }
+    }
+}
+
+private fun wrapSegment(
+    segment: String,
+    paint: Paint,
+    maxWidthPx: Int,
+): List<String> {
     val lines = mutableListOf<String>()
     var current = StringBuilder()
-    text.split(" ").forEach { word ->
+    segment.split(" ").forEach { word ->
         val test = if (current.isEmpty()) word else "$current $word"
         if (paint.measureText(test) <= maxWidthPx || current.isEmpty()) {
             current = StringBuilder(test)
