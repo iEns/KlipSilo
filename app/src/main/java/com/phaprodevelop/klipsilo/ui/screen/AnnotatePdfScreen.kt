@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -596,7 +597,7 @@ fun AnnotatePdfScreen(
                     )
                 },
                 navigationIcon = {
-                    TextButton(
+                    IconButton(
                         onClick = {
                             if (dirty) {
                                 showExitWarning = true
@@ -605,9 +606,10 @@ fun AnnotatePdfScreen(
                             }
                         },
                     ) {
-                        Icon(Icons.Filled.Close, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text(context.getString(R.string.cancel))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = context.getString(R.string.back),
+                        )
                     }
                 },
                 actions = {
