@@ -11,6 +11,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -115,7 +117,11 @@ private val CollapsedPreviewHeight = 88.dp
 /** How long the preview zoom must be still before re-rendering sharper. */
 private const val RESHARPEN_SETTLE_MILLIS = 250L
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class,
+)
 @Composable
 fun FormFillScreen(
     entryId: Long,
@@ -381,22 +387,33 @@ fun FormFillScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(context.getString(R.string.discard_changes)) },
-            text = { Text(context.getString(R.string.discard_changes_message)) },
+            title = { Text(context.getString(R.string.markup_leave_title)) },
+            text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    showDiscardDialog = false
-                    viewModel.clearFormFields()
-                    onNavigateBack()
-                }) {
-                    ButtonLabel(context.getString(R.string.discard))
+                // FlowRow so the three choices stay reachable at font scale 2.0 (#7).
+                FlowRow {
+                    TextButton(onClick = { showDiscardDialog = false }) {
+                        ButtonLabel(context.getString(R.string.cancel))
+                    }
+                    TextButton(onClick = {
+                        showDiscardDialog = false
+                        viewModel.clearFormFields()
+                        onNavigateBack()
+                    }) {
+                        ButtonLabel(context.getString(R.string.discard))
+                    }
+                    TextButton(
+                        onClick = {
+                            showDiscardDialog = false
+                            // Same as "Save PDF": fillForm navigates back itself when done.
+                            viewModel.fillForm(entry, values)
+                        },
+                    ) {
+                        ButtonLabel(context.getString(R.string.save))
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
-                    ButtonLabel(context.getString(R.string.cancel))
-                }
-            },
+            dismissButton = {},
         )
     }
 }
