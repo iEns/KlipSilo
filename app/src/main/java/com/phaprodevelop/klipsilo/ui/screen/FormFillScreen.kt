@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -48,7 +46,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,7 +63,9 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -94,6 +93,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.FormKeyboardKind
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
@@ -103,6 +103,9 @@ import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.FORM_FIELD_FONT_FILL
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
+import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_FONT_FILL
+import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_HEIGHT_FILL
+import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_MIN_FONT_SP
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
@@ -110,6 +113,7 @@ import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.formFieldTextLayout
+import com.phaprodevelop.klipsilo.ui.components.passwordBadgeLayout
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.previewPointToPageLocal
 import com.phaprodevelop.klipsilo.ui.components.previewRenderDim
@@ -591,20 +595,22 @@ private fun FormPdfPreview(
                             val masked = passwordPreviewText(field.isPassword, revealed, value)
                             val shown = formOverlayText(field, hit, masked)
                             if (shown.isEmpty()) return@forEach
+                            // Hidden password: the "saved as readable text" pill is
+                            // drawn beside the dots, sized to stay in the rect (#61).
+                            val badge =
+                                if (showPasswordSavedBadge(field.isPassword, revealed, value)) {
+                                    context.getString(R.string.form_password_saved_badge)
+                                } else {
+                                    null
+                                }
                             FormValueOverlay(
                                 hit = hit,
                                 text = shown,
                                 multiline = field.multiline,
                                 imageWidth = pageWidth.toDp(density),
                                 imageHeight = pageHeight.toDp(density),
+                                savedBadgeText = badge,
                             )
-                            if (showPasswordSavedBadge(field.isPassword, revealed, value)) {
-                                PasswordSavedBadge(
-                                    hit = hit,
-                                    imageWidth = pageWidth.toDp(density),
-                                    imageHeight = pageHeight.toDp(density),
-                                )
-                            }
                         }
                     }
                 }
@@ -630,8 +636,16 @@ private fun FormValueOverlay(
     multiline: Boolean,
     imageWidth: Dp,
     imageHeight: Dp,
+    savedBadgeText: String? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    // Pill colours resolved at composition; the pill itself is drawn inside
+    // the same drawWithCache as the value (#61).
+    val badgeBackground = MaterialTheme.colorScheme.secondaryContainer
+    val badgeForeground = MaterialTheme.colorScheme.onSecondaryContainer
+    // Readability floor for the tiny pill, independent of the user's font scale (#61).
+    val minBadgeFontPx = with(Density(density.density)) { PASSWORD_BADGE_MIN_FONT_SP.sp.toPx() }
     val width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f)
     val height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f)
     // The overlay is transparent; only the value is drawn, with the exact
@@ -690,6 +704,42 @@ private fun FormValueOverlay(
                             layout.fontSizePx != fontPx -> measureAt(layout.fontSizePx, wrap = false)
                             else -> probe
                         }
+                    // The hidden-password pill: the same pure field-rect math
+                    // places it at the trailing edge beside the dots, inside the
+                    // rect, and drops it when nothing readable fits (#61).
+                    val badge =
+                        savedBadgeText?.takeIf { it.isNotEmpty() }?.let { badgeText ->
+                            val badgeRefFontPx =
+                                (rectHeightPx * PASSWORD_BADGE_HEIGHT_FILL * PASSWORD_BADGE_FONT_FILL)
+                                    .coerceAtLeast(1f)
+                            val badgeProbe =
+                                textMeasurer.measure(
+                                    AnnotatedString(badgeText),
+                                    TextStyle(fontSize = badgeRefFontPx.toSp()),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            val perEm = badgeRefFontPx.coerceAtLeast(1f)
+                            passwordBadgeLayout(
+                                fieldWidthPx = rectWidthPx,
+                                fieldHeightPx = rectHeightPx,
+                                dotsWidthPx = drawn.size.width.toFloat(),
+                                badgeTextWidthPerEmPx = badgeProbe.size.width / perEm,
+                                badgeFontAscentPerEm = badgeProbe.firstBaseline / perEm,
+                                badgeFontDescentPerEm =
+                                    (badgeProbe.size.height - badgeProbe.firstBaseline) / perEm,
+                                edgePaddingPx = pad,
+                                minFontPx = minBadgeFontPx,
+                            )?.let { badgeLayout ->
+                                badgeLayout to
+                                    textMeasurer.measure(
+                                        AnnotatedString(badgeText),
+                                        TextStyle(fontSize = badgeLayout.fontSizePx.toSp()),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                            }
+                        }
                     onDrawBehind {
                         drawText(
                             drawn,
@@ -700,52 +750,26 @@ private fun FormValueOverlay(
                                     layout.baselinePx - drawn.firstBaseline,
                                 ),
                         )
+                        badge?.let { (pos, badgeDrawn) ->
+                            drawRoundRect(
+                                color = badgeBackground,
+                                topLeft = Offset(pos.leftPx, pos.topPx),
+                                size = Size(pos.widthPx, pos.heightPx),
+                                cornerRadius = CornerRadius(pos.heightPx / 2f),
+                            )
+                            drawText(
+                                badgeDrawn,
+                                color = badgeForeground,
+                                topLeft =
+                                    Offset(
+                                        pos.textLeftPx,
+                                        pos.textBaselinePx - badgeDrawn.firstBaseline,
+                                    ),
+                            )
+                        }
                     }
                 },
     )
-}
-
-/**
- * Small "Saved as readable text" pill inside a hidden password field's preview rect (#61).
- * A fixed font scale keeps it small at font scale 2.0, and clipping keeps it from ever
- * covering neighbouring fields or spilling out of the preview.
- */
-@Composable
-private fun PasswordSavedBadge(
-    hit: FormFieldHit,
-    imageWidth: Dp,
-    imageHeight: Dp,
-) {
-    CompositionLocalProvider(
-        LocalDensity provides Density(LocalDensity.current.density, fontScale = 1f),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .offset(x = imageWidth * hit.left, y = imageHeight * hit.top)
-                    .size(
-                        width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f),
-                        height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f),
-                    )
-                    .clipToBounds()
-                    .clearAndSetSemantics { },
-            contentAlignment = Alignment.BottomEnd,
-        ) {
-            Text(
-                text = stringResource(R.string.form_password_saved_badge),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                maxLines = 1,
-                modifier =
-                    Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = RoundedCornerShape(50),
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-        }
-    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1064,16 +1088,20 @@ private fun FormFieldRowPasswordRevealedPreview() {
     }
 }
 
-// The preview badge on a hidden password field at font scale 2.0 (#61).
+// Hidden password preview: the dots with the readable-text pill beside them,
+// sized to stay inside the field rect (#61).
 @Preview(fontScale = 2f, widthDp = 320, heightDp = 180, showBackground = true)
 @Composable
-private fun PasswordSavedBadgePreview() {
+private fun FormValueOverlayPasswordBadgePreview() {
     MaterialTheme {
         Box(Modifier.fillMaxWidth().height(72.dp)) {
-            PasswordSavedBadge(
+            FormValueOverlay(
                 hit = FormFieldHit(pageIndex = 0, left = 0.1f, top = 0.1f, right = 0.8f, bottom = 0.9f),
+                text = "•••••••",
+                multiline = false,
                 imageWidth = 320.dp,
                 imageHeight = 64.dp,
+                savedBadgeText = stringResource(R.string.form_password_saved_badge),
             )
         }
     }
