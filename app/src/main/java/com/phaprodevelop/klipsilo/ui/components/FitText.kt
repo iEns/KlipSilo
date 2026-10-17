@@ -70,7 +70,8 @@ internal fun fittedFontSize(
  * word, i.e. the previous character and the character after the line break
  * are both part of the same word (#45). A wrapped line must always start
  * after whitespace or a separator that reads as a word boundary: a hyphen
- * ("OCR-Seite" may wrap after "OCR-", #45) or an underscore (#54).
+ * ("OCR-Seite" may wrap after "OCR-", #45), an underscore or the zero-width
+ * space inserted for display (#54).
  */
 internal fun isMidWordBreak(
     text: String,
@@ -81,7 +82,7 @@ internal fun isMidWordBreak(
         !isLabelBreakChar(text[lineStart - 1]) &&
         !isLabelBreakChar(text[lineStart])
 
-private fun isLabelBreakChar(c: Char): Boolean = c.isWhitespace() || c == '-' || c == '_'
+private fun isLabelBreakChar(c: Char): Boolean = c.isWhitespace() || c == '-' || c == '_' || c == '\u200B'
 
 /** [style] with the font size set to [size]sp, keeping the line height ratio. */
 internal fun scaledLabelStyle(

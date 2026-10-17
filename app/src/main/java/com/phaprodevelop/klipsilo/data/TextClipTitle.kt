@@ -86,6 +86,34 @@ internal fun textClipTitle(
 }
 
 /**
+ * Zero-width space: an invisible character that gives the line breaker a
+ * break opportunity, for display only (#54).
+ */
+internal const val DISPLAY_ZERO_WIDTH_SPACE = '\u200B'
+
+private val displayBreakAfterChars = charArrayOf('_', '-', '.', '/')
+
+/**
+ * Display-only break opportunities (#54): a zero-width space after `_`,
+ * `-`, `.` and `/` so a long filename wraps between its parts instead of
+ * mid-word ("Weekend_i_Køb/enhavn"). Never stored: rename, copy and share
+ * keep the raw title.
+ */
+internal fun withDisplayBreaks(text: String): String =
+    if (text.none { it in displayBreakAfterChars }) {
+        text
+    } else {
+        buildString(text.length + 8) {
+            for (c in text) {
+                append(c)
+                if (c in displayBreakAfterChars) {
+                    append(DISPLAY_ZERO_WIDTH_SPACE)
+                }
+            }
+        }
+    }
+
+/**
  * Word-boundary friendly cut at about [maxChars] characters.
  */
 internal fun truncateTitle(

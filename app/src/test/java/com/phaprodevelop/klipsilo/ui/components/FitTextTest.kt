@@ -122,6 +122,21 @@ class FitTextTest {
     }
 
     @Test
+    fun isMidWordBreak_treatsZeroWidthSpaceAndUnderscoreAsBoundaries() {
+        val zwsp = '\u200B'
+        // Display titles get a zero-width space after '_' (#54), so a wrap
+        // right after one is between parts, not mid-word.
+        assertFalse(isMidWordBreak("Weekend_${zwsp}København", 9))
+        assertFalse(isMidWordBreak("Weekend_i_Køb$zwsp", "Weekend_i_Køb$zwsp".length - 1))
+        // Underscores themselves read as separators (#54): "Event_" ends at
+        // index 6, "Registration_" starts the next line at index 19.
+        assertFalse(isMidWordBreak("Event_Registration_Form", 6))
+        assertFalse(isMidWordBreak("Event_Registration_Form", 19))
+        // Inside a part it is still mid-word.
+        assertTrue(isMidWordBreak("Event_Registration_Form", 4))
+    }
+
+    @Test
     fun fittedFontSize_usesTheCustomFloorPercentage() {
         // Bottom navigation labels may shrink to ~60% of the base size (#45).
         val floor = 14f * NAV_LABEL_FONT_FLOOR_FRACTION

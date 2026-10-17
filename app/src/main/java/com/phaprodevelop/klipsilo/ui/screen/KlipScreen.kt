@@ -89,6 +89,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.withDisplayBreaks
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
@@ -752,9 +753,15 @@ private fun ClipItemRow(
                 }
             }
             Spacer(Modifier.width(if (compact) CompactLeadingSlotSpacing else LeadingSlotSpacing))
+            // Display only (#54): the filename title gets zero-width spaces
+            // after `_`, `-`, `.` and `/` so it wraps between parts instead
+            // of mid-word. The stored title, rename, copy and share keep the
+            // raw text.
             val title =
-                clipListTitle(entry.contentType, entry.previewText)
-                    .ifBlank { context.getString(R.string.untitled_clip) }
+                withDisplayBreaks(
+                    clipListTitle(entry.contentType, entry.previewText)
+                        .ifBlank { context.getString(R.string.untitled_clip) },
+                )
             val info = remember(entry.filePath) { clipInfo(context, entry) }
             if (compact) {
                 Column(Modifier.weight(1f)) {

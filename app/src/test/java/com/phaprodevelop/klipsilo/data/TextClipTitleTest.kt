@@ -192,4 +192,32 @@ class TextClipTitleTest {
         // A rename that is not reconstructible from the body stays.
         assertNull(refreshedTextClipTitle("Madplan uge 42", "Pasta med pesto\nmozzarella"))
     }
+
+    @Test
+    fun withDisplayBreaks_insertsZeroWidthSpacesAfterFilenameSeparators() {
+        // Display only (#54): "Weekend_i_København" must be able to break
+        // after the underscore instead of mid-word.
+        val z = DISPLAY_ZERO_WIDTH_SPACE.toString()
+        assertEquals("Weekend_${z}i_${z}København", withDisplayBreaks("Weekend_i_København"))
+        assertEquals("a-${z}b.${z}c/${z}d", withDisplayBreaks("a-b.c/d"))
+    }
+
+    @Test
+    fun withDisplayBreaks_keepsPlainTitlesUnchanged() {
+        // No separators: the display text is the stored text, byte for byte.
+        assertEquals("Citronpasta med hvidløg", withDisplayBreaks("Citronpasta med hvidløg"))
+        assertEquals("", withDisplayBreaks(""))
+    }
+
+    @Test
+    fun withDisplayBreaks_leavesTheStoredTitleUntouched() {
+        // The helper is applied to the rendered string only: the title
+        // derivation and the raw title used for rename/copy/share never
+        // contain a zero-width space.
+        val raw = "Weekend_i_København.txt"
+        val title = clipListTitle(ContentType.PDF, raw)
+        assertEquals("Weekend_i_København.txt", title)
+        assertFalse(DISPLAY_ZERO_WIDTH_SPACE in title)
+        assertTrue(DISPLAY_ZERO_WIDTH_SPACE in withDisplayBreaks(title))
+    }
 }
