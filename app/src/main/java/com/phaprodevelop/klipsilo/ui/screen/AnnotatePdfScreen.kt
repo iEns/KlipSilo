@@ -115,6 +115,7 @@ import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
@@ -156,7 +157,7 @@ private sealed class DrawItem(val z: Long) {
     class Stroke(val index: Int, val stroke: PdfStroke, z: Long) : DrawItem(z)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AnnotatePdfScreen(
     entryId: Long,
@@ -196,7 +197,7 @@ fun AnnotatePdfScreen(
                 )
                 Spacer(Modifier.size(16.dp))
                 TextButton(onClick = onNavigateBack) {
-                    Text(context.getString(R.string.back))
+                    ButtonLabel(context.getString(R.string.back))
                 }
             }
         }
@@ -639,7 +640,7 @@ fun AnnotatePdfScreen(
                         enabled = entry.filePath != null,
                         modifier = Modifier.padding(end = 8.dp),
                     ) {
-                        Text(context.getString(R.string.save))
+                        ButtonLabel(context.getString(R.string.save))
                     }
                 },
             )
@@ -1222,10 +1223,10 @@ fun AnnotatePdfScreen(
                                     )
                                 }
                             }) {
-                                Text(context.getString(R.string.edit))
+                                ButtonLabel(context.getString(R.string.edit))
                             }
                             TextButton(onClick = {}) {
-                                Text(context.getString(R.string.markup_move))
+                                ButtonLabel(context.getString(R.string.markup_move))
                             }
                             IconButton(onClick = { deleteSelection() }) {
                                 Icon(
@@ -1308,12 +1309,12 @@ fun AnnotatePdfScreen(
             title = { Text(context.getString(R.string.markup_leave_title)) },
             text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
-                Row {
+                FlowRow {
                     TextButton(onClick = { showExitWarning = false }) {
-                        Text(context.getString(R.string.cancel))
+                        ButtonLabel(context.getString(R.string.cancel))
                     }
                     TextButton(onClick = onNavigateBack) {
-                        Text(context.getString(R.string.discard))
+                        ButtonLabel(context.getString(R.string.discard))
                     }
                     TextButton(
                         onClick = {
@@ -1324,7 +1325,7 @@ fun AnnotatePdfScreen(
                             viewModel.saveAnnotatedPdf(entry, all, allStrokes)
                         },
                     ) {
-                        Text(context.getString(R.string.save))
+                        ButtonLabel(context.getString(R.string.save))
                     }
                 }
             },
@@ -1604,13 +1605,12 @@ private fun CompactIconButton(
             )
         }
         if (label != null) {
-            Text(
+            ButtonLabel(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }

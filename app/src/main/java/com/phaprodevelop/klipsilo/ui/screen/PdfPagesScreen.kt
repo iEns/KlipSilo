@@ -62,6 +62,7 @@ import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -213,7 +214,7 @@ fun PdfPagesScreen(
                         },
                         enabled = pages.isNotEmpty() && filePath != null,
                     ) {
-                        Text(context.getString(R.string.save_pdf))
+                        ButtonLabel(context.getString(R.string.save_pdf))
                     }
                 },
             )
@@ -243,7 +244,7 @@ fun PdfPagesScreen(
                             )
                             Spacer(Modifier.size(16.dp))
                             TextButton(onClick = onNavigateBack) {
-                                Text(context.getString(R.string.back))
+                                ButtonLabel(context.getString(R.string.back))
                             }
                         }
                     }
@@ -295,12 +296,12 @@ fun PdfPagesScreen(
                     showDiscardDialog = false
                     onNavigateBack()
                 }) {
-                    Text(context.getString(R.string.discard))
+                    ButtonLabel(context.getString(R.string.discard))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )

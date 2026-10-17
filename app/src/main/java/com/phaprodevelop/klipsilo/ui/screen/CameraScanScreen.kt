@@ -33,6 +33,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -96,6 +98,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.allowSensorOrientation
 import com.phaprodevelop.klipsilo.applyPhonePortraitLock
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import java.io.File
@@ -110,6 +113,7 @@ private const val FALLBACK_CAPTURE_DIM = 2000
 private enum class DragMode { RESIZE_LEFT, RESIZE_RIGHT, RESIZE_TOP, RESIZE_BOTTOM, MOVE }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 fun CameraScanScreen(
     mode: ScanMode,
@@ -412,9 +416,10 @@ fun CameraScanScreen(
                             .navigationBarsPadding()
                             .padding(16.dp),
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             if (onSaveImage != null) {
                                 Button(
@@ -425,7 +430,7 @@ fun CameraScanScreen(
                                     },
                                     enabled = !isSaved,
                                 ) {
-                                    Text(
+                                    ButtonLabel(
                                         if (isSaved) {
                                             stringResource(R.string.saved)
                                         } else {
@@ -449,7 +454,7 @@ fun CameraScanScreen(
                                     },
                                     enabled = !isCropSaved,
                                 ) {
-                                    Text(
+                                    ButtonLabel(
                                         if (isCropSaved) {
                                             stringResource(R.string.selection_saved)
                                         } else {
@@ -485,7 +490,7 @@ fun CameraScanScreen(
                                         mainHandler.post { showNoText = true }
                                     }
                             }) {
-                                Text(stringResource(R.string.analyze))
+                                ButtonLabel(stringResource(R.string.analyze))
                             }
                         }
                     }
@@ -712,7 +717,7 @@ fun CameraScanScreen(
                             extractedText = null
                             onSaveTextAsClip(t)
                         }) {
-                            Text(stringResource(R.string.save_as_clip))
+                            ButtonLabel(stringResource(R.string.save_as_clip))
                         }
                     }
                 },
@@ -724,11 +729,11 @@ fun CameraScanScreen(
                                 extractedText = null
                                 onOpenTextInEditor(t)
                             }) {
-                                Text(stringResource(R.string.open_in_editor))
+                                ButtonLabel(stringResource(R.string.open_in_editor))
                             }
                         }
                         TextButton(onClick = { extractedText = null }) {
-                            Text(stringResource(R.string.cancel))
+                            ButtonLabel(stringResource(R.string.cancel))
                         }
                     }
                 },
@@ -756,7 +761,7 @@ fun CameraScanScreen(
                             ),
                         )
                     }) {
-                        Text(stringResource(R.string.open_settings))
+                        ButtonLabel(stringResource(R.string.open_settings))
                     }
                 } else {
                     Button(onClick = {
@@ -764,7 +769,7 @@ fun CameraScanScreen(
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     }) {
-                        Text(stringResource(R.string.try_again))
+                        ButtonLabel(stringResource(R.string.try_again))
                     }
                     Spacer(Modifier.size(8.dp))
                     TextButton(onClick = {
@@ -775,7 +780,7 @@ fun CameraScanScreen(
                             ),
                         )
                     }) {
-                        Text(stringResource(R.string.open_settings))
+                        ButtonLabel(stringResource(R.string.open_settings))
                     }
                 }
             }

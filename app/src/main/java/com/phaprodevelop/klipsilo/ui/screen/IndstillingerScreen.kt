@@ -51,6 +51,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.data.settings.ThemeMode
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import java.util.Locale
 
@@ -149,7 +150,7 @@ fun IndstillingerScreen(
                                     },
                             ),
                     ) {
-                        Text(
+                        ButtonLabel(
                             text = label,
                             style = MaterialTheme.typography.labelMedium,
                             color =
@@ -218,7 +219,7 @@ fun IndstillingerScreen(
                                     },
                             ),
                     ) {
-                        Text(
+                        ButtonLabel(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
                             color =

@@ -87,6 +87,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -167,12 +168,12 @@ fun KlipScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text(context.getString(R.string.delete))
+                    ButtonLabel(context.getString(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -296,12 +297,12 @@ fun KlipScreen(
                     showRenameDialog = false
                     viewModel.renameClip(entry, renameText)
                 }) {
-                    Text(context.getString(R.string.ok))
+                    ButtonLabel(context.getString(R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -336,7 +337,7 @@ fun KlipScreen(
             ) {
                 Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(context.getString(R.string.save_current_clipboard))
+                ButtonLabel(context.getString(R.string.save_current_clipboard))
             }
 
             CompactSearchField(
@@ -893,7 +894,7 @@ private fun LinksDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(context.getString(R.string.cancel))
+                ButtonLabel(context.getString(R.string.cancel))
             }
         },
     )

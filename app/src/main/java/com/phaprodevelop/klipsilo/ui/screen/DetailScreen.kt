@@ -18,6 +18,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -119,6 +120,7 @@ import com.phaprodevelop.klipsilo.data.repository.extractRtfText
 import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
@@ -181,7 +183,7 @@ fun DetailScreen(
                 )
                 Spacer(Modifier.size(16.dp))
                 TextButton(onClick = onNavigateBack) {
-                    Text(context.getString(R.string.back))
+                    ButtonLabel(context.getString(R.string.back))
                 }
             }
         }
@@ -475,9 +477,9 @@ fun DetailScreen(
             title = { Text(context.getString(R.string.editor_leave_title)) },
             text = { Text(context.getString(R.string.editor_leave_message)) },
             confirmButton = {
-                Row {
+                FlowRow {
                     TextButton(onClick = { showDiscardDialog = false }) {
-                        Text(context.getString(R.string.cancel))
+                        ButtonLabel(context.getString(R.string.cancel))
                     }
                     TextButton(onClick = {
                         showDiscardDialog = false
@@ -487,7 +489,7 @@ fun DetailScreen(
                         }
                         onNavigateBack()
                     }) {
-                        Text(context.getString(R.string.discard))
+                        ButtonLabel(context.getString(R.string.discard))
                     }
                     TextButton(onClick = {
                         showDiscardDialog = false
@@ -519,7 +521,7 @@ fun DetailScreen(
                         }
                         onNavigateBack()
                     }) {
-                        Text(context.getString(R.string.save))
+                        ButtonLabel(context.getString(R.string.save))
                     }
                 }
             },
@@ -823,7 +825,7 @@ fun DetailScreen(
                                         },
                                     enabled = !showPreview,
                                 ) {
-                                    Text(
+                                    ButtonLabel(
                                         text = context.getString(R.string.md_mark),
                                         style =
                                             MaterialTheme.typography.labelLarge.copy(
@@ -835,6 +837,7 @@ fun DetailScreen(
                                             } else {
                                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                             },
+                                        maxLines = 1,
                                     )
                                 }
                                 Box {
@@ -1050,7 +1053,7 @@ private fun MdToolButton(
             },
         enabled = enabled,
     ) {
-        Text(
+        ButtonLabel(
             text = context.getString(R.string.md_mark),
             style =
                 MaterialTheme.typography.labelLarge.copy(
@@ -1064,6 +1067,7 @@ private fun MdToolButton(
                         alpha = 0.38f,
                     )
                 },
+            maxLines = 1,
         )
     }
 }
@@ -1130,7 +1134,7 @@ private fun MarkdownInsertDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(context.getString(R.string.cancel))
+                ButtonLabel(context.getString(R.string.cancel))
             }
         },
     )
@@ -1145,7 +1149,7 @@ private fun MarkdownOption(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
+        ButtonLabel(
             text = label,
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.bodyMedium,
@@ -1494,6 +1498,7 @@ private fun readTextFileSafely(filePath: String): String? {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QrResultDialog(
     viewModel: ClipboardViewModel,
@@ -1527,12 +1532,12 @@ private fun QrResultDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 8.dp),
                             )
-                            Row {
+                            FlowRow {
                                 TextButton(onClick = { viewModel.copyText(message) }) {
-                                    Text(context.getString(R.string.copy))
+                                    ButtonLabel(context.getString(R.string.copy))
                                 }
                                 TextButton(onClick = { viewModel.saveQrAsClip(message) }) {
-                                    Text(context.getString(R.string.save_to_clip))
+                                    ButtonLabel(context.getString(R.string.save_to_clip))
                                 }
                             }
                         }
@@ -1543,7 +1548,7 @@ private fun QrResultDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(context.getString(R.string.cancel))
+                ButtonLabel(context.getString(R.string.cancel))
             }
         },
     )

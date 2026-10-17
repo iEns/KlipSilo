@@ -1,5 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.navigation
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -44,6 +47,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.presentation.TextPresentationScreen
 import com.phaprodevelop.klipsilo.ui.screen.AboutScreen
 import com.phaprodevelop.klipsilo.ui.screen.AnnotatePdfScreen
@@ -63,6 +67,7 @@ import com.phaprodevelop.klipsilo.ui.screen.WhyScreen
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppRoot(viewModel: ClipboardViewModel) {
     val navController = rememberNavController()
@@ -190,7 +195,13 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                                 }
                             },
                             icon = { Icon(item.icon, contentDescription = null) },
-                            label = { Text(stringResource(item.labelRes)) },
+                            label = {
+                                ButtonLabel(
+                                    text = stringResource(item.labelRes),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 2,
+                                )
+                            },
                         )
                     }
                 }
@@ -413,16 +424,16 @@ fun AppRoot(viewModel: ClipboardViewModel) {
             text = { Text(stringResource(R.string.already_saved_message, offer.displayName)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.openExistingShare() }) {
-                    Text(stringResource(R.string.open_existing))
+                    ButtonLabel(stringResource(R.string.open_existing))
                 }
             },
             dismissButton = {
-                Row {
+                FlowRow {
                     TextButton(onClick = { viewModel.saveDuplicateAgain() }) {
-                        Text(stringResource(R.string.save_again))
+                        ButtonLabel(stringResource(R.string.save_again))
                     }
                     TextButton(onClick = { viewModel.dismissDuplicateShare() }) {
-                        Text(stringResource(R.string.cancel))
+                        ButtonLabel(stringResource(R.string.cancel))
                     }
                 }
             },

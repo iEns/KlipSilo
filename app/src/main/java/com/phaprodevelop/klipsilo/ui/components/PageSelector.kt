@@ -34,7 +34,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.phaprodevelop.klipsilo.R
 
@@ -106,11 +105,10 @@ fun PageSelector(
             onClick = { jumpDialogOpen = true },
             modifier = Modifier.minimumInteractiveComponentSize(),
         ) {
-            Text(
+            ButtonLabel(
                 text = "${pageIndex + 1} / $displayPageCount",
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier =
                     Modifier.semantics {
                         contentDescription = indicatorDescription
@@ -196,12 +194,12 @@ private fun PageJumpDialog(
                 enabled = requestedPage != null,
                 onClick = { requestedPage?.let(onGoToPage) },
             ) {
-                Text(stringResource(R.string.ok))
+                ButtonLabel(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                ButtonLabel(stringResource(R.string.cancel))
             }
         },
     )

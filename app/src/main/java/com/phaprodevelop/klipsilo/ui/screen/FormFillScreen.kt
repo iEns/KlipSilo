@@ -81,6 +81,7 @@ import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
@@ -179,7 +180,7 @@ fun FormFillScreen(
                 )
                 Spacer(Modifier.size(16.dp))
                 TextButton(onClick = onNavigateBack) {
-                    Text(context.getString(R.string.back))
+                    ButtonLabel(context.getString(R.string.back))
                 }
             }
         }
@@ -266,7 +267,7 @@ fun FormFillScreen(
                         onClick = { viewModel.fillForm(entry, values) },
                         enabled = entry.filePath != null && !isConverting,
                     ) {
-                        Text(context.getString(R.string.save_pdf))
+                        ButtonLabel(context.getString(R.string.save_pdf))
                     }
                 },
             )
@@ -366,12 +367,12 @@ fun FormFillScreen(
                     viewModel.clearFormFields()
                     onNavigateBack()
                 }) {
-                    Text(context.getString(R.string.discard))
+                    ButtonLabel(context.getString(R.string.discard))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )

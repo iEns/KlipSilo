@@ -67,6 +67,7 @@ import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.markLocationPermissionAsked
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.hapticClickable
 import com.phaprodevelop.klipsilo.ui.components.typeName
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -260,12 +261,12 @@ fun VaerktøjerScreen(
                         )
                     },
                 ) {
-                    Text(context.getString(R.string.continue_label))
+                    ButtonLabel(context.getString(R.string.continue_label))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLocationDisclosure = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -286,12 +287,12 @@ fun VaerktøjerScreen(
                         }
                     },
                 ) {
-                    Text(context.getString(R.string.open_settings))
+                    ButtonLabel(context.getString(R.string.open_settings))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLocationDisabled = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -317,12 +318,12 @@ fun VaerktøjerScreen(
                         }
                     },
                 ) {
-                    Text(context.getString(R.string.open_settings))
+                    ButtonLabel(context.getString(R.string.open_settings))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLocationSettings = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -340,12 +341,12 @@ fun VaerktøjerScreen(
                         backupLauncher.launch(backupFileName)
                     },
                 ) {
-                    Text(context.getString(R.string.backup_continue))
+                    ButtonLabel(context.getString(R.string.backup_continue))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showBackupWarning = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -443,12 +444,12 @@ fun VaerktøjerScreen(
                         }
                     if (deletedCount == 0) return@TextButton
                 }) {
-                    Text(context.getString(R.string.delete))
+                    ButtonLabel(context.getString(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(context.getString(R.string.cancel))
+                    ButtonLabel(context.getString(R.string.cancel))
                 }
             },
         )
@@ -636,7 +637,7 @@ private fun DeleteTypeDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(context.getString(R.string.cancel))
+                ButtonLabel(context.getString(R.string.cancel))
             }
         },
     )
@@ -748,12 +749,12 @@ private fun CombineDialog(
                     onConfirm(selected)
                 },
             ) {
-                Text(context.getString(R.string.ok))
+                ButtonLabel(context.getString(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(context.getString(R.string.cancel))
+                ButtonLabel(context.getString(R.string.cancel))
             }
         },
     )
