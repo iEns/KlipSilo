@@ -91,8 +91,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -219,6 +222,12 @@ fun AnnotatePdfScreen(
     var tool by remember { mutableStateOf(MarkupTool.SELECT) }
     var draft by remember { mutableStateOf<DraftAnnotation?>(null) }
     var draftEpoch by remember { mutableIntStateOf(0) }
+    // TextFieldValue for the draft so the caret can be placed where the user
+    // tapped when editing starts (#55). The field's layout and size are kept
+    // to map taps near the active box and grow its edit-mode touch area.
+    var draftField by remember { mutableStateOf(TextFieldValue("")) }
+    var draftFieldSize by remember { mutableStateOf(IntSize.Zero) }
+    var draftFieldLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val annotationMode = tool == MarkupTool.TEXT
     val drawMode = tool == MarkupTool.LINE || tool == MarkupTool.DRAW || tool == MarkupTool.HIGHLIGHT
     val straightMode = tool == MarkupTool.LINE
@@ -366,8 +375,15 @@ fun AnnotatePdfScreen(
         historyTick++
     }
 
-    fun beginDraft(next: DraftAnnotation) {
+    fun beginDraft(
+        next: DraftAnnotation,
+        caret: Int = next.text.length,
+    ) {
         draft = next
+        // Caret where the user tapped (#55), default end of text.
+        draftField = TextFieldValue(next.text, TextRange(caret.coerceIn(0, next.text.length)))
+        draftFieldLayout = null
+        draftFieldSize = IntSize.Zero
         draftEpoch += 1
     }
 
@@ -813,6 +829,40 @@ fun AnnotatePdfScreen(
                                         }
                                         val targetOnText = targetIndex >= 0 || targetIsDraft
 
+                                        // While a box is being edited (#55), taps in
+                                        // its enlarged touch area belong to the text
+                                        // field: they move the caret (or are handled
+                                        // by the field itself) and must neither commit
+                                        // the edit nor start a new box.
+                                        val activeDraft = draft
+                                        val fieldRect =
+                                            activeDraft?.let { d ->
+                                                bmp?.let {
+                                                    editFieldScreenRect(
+                                                        d,
+                                                        size,
+                                                        it.width,
+                                                        it.height,
+                                                        scale,
+                                                        offsetX,
+                                                        offsetY,
+                                                        draftFieldSize.width.toFloat(),
+                                                        draftFieldSize.height.toFloat(),
+                                                    )
+                                                }
+                                            }
+                                        val tapInEditField = fieldRect?.contains(downPos) == true
+                                        val tapInEditArea =
+                                            fieldRect
+                                                ?.let {
+                                                    expandedEditTapBounds(
+                                                        it,
+                                                        padPx = 28.dp.toPx(),
+                                                        trailingPadPx = 40.dp.toPx(),
+                                                        rtl = false,
+                                                    )
+                                                }?.contains(downPos) == true
+
                                         var moved = false
                                         var pinching = false
                                         var lastDist = 0f
@@ -827,7 +877,47 @@ fun AnnotatePdfScreen(
                                                     val now = SystemClock.uptimeMillis()
                                                     val isDoubleTap =
                                                         lastTapUpTime > 0 && now - lastTapUpTime < 300L
-                                                    if (
+                                                    if (tapInEditArea) {
+                                                        // The active box owns this tap
+                                                        // (#55). Inside the field itself
+                                                        // the text field handles the tap
+                                                        // (caret move, long-press and
+                                                        // double-tap selection); in the
+                                                        // surrounding padding place the
+                                                        // caret at the nearest offset.
+                                                        // Never commit or start a new box.
+                                                        val layout = draftFieldLayout
+                                                        if (!tapInEditField && layout != null) {
+                                                            val d = activeDraft
+                                                            val pageBmp = bmp
+                                                            if (d != null && pageBmp != null) {
+                                                                val fitted =
+                                                                    fittedRect(size, pageBmp.width, pageBmp.height)
+                                                                val layer =
+                                                                    screenToPage(
+                                                                        downPos,
+                                                                        size,
+                                                                        scale,
+                                                                        offsetX,
+                                                                        offsetY,
+                                                                    )
+                                                                val local =
+                                                                    Offset(
+                                                                        layer.x -
+                                                                            (fitted.left + d.xFraction * fitted.width),
+                                                                        layer.y -
+                                                                            (fitted.top + d.yFraction * fitted.height),
+                                                                    )
+                                                                val offset =
+                                                                    layout
+                                                                        .getOffsetForPosition(local)
+                                                                        .coerceIn(0, draftField.text.length)
+                                                                draftField =
+                                                                    draftField.copy(selection = TextRange(offset))
+                                                            }
+                                                        }
+                                                        lastTapUpTime = 0L
+                                                    } else if (
                                                         (isDoubleTap || selectedIndex == targetIndex) &&
                                                         targetOnText &&
                                                         !targetIsDraft &&
@@ -836,6 +926,12 @@ fun AnnotatePdfScreen(
                                                         val list = annotations[pageIndex].orEmpty()
                                                         if (targetIndex in list.indices) {
                                                             val a = list[targetIndex]
+                                                            // Caret where the user tapped (#55),
+                                                            // falling back to end of text.
+                                                            val caret =
+                                                                bmp?.let {
+                                                                    tappedCaretOffset(fx, fy, a, it.width, it.height)
+                                                                } ?: a.text.length
                                                             selectedIndex = -1
                                                             selectedStroke = -1
                                                             beginDraft(
@@ -848,6 +944,7 @@ fun AnnotatePdfScreen(
                                                                     a.color,
                                                                     nextZ(),
                                                                 ),
+                                                                caret.coerceIn(0, a.text.length),
                                                             )
                                                         }
                                                         lastTapUpTime = 0L
@@ -1144,8 +1241,12 @@ fun AnnotatePdfScreen(
                             val x = rect.left + editing.xFraction * rect.width
                             val y = rect.top + editing.yFraction * rect.height
                             BasicTextField(
-                                value = editing.text,
-                                onValueChange = { value -> draft = draft?.copy(text = value) },
+                                value = draftField,
+                                onValueChange = { value ->
+                                    draftField = value
+                                    draft = draft?.copy(text = value.text)
+                                },
+                                onTextLayout = { draftFieldLayout = it },
                                 modifier =
                                     Modifier
                                         .offset { IntOffset(x.toInt(), y.toInt()) }
@@ -1158,7 +1259,8 @@ fun AnnotatePdfScreen(
                                                 Color.White.copy(alpha = 0.92f)
                                             },
                                         )
-                                        .border(1.dp, Color(0xFF3F51B5)),
+                                        .border(1.dp, Color(0xFF3F51B5))
+                                        .onSizeChanged { draftFieldSize = it },
                                 textStyle =
                                     TextStyle(
                                         color = Color(editing.color),
@@ -1860,6 +1962,78 @@ private fun annotationHitTest(
     val right = xFraction + widthPx / bitmapWidth + ANNOTATION_HIT_PAD
     val bottom = yFraction + heightPx / bitmapHeight + ANNOTATION_HIT_PAD
     return fx >= left && fx <= right && fy >= top && fy <= bottom
+}
+
+/**
+ * On-screen bounds of the text field shown for the box being edited (#55):
+ * the measured field size when available, otherwise the canvas text metrics
+ * used for the saved rendering.
+ */
+private fun editFieldScreenRect(
+    d: DraftAnnotation,
+    container: IntSize,
+    bmpWidth: Int,
+    bmpHeight: Int,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    fieldWidth: Float,
+    fieldHeight: Float,
+): Rect? {
+    if (bmpWidth <= 0 || bmpHeight <= 0) return null
+    val fitted = fittedRect(container, bmpWidth, bmpHeight)
+    if (fitted.width <= 0f || fitted.height <= 0f) return null
+    var width = fieldWidth
+    var height = fieldHeight
+    if (width <= 0f || height <= 0f) {
+        val paint =
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = d.sizeFraction * bmpHeight
+                typeface = android.graphics.Typeface.DEFAULT
+            }
+        val lines = wrapAnnotationText(d.text, paint, (bmpWidth * 0.95f).toInt())
+        width = (lines.maxOfOrNull { paint.measureText(it) } ?: 0f) / bmpWidth * fitted.width
+        height = lines.size * paint.fontSpacing / bmpHeight * fitted.height
+    }
+    val topLeft =
+        pageToScreen(
+            Offset(fitted.left + d.xFraction * fitted.width, fitted.top + d.yFraction * fitted.height),
+            container,
+            scale,
+            offsetX,
+            offsetY,
+        )
+    return Rect(topLeft.x, topLeft.y, topLeft.x + width, topLeft.y + height)
+}
+
+/**
+ * Caret offset inside the rendered text of [annotation] for a tap at page
+ * bitmap fractions ([fx], [fy]) (#55); null when the tap cannot be mapped, in
+ * which case the caller falls back to the end of the text.
+ */
+private fun tappedCaretOffset(
+    fx: Float,
+    fy: Float,
+    annotation: PdfAnnotation,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): Int? {
+    if (bitmapWidth <= 0 || bitmapHeight <= 0 || annotation.text.isEmpty()) return null
+    val paint =
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = annotation.sizeFraction * bitmapHeight
+            typeface = android.graphics.Typeface.DEFAULT
+        }
+    val lines = wrapAnnotationText(annotation.text, paint, (bitmapWidth * 0.95f).toInt())
+    val caret =
+        caretOffsetForTap(
+            (fx - annotation.xFraction) * bitmapWidth,
+            (fy - annotation.yFraction) * bitmapHeight,
+            lines,
+            paint.fontSpacing,
+            paint::measureText,
+        )
+    return caret.coerceIn(0, annotation.text.length)
 }
 
 private fun mapTapToFraction(
