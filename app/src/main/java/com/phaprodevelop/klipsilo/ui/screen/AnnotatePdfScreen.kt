@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,10 +51,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -1299,6 +1304,7 @@ fun AnnotatePdfScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MarkupHistoryRow(
     canUndo: Boolean,
@@ -1338,7 +1344,58 @@ private fun MarkupHistoryRow(
             enabled = canDelete,
             onClick = onDelete,
         )
-        Spacer(Modifier.weight(1f))
+        MarkupPageSelector(
+            pageIndex = pageIndex,
+            pageCount = pageCount,
+            onPrev = onPrev,
+            onNext = onNext,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MarkupHistoryButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(onClick = onClick, enabled = enabled) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint =
+                    if (enabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun MarkupPageSelector(
+    pageIndex: Int,
+    pageCount: Int,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         IconButton(onClick = onPrev, enabled = pageIndex > 0) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -1349,6 +1406,8 @@ private fun MarkupHistoryRow(
             text = "${pageIndex + 1} / ${pageCount.coerceAtLeast(1)}",
             style = MaterialTheme.typography.labelMedium,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
         IconButton(onClick = onNext, enabled = pageCount > 1 && pageIndex < pageCount - 1) {
             Icon(
@@ -1356,47 +1415,6 @@ private fun MarkupHistoryRow(
                 contentDescription = context.getString(R.string.markup_next_page),
             )
         }
-    }
-}
-
-@Composable
-private fun MarkupHistoryButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .padding(horizontal = 2.dp)
-                .clickable(enabled = enabled, onClick = onClick)
-                .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            modifier = Modifier.size(18.dp),
-            tint =
-                if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                },
-        )
-        Spacer(Modifier.width(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            color =
-                if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                },
-        )
     }
 }
 
