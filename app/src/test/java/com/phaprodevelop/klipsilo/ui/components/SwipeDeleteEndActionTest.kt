@@ -6,7 +6,28 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SwipeDeleteEndActionTest {
-    // enabled=false is UI-only (SwipeToDelete skips gestures) and is not part of swipeDeleteEndAction.
+    // enabled=false now consumes the drag with an elastic nudge (#63); the
+    // nudge offset is tested below, the end action itself only runs for
+    // unlocked rows.
+
+    @Test
+    fun lockedNudge_followsTheDragAtAFraction() {
+        // Arrange
+        val maxPx = 20f
+
+        // Act
+        val offset = lockedSwipeNudgeOffset(currentX = 0f, dragAmount = -40f, maxPx = maxPx)
+
+        // Assert
+        assertEquals(-10f, offset)
+    }
+
+    @Test
+    fun lockedNudge_neverExceedsTheMaxOnEitherSide() {
+        assertEquals(20f, lockedSwipeNudgeOffset(20f, 500f, 20f))
+        assertEquals(-20f, lockedSwipeNudgeOffset(-20f, -500f, 20f))
+        assertEquals(0f, lockedSwipeNudgeOffset(0f, 0f, 20f))
+    }
 
     @Test
     fun offsetZero_returnsReset() {

@@ -39,7 +39,40 @@ fun SwipeToDelete(
 
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         if (!enabled) {
-            Box(Modifier.fillMaxWidth()) {
+            // A locked clip cannot be swipe-deleted (#63). With no drag
+            // detector installed, nothing consumed the horizontal movement,
+            // so the row's tap detector still fired onTap on pointer-up
+            // after a swipe and opened the clip. Install a drag detector
+            // that consumes the drag, with a small elastic nudge that
+            // springs back. Taps, double-taps and long-presses still work:
+            // they never cross the horizontal touch slop, so the detector
+            // consumes nothing for them.
+            val nudgeX = remember { Animatable(0f) }
+            val nudgeMaxPx = with(density) { LOCKED_SWIPE_NUDGE_MAX_DP.toPx() }
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .offset { IntOffset(nudgeX.value.roundToInt(), 0) }
+                        .pointerInput(nudgeMaxPx) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    scope.launch {
+                                        nudgeX.snapTo(
+                                            lockedSwipeNudgeOffset(
+                                                nudgeX.value,
+                                                dragAmount,
+                                                nudgeMaxPx,
+                                            ),
+                                        )
+                                    }
+                                },
+                                onDragEnd = { scope.launch { nudgeX.animateTo(0f) } },
+                                onDragCancel = { scope.launch { nudgeX.animateTo(0f) } },
+                            )
+                        },
+            ) {
                 content()
             }
             return@BoxWithConstraints
@@ -105,6 +138,22 @@ fun SwipeToDelete(
 }
 
 internal enum class SwipeDeleteEnd { DELETE, REVEAL, RESET }
+
+/** A locked row nudges sideways by at most this much while a swipe is consumed (#63). */
+private val LOCKED_SWIPE_NUDGE_MAX_DP = 8.dp
+
+/** A locked row follows the drag at this fraction, so the nudge stays elastic (#63). */
+private const val LOCKED_SWIPE_NUDGE_FRACTION = 0.25f
+
+/**
+ * The sideways offset of a locked row during a consumed swipe (#63): a small
+ * elastic nudge within [-maxPx, maxPx] that the caller springs back to 0.
+ */
+internal fun lockedSwipeNudgeOffset(
+    currentX: Float,
+    dragAmount: Float,
+    maxPx: Float,
+): Float = (currentX + dragAmount * LOCKED_SWIPE_NUDGE_FRACTION).coerceIn(-maxPx, maxPx)
 
 internal fun swipeDeleteEndAction(
     offsetX: Float,
