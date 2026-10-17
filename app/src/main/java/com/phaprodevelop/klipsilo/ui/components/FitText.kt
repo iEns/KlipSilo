@@ -67,11 +67,9 @@ internal fun fittedFontSize(
 
 /**
  * True when a new line of [text] starts at [lineStart] in the middle of a
- * word, i.e. the previous character and the character after the line break
- * are both part of the same word (#45). A wrapped line must always start
- * after whitespace or a separator that reads as a word boundary: a hyphen
- * ("OCR-Seite" may wrap after "OCR-", #45), an underscore or the zero-width
- * space inserted for display (#54).
+ * word (#45). A wrapped line must start after whitespace or a separator:
+ * hyphen ("OCR-Seite" may wrap after "OCR-"), underscore, '.', '/' or the
+ * zero-width space inserted for display (#54). See [isFitBreakChar].
  */
 internal fun isMidWordBreak(
     text: String,
@@ -79,10 +77,8 @@ internal fun isMidWordBreak(
 ): Boolean =
     lineStart > 0 &&
         lineStart < text.length &&
-        !isLabelBreakChar(text[lineStart - 1]) &&
-        !isLabelBreakChar(text[lineStart])
-
-private fun isLabelBreakChar(c: Char): Boolean = c.isWhitespace() || c == '-' || c == '_' || c == '\u200B'
+        !isFitBreakChar(text[lineStart - 1]) &&
+        !isFitBreakChar(text[lineStart])
 
 /** [style] with the font size set to [size]sp, keeping the line height ratio. */
 internal fun scaledLabelStyle(
@@ -142,6 +138,31 @@ internal fun commonFittedSize(sizes: List<Float?>): Float? =
     }
 
 /**
+ * One decision per label, all at the same scale (#50). Measured before the
+ * labels are composed so a long word cannot pick a smaller size than its
+ * siblings.
+ */
+@Composable
+internal fun rememberUniformLabelDecisions(
+    labels: List<String>,
+    slotWidthPx: Int,
+    style: TextStyle,
+    policy: FitTextPolicy,
+): List<FitTextDecision> {
+    val base = style.fontSize
+    if (!base.isSp || base.value <= 0f || slotWidthPx <= 0) {
+        return labels.map { FitTextDecision(1f, it, 1, ellipsized = false) }
+    }
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(labels, slotWidthPx, style, density.fontScale, density.density, policy) {
+        resolveUniformFit(labels, slotWidthPx.toFloat(), policy) { sample, scale ->
+            textWidthPx(measurer, sample, style, base.value, scale)
+        }
+    }
+}
+
+/**
  * One common font size for a row of equal-width labels (#50): the size the
  * longest label needs to fit its [slotWidthPx] slot on a single line, so all
  * labels in the row render at the same size instead of shrinking
@@ -171,15 +192,10 @@ fun rememberCommonRowLabelSize(
 }
 
 /**
- * Label used inside buttons, chips and other text controls so a long word is
- * never broken mid-word at large font scales (#45). Given the width the
- * composable ends up with, the font size is stepped down (1sp at a time,
- * floor ~75% of the style size) until every word fits on a line and the text
- * fits within [maxLines] — measured with a [androidx.compose.ui.text
- * .TextMeasurer]. When [wrapFallbackLines] > 0, that many extra lines are
- * tried at word boundaries as a last resort before the ellipsis (#47). Past
- * the floor it falls back to a single line with [TextOverflow.Ellipsis] —
- * never a soft wrap inside a word (#45/#50).
+ * Label used inside buttons, chips and other text controls (#45). Layout
+ * follows [FitTextPolicy]: one line at the style size, then a word-boundary
+ * wrap up to [maxLines], then a shrink down to [floorFraction], then an
+ * ellipsis at the end of the last line. A word is never broken.
  */
 @Composable
 fun ButtonLabel(
@@ -193,13 +209,17 @@ fun ButtonLabel(
     wrapFallbackLines: Int = 0,
 ) {
     val baseSize = style.fontSize
+    // Positive [wrapFallbackLines] is ignored. The fixed 64dp top bar used to
+    // pass 1, and the extra line was clipped. Callers that need more lines
+    // pass them in [maxLines].
+    val lines = (maxLines.coerceAtLeast(1) + wrapFallbackLines.coerceAtMost(0)).coerceAtLeast(1)
     if (!baseSize.isSp || baseSize.value <= 0f) {
         Text(
             text = text,
             modifier = modifier,
             color = color,
             style = style,
-            maxLines = maxLines,
+            maxLines = lines,
             overflow = TextOverflow.Ellipsis,
             textAlign = textAlign,
         )
@@ -213,92 +233,67 @@ fun ButtonLabel(
             constraints.hasBoundedWidth &&
                 constraints.maxWidth > 0 &&
                 constraints.maxWidth != Constraints.Infinity
-        val fitted =
+        if (!bounded) {
+            Text(
+                text = text,
+                color = color,
+                style = style,
+                maxLines = lines,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign,
+            )
+            return@BoxWithConstraints
+        }
+        val decision =
             remember(
                 text,
                 style,
-                maxLines,
-                wrapFallbackLines,
+                lines,
                 constraints.maxWidth,
                 density.fontScale,
+                density.density,
                 floorFraction,
             ) {
-                if (!bounded) {
-                    base to false
-                } else {
-                    fit(
-                        measurer,
-                        text,
-                        style,
-                        base,
-                        constraints,
-                        maxLines,
-                        wrapFallbackLines,
-                        floorFraction,
-                    )
+                resolveFitText(
+                    text = text,
+                    maxWidthPx = constraints.maxWidth.toFloat(),
+                    policy = FitTextPolicy(maxLines = lines, minScale = floorFraction),
+                ) { sample, scale ->
+                    textWidthPx(measurer, sample, style, base, scale)
                 }
             }
         Text(
-            text = text,
+            text = decision.text,
             color = color,
-            style = scaledLabelStyle(style, fitted.first, base),
-            // The ellipsis fallback must never soft-wrap: a word too wide for
-            // the line would be broken mid-word ("Auswa/hl", #45/#50), so the
-            // last resort is one clipped line ending in an ellipsis.
-            softWrap = !fitted.second,
-            maxLines = maxLines,
-            overflow = if (fitted.second) TextOverflow.Ellipsis else TextOverflow.Clip,
+            style = scaledLabelStyle(style, base * decision.scale, base),
+            // Lines come from the policy, already broken on word boundaries.
+            // softWrap would let the platform split a word that does not fit.
+            softWrap = false,
+            maxLines = decision.maxLines,
+            overflow = TextOverflow.Clip,
             textAlign = textAlign,
         )
     }
 }
 
-/** Returns the size to render and whether the ellipsis fallback is active. */
-private fun fit(
+/** Width of [text] at [scale] times the style size, on one line. */
+internal fun textWidthPx(
     measurer: TextMeasurer,
     text: String,
     style: TextStyle,
-    base: Float,
-    constraints: Constraints,
-    maxLines: Int,
-    wrapFallbackLines: Int,
-    floorFraction: Float,
-): Pair<Float, Boolean> {
-    val measureConstraints = constraints.copy(minWidth = 0, minHeight = 0)
-
-    fun fits(
-        size: Float,
-        lines: Int,
-    ): Boolean {
-        val result =
-            measurer.measure(
-                text = text,
-                style = scaledLabelStyle(style, size, base),
-                softWrap = true,
-                maxLines = lines,
-                constraints = measureConstraints,
-            )
-        if (result.didOverflowWidth || result.didOverflowHeight) return false
-        if (result.lineCount > lines) return false
-        for (line in 1 until result.lineCount) {
-            if (isMidWordBreak(text, result.getLineStart(line))) return false
-        }
-        return true
-    }
-    val size =
-        fittedFontSize(base, floorFraction) { fits(it, maxLines) }
-            // Last resort before the ellipsis (#47): extra lines, still only
-            // at word boundaries.
-            ?: if (wrapFallbackLines > 0) {
-                fittedFontSize(base, floorFraction) { fits(it, maxLines + wrapFallbackLines) }
-            } else {
-                null
-            }
-    return if (size != null) {
-        size to false
-    } else {
-        (base * floorFraction) to true
-    }
+    baseSp: Float,
+    scale: Float,
+): Float {
+    if (text.isEmpty()) return 0f
+    return measurer
+        .measure(
+            text = text,
+            style = scaledLabelStyle(style, baseSp * scale, baseSp),
+            softWrap = false,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+        ).size.width
+        .toFloat()
 }
 
 @Preview(fontScale = 2f, widthDp = 320, showBackground = true)

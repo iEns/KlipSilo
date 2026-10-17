@@ -1,0 +1,192 @@
+@file:Suppress("ktlint:standard:function-naming")
+
+package com.phaprodevelop.klipsilo.ui.components
+
+import android.content.Context
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.sp
+import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+/**
+ * Real text measurement at the sizes Marcus retested. Density cancels out of
+ * a width-in-dp versus an sp size, so a density of 1 with the font scale
+ * under test matches font scale 2.0 at density 588 (about 294dp on a 1080px
+ * screen) and a 320dp window.
+ */
+@RunWith(RobolectricTestRunner::class)
+class FitTextLayoutTest {
+    private lateinit var context: Context
+
+    @Before
+    fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+    }
+
+    @Test
+    fun titlesFitFullyAtFontScaleTwoOnANarrowWindow() {
+        val style = TextStyle(fontSize = 22.sp, lineHeight = 28.sp)
+        // Back icon + check icon, plus a few dp of padding.
+        for (windowDp in listOf(294f, 320f)) {
+            val titleWidth = windowDp - 48f - 48f - 8f
+            for (title in listOf("Formular ausfüllen", "Seiten bearbeiten", "Udfyld formular", "Anmerken")) {
+                val decision =
+                    measure(
+                        title,
+                        style,
+                        widthDp = titleWidth,
+                        fontScale = 2f,
+                        policy = FitTextPolicy(maxLines = 2, minScale = TOP_BAR_TITLE_MIN_SCALE),
+                    )
+                assertFalse("$title @ ${windowDp}dp was cut: ${decision.text}", decision.ellipsized)
+                assertFalse(decision.text.contains(FIT_ELLIPSIS))
+                assertTrue(decision.scale >= TOP_BAR_TITLE_MIN_SCALE)
+                assertTrue(decision.maxLines <= 2)
+            }
+        }
+    }
+
+    @Test
+    fun titlesFitFullyAt320dpAndNormalScale() {
+        val style = TextStyle(fontSize = 22.sp, lineHeight = 28.sp)
+        val titleWidth = 320f - 48f - 48f - 8f
+        for (title in listOf("Formular ausfüllen", "Seiten bearbeiten", "Udfyld formular", "Anmerken")) {
+            val decision =
+                measure(
+                    title,
+                    style,
+                    widthDp = titleWidth,
+                    fontScale = 1f,
+                    policy = FitTextPolicy(maxLines = 2, minScale = TOP_BAR_TITLE_MIN_SCALE),
+                )
+            assertEquals(title, decision.text)
+            assertFalse(decision.ellipsized)
+        }
+    }
+
+    @Test
+    fun toolLabelsShareOneUncutSizeAtFontScaleTwo() {
+        val style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp)
+        val labels = listOf("Auswahl", "Text", "Linie", "Stift", "Marker")
+        for (windowDp in listOf(294f, 320f, 360f)) {
+            val slot = (windowDp - 16f) / labels.size
+            val decisions =
+                measureUniform(
+                    labels,
+                    style,
+                    slotDp = slot,
+                    fontScale = 2f,
+                    policy = FitTextPolicy(maxLines = 1, minScale = TOOL_LABEL_MIN_SCALE),
+                )
+            assertEquals(1, decisions.map { it.scale }.distinct().size)
+            decisions.forEach { decision ->
+                assertFalse(decision.ellipsized)
+                assertFalse(decision.text.contains(FIT_ELLIPSIS))
+                assertFalse(decision.text.contains("\n"))
+            }
+            assertEquals(labels, decisions.map { it.text })
+        }
+    }
+
+    @Test
+    fun clipTitlesUseTwoFullSizeLines() {
+        val style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+        // Compact row: padding, icon slot, gap, overflow button.
+        val titleWidth = 294f - 24f - 32f - 8f - 40f - 4f
+        val filename = "Event_\u200BRegistration_\u200BForm"
+        val filenameDecision =
+            measure(
+                filename,
+                style,
+                widthDp = titleWidth,
+                fontScale = 2f,
+                policy = FitTextPolicy(maxLines = 2, minScale = CLIP_TITLE_MIN_SCALE),
+            )
+        assertEquals(1f, filenameDecision.scale)
+        assertTrue(filenameDecision.maxLines <= 2)
+        assertFalse(filenameDecision.text.startsWith(FIT_ELLIPSIS))
+        val spaced =
+            measure(
+                "HTML from Weekend i København",
+                style,
+                widthDp = titleWidth,
+                fontScale = 2f,
+                policy = FitTextPolicy(maxLines = 2, minScale = CLIP_TITLE_MIN_SCALE),
+            )
+        assertEquals(1f, spaced.scale)
+        if (spaced.ellipsized) {
+            assertEquals(2, spaced.text.count { it == '\n' } + 1)
+            assertTrue(spaced.text.trimEnd().endsWith(FIT_ELLIPSIS))
+        }
+        assertTrue(spaced.text.startsWith("HTML"))
+    }
+
+    @Test
+    fun viewerLabelsEitherFitOnTwoLinesOrReportTheWidthTheyNeed() {
+        val style = TextStyle(fontSize = 11.sp, lineHeight = 16.sp)
+        val density = Density(density = 1f, fontScale = 2f)
+        val measurer = measurer(density)
+        for (label in listOf("Seite speichern", "OCR-Seite", "Gem side", "OCR side")) {
+            val width =
+                minWidthForLines(label, scale = 1f, maxLines = 2) { text, scale ->
+                    textWidthPx(measurer, text, style, style.fontSize.value, scale)
+                }
+            val decision =
+                resolveFitText(
+                    label,
+                    maxWidthPx = width,
+                    policy = FitTextPolicy(maxLines = 2, minScale = 0.75f),
+                ) { text, scale ->
+                    textWidthPx(measurer, text, style, style.fontSize.value, scale)
+                }
+            assertFalse("$label cut inside its own min width: ${decision.text}", decision.ellipsized)
+            assertTrue(decision.maxLines <= 2)
+        }
+    }
+
+    private fun measure(
+        text: String,
+        style: TextStyle,
+        widthDp: Float,
+        fontScale: Float,
+        policy: FitTextPolicy,
+    ): FitTextDecision {
+        val density = Density(density = 1f, fontScale = fontScale)
+        val measurer = measurer(density)
+        val base = style.fontSize.value
+        return resolveFitText(text, widthDp, policy) { sample, scale ->
+            textWidthPx(measurer, sample, style, base, scale)
+        }
+    }
+
+    private fun measureUniform(
+        texts: List<String>,
+        style: TextStyle,
+        slotDp: Float,
+        fontScale: Float,
+        policy: FitTextPolicy,
+    ): List<FitTextDecision> {
+        val density = Density(density = 1f, fontScale = fontScale)
+        val measurer = measurer(density)
+        val base = style.fontSize.value
+        return resolveUniformFit(texts, slotDp, policy) { sample, scale ->
+            textWidthPx(measurer, sample, style, base, scale)
+        }
+    }
+
+    private fun measurer(density: Density) =
+        androidx.compose.ui.text.TextMeasurer(
+            defaultFontFamilyResolver = createFontFamilyResolver(context),
+            defaultDensity = density,
+            defaultLayoutDirection = LayoutDirection.Ltr,
+        )
+}
