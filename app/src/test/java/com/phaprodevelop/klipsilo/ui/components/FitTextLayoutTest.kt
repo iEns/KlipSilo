@@ -153,6 +153,96 @@ class FitTextLayoutTest {
         }
     }
 
+    @Test
+    fun settingsRowLabelsFitAtFontScaleTwoWithoutAnEllipsis() {
+        // #62: "Maximale Ausgaberesolution" broke mid-word as
+        // "Ausgabere / solution" and "Datenschutzerklärung" as
+        // "Datenschutzerkl / ärung" in the Settings rows.
+        val style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+        val density = Density(density = 1f, fontScale = 2f)
+        val measurer = measurer(density)
+        // The slider row shares the line with the value text ("6000 px").
+        val valueWidth = textWidthPx(measurer, "6000 px", style, style.fontSize.value, 1f)
+        for (windowDp in listOf(294f, 320f)) {
+            // 12dp screen padding, 24dp icon, 12dp gap, value text, 8dp slack.
+            val labelWidth = windowDp - 24f - 24f - 12f - valueWidth - 8f
+            val labels =
+                listOf(
+                    "Maximale Ausgaberesolution",
+                    "Maks. output-opløsning",
+                    "Datenschutzerklärung",
+                    "Einschränkungen",
+                )
+            for (label in labels) {
+                val decision =
+                    measure(
+                        label,
+                        style,
+                        widthDp = labelWidth,
+                        fontScale = 2f,
+                        policy = FitTextPolicy(maxLines = 3, minScale = 0.6f),
+                    )
+                assertFalse("$label @ ${windowDp}dp was cut: ${decision.text}", decision.ellipsized)
+                assertFalse(decision.text.contains(FIT_ELLIPSIS))
+                assertTrue(decision.maxLines <= 3)
+                // The policy never starts a wrapped line inside a word; the
+                // decision text is the label itself apart from added breaks.
+                decision.text.split('\n').forEach { line ->
+                    assertTrue(label.replace(" ", "").startsWith(line.replace(" ", "").take(1)))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun selectedNavLabelsFitAtFontScaleTwoOnOneLine() {
+        // #62: the selected Settings tab showed "Einstellun…" / "Indstilling…".
+        val style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp)
+        for (windowDp in listOf(294f, 320f)) {
+            val slot = windowDp / 3f - 16f
+            for (label in listOf("Einstellungen", "Indstillinger", "Werkzeuge")) {
+                val decision =
+                    measure(
+                        label,
+                        style,
+                        widthDp = slot,
+                        fontScale = 2f,
+                        policy = FitTextPolicy(maxLines = 1, minScale = NAV_SELECTED_LABEL_MIN_SCALE),
+                    )
+                assertFalse("$label @ ${windowDp}dp was cut: ${decision.text}", decision.ellipsized)
+                assertFalse(decision.text.contains(FIT_ELLIPSIS))
+                assertEquals(1, decision.maxLines)
+            }
+        }
+    }
+
+    @Test
+    fun fontCardsShareOneUncutSizeAtFontScaleTwo() {
+        // #62: the 2×2 card group at large font scales. One slot is half the
+        // screen minus the 12dp screen padding and the 8dp gap.
+        val style = TextStyle(fontSize = 10.sp, lineHeight = 14.sp)
+        val labels =
+            listOf("System", "Sans (≈Arial)", "Serif (≈Times)", "Mono (≈Courier)")
+        for (windowDp in listOf(294f, 320f)) {
+            val slot = (windowDp - 24f - 8f) / 2f
+            val decisions =
+                measureUniform(
+                    labels,
+                    style,
+                    slotDp = slot,
+                    fontScale = 2f,
+                    policy = FitTextPolicy(maxLines = 2, minScale = LABEL_FONT_FLOOR_FRACTION),
+                )
+            assertEquals(1, decisions.map { it.scale }.distinct().size)
+            decisions.forEach { decision ->
+                assertFalse(decision.ellipsized)
+                assertFalse(decision.text.contains(FIT_ELLIPSIS))
+                assertTrue(decision.maxLines <= 2)
+            }
+            assertEquals(labels, decisions.map { it.text })
+        }
+    }
+
     private fun measure(
         text: String,
         style: TextStyle,

@@ -56,6 +56,7 @@ import androidx.navigation.navArgument
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
+import com.phaprodevelop.klipsilo.ui.components.NAV_SELECTED_LABEL_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.ui.presentation.TextPresentationScreen
 import com.phaprodevelop.klipsilo.ui.screen.AboutScreen
@@ -233,12 +234,20 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                                 label = {
                                     // Single line, never broken inside a word:
                                     // shrink to the nav floor before the item
-                                    // hides its label (#45).
+                                    // hides its label (#45). A selected item
+                                    // always shows its label, so it may shrink
+                                    // a little further than the unselected
+                                    // floor instead of an ellipsis (#62).
                                     ButtonLabel(
                                         text = label,
                                         style = MaterialTheme.typography.labelMedium,
                                         maxLines = 1,
-                                        floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+                                        floorFraction =
+                                            if (selected) {
+                                                NAV_SELECTED_LABEL_MIN_SCALE
+                                            } else {
+                                                NAV_LABEL_FONT_FLOOR_FRACTION
+                                            },
                                     )
                                 },
                             )
@@ -514,16 +523,18 @@ private fun navLabelFits(
 @Preview(fontScale = 2f, widthDp = 320, heightDp = 120, showBackground = true)
 @Composable
 private fun BottomNavLargeScalePreview() {
-    // German labels from #45: "Werkzeuge"/"Einstellungen" must stay on one
-    // line (shrunk, never broken mid-word) at font scale 2.0.
+    // German labels from #45/#62: "Werkzeuge"/"Einstellungen" must stay on one
+    // line (shrunk, never broken mid-word) at font scale 2.0, and the SELECTED
+    // "Einstellungen" must fit too — it used to show as "Einstellun…" (#62).
     MaterialTheme {
         BoxWithConstraints {
             val slotWidthPx =
                 constraints.maxWidth / 3 - with(LocalDensity.current) { 16.dp.toPx() }.toInt()
             NavigationBar {
                 listOf("Clips", "Werkzeuge", "Einstellungen").forEachIndexed { index, label ->
+                    val selected = index == 2
                     NavigationBarItem(
-                        selected = index == 0,
+                        selected = selected,
                         onClick = {},
                         icon = { Icon(Icons.Filled.Check, contentDescription = null) },
                         alwaysShowLabel = navLabelFits(label, slotWidthPx),
@@ -532,7 +543,12 @@ private fun BottomNavLargeScalePreview() {
                                 text = label,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
-                                floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+                                floorFraction =
+                                    if (selected) {
+                                        NAV_SELECTED_LABEL_MIN_SCALE
+                                    } else {
+                                        NAV_LABEL_FONT_FLOOR_FRACTION
+                                    },
                             )
                         },
                     )

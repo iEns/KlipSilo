@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,7 +45,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
@@ -52,8 +56,16 @@ import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.data.settings.ThemeMode
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
+import com.phaprodevelop.klipsilo.ui.components.LABEL_FONT_FLOOR_FRACTION
+import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
+import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
+import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import java.util.Locale
+
+/** Settings labels shrink to this fraction of their size before an ellipsis (#62). */
+private const val SETTINGS_LABEL_MIN_SCALE = 0.6f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,9 +88,14 @@ fun IndstillingerScreen(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-            Text(
+            // Every Settings label follows the fit-text policy (#62): wrap at
+            // word boundaries, shrink uniformly, ellipsis last — the German
+            // compounds used to break mid-word in these rows.
+            ButtonLabel(
                 text = context.getString(R.string.settings),
                 style = MaterialTheme.typography.headlineMedium,
+                maxLines = 2,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Spacer(Modifier.size(16.dp))
 
@@ -98,17 +115,21 @@ fun IndstillingerScreen(
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    ButtonLabel(
                         text = context.getString(R.string.language),
                         style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        floorFraction = SETTINGS_LABEL_MIN_SCALE,
                     )
-                    Text(
+                    ButtonLabel(
                         text =
                             currentLanguage?.nativeName
                                 ?: selectedLanguage
                                 ?: context.getString(R.string.language_system),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        floorFraction = SETTINGS_LABEL_MIN_SCALE,
                     )
                 }
                 Text(
@@ -121,10 +142,12 @@ fun IndstillingerScreen(
 
             Spacer(Modifier.size(24.dp))
 
-            Text(
+            ButtonLabel(
                 text = context.getString(R.string.display_mode),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Spacer(Modifier.size(8.dp))
 
@@ -168,10 +191,12 @@ fun IndstillingerScreen(
 
             Spacer(Modifier.size(24.dp))
 
-            Text(
+            ButtonLabel(
                 text = context.getString(R.string.settings_pdf_export),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Spacer(Modifier.size(8.dp))
 
@@ -186,54 +211,21 @@ fun IndstillingerScreen(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(
+                ButtonLabel(
                     text = context.getString(R.string.pdf_setting_font_family),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
+                    maxLines = 3,
+                    floorFraction = SETTINGS_LABEL_MIN_SCALE,
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf(
-                    PdfFont.SYSTEM to context.getString(R.string.pdf_font_system),
-                    PdfFont.SANS to context.getString(R.string.pdf_font_sans),
-                    PdfFont.SERIF to context.getString(R.string.pdf_font_serif),
-                    PdfFont.MONO to context.getString(R.string.pdf_font_mono),
-                ).forEach { (font, label) ->
-                    val selected = pdfSettings.pdfFont == font
-                    Card(
-                        modifier =
-                            Modifier.weight(1f).clickable {
-                                pdfSettings = pdfSettings.copy(pdfFont = font)
-                                PdfSettingsStore.save(context, pdfSettings)
-                            },
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                            ),
-                    ) {
-                        ButtonLabel(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color =
-                                if (selected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
+            FontFamilyCards(
+                selected = pdfSettings.pdfFont,
+                onSelect = { font ->
+                    pdfSettings = pdfSettings.copy(pdfFont = font)
+                    PdfSettingsStore.save(context, pdfSettings)
+                },
+            )
             Spacer(Modifier.size(8.dp))
 
             PdfSettingSlider(
@@ -297,10 +289,12 @@ fun IndstillingerScreen(
             )
 
             Spacer(Modifier.size(24.dp))
-            Text(
+            ButtonLabel(
                 text = context.getString(R.string.tool_group_guide),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Spacer(Modifier.size(8.dp))
             GuideRow(Icons.Filled.Lightbulb, context.getString(R.string.tips), onNavigateToTips)
@@ -312,10 +306,12 @@ fun IndstillingerScreen(
             GuideRow(Icons.Filled.Star, context.getString(R.string.tool_use_cases), onNavigateToUseCases)
 
             Spacer(Modifier.size(24.dp))
-            Text(
+            ButtonLabel(
                 text = context.getString(R.string.about),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Spacer(Modifier.size(8.dp))
             Card(
@@ -331,10 +327,12 @@ fun IndstillingerScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text(
+                    ButtonLabel(
                         text = context.getString(R.string.about),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
+                        maxLines = 3,
+                        floorFraction = SETTINGS_LABEL_MIN_SCALE,
                     )
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
@@ -353,10 +351,12 @@ fun IndstillingerScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text(
+                    ButtonLabel(
                         text = context.getString(R.string.privacy_policy),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
+                        maxLines = 3,
+                        floorFraction = SETTINGS_LABEL_MIN_SCALE,
                     )
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
@@ -383,6 +383,116 @@ fun IndstillingerScreen(
     }
 }
 
+/**
+ * The four PDF font cards (#62). At large font scales they reflow into a 2×2
+ * grid, and the four cards are ONE uniform group: a shared label scale from
+ * [rememberUniformLabelDecisions], the policy wrapping "Serif (≈Times)" and
+ * "Mono (≈Courier)" at the space, never inside a word and never clipped. The
+ * old one-row layout truncated them to "Serif (≈Tim…" at font scale 2.0.
+ */
+@Composable
+private fun FontFamilyCards(
+    selected: PdfFont,
+    onSelect: (PdfFont) -> Unit,
+) {
+    val context = LocalContext.current
+    val options =
+        listOf(
+            PdfFont.SYSTEM to context.getString(R.string.pdf_font_system),
+            PdfFont.SANS to context.getString(R.string.pdf_font_sans),
+            PdfFont.SERIF to context.getString(R.string.pdf_font_serif),
+            PdfFont.MONO to context.getString(R.string.pdf_font_mono),
+        )
+    if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val slotWidthPx =
+                (constraints.maxWidth - with(LocalDensity.current) { 8.dp.toPx() }.toInt()) / 2
+            val style = MaterialTheme.typography.labelSmall
+            val decisions =
+                rememberUniformLabelDecisions(
+                    labels = options.map { it.second },
+                    slotWidthPx = slotWidthPx,
+                    style = style,
+                    policy = FitTextPolicy(maxLines = 2, minScale = LABEL_FONT_FLOOR_FRACTION),
+                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                options.chunked(2).forEachIndexed { rowIndex, rowOptions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        rowOptions.forEachIndexed { columnIndex, (font, label) ->
+                            val decision = decisions[rowIndex * 2 + columnIndex]
+                            Card(
+                                modifier = Modifier.weight(1f).clickable { onSelect(font) },
+                                colors = fontCardColors(selected == font),
+                            ) {
+                                Text(
+                                    text = decision.text,
+                                    style =
+                                        scaledLabelStyle(
+                                            style,
+                                            style.fontSize.value * decision.scale,
+                                            style.fontSize.value,
+                                        ),
+                                    color = fontCardLabelColor(selected == font),
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                    textAlign = TextAlign.Center,
+                                    // Lines come from the policy, already
+                                    // broken on word boundaries.
+                                    softWrap = false,
+                                    maxLines = decision.maxLines,
+                                    overflow = TextOverflow.Clip,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            options.forEach { (font, label) ->
+                val selectedFont = selected == font
+                Card(
+                    modifier = Modifier.weight(1f).clickable { onSelect(font) },
+                    colors = fontCardColors(selectedFont),
+                ) {
+                    ButtonLabel(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = fontCardLabelColor(selectedFont),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun fontCardColors(selected: Boolean) =
+    CardDefaults.cardColors(
+        containerColor =
+            if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+    )
+
+@Composable
+private fun fontCardLabelColor(selected: Boolean) =
+    if (selected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
 @Composable
 private fun LanguagePickerSheet(
     selectedTag: String?,
@@ -397,10 +507,12 @@ private fun LanguagePickerSheet(
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
     ) {
-        Text(
+        ButtonLabel(
             text = context.getString(R.string.language),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            maxLines = 2,
+            floorFraction = SETTINGS_LABEL_MIN_SCALE,
         )
         LanguageOptionRow(
             flag = LocaleHelper.languageFlag(null),
@@ -432,10 +544,12 @@ private fun GuideRow(
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
-            Text(
+            ButtonLabel(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
+                maxLines = 3,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Text("›", color = MaterialTheme.colorScheme.primary)
         }
@@ -472,11 +586,13 @@ private fun LanguageOptionRow(
     ) {
         Text(text = flag, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.width(16.dp))
-        Text(
+        ButtonLabel(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = contentColor,
             modifier = Modifier.weight(1f),
+            maxLines = 3,
+            floorFraction = SETTINGS_LABEL_MIN_SCALE,
         )
         if (selected) {
             Icon(
@@ -506,10 +622,12 @@ private fun PdfSettingSlider(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.width(12.dp))
-            Text(
+            ButtonLabel(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
+                maxLines = 3,
+                floorFraction = SETTINGS_LABEL_MIN_SCALE,
             )
             Text(
                 text = valueText,
@@ -523,5 +641,18 @@ private fun PdfSettingSlider(
             valueRange = valueRange,
             steps = steps,
         )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Preview(widthDp = 320, showBackground = true)
+@Composable
+private fun FontFamilyCardsLargeScalePreview() {
+    // #62: "Serif (≈Times)"/"Mono (≈Courier)" used to truncate at font scale
+    // 2.0; in the 2×2 group they wrap at the space and share one size.
+    MaterialTheme {
+        Column(Modifier.padding(12.dp)) {
+            FontFamilyCards(selected = PdfFont.SANS, onSelect = {})
+        }
     }
 }

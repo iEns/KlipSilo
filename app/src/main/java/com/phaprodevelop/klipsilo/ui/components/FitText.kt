@@ -39,6 +39,14 @@ internal const val LABEL_FONT_FLOOR_FRACTION = 0.75f
 internal const val NAV_LABEL_FONT_FLOOR_FRACTION = 0.6f
 
 /**
+ * Floor for the label of the SELECTED bottom-navigation item (#62): a
+ * selected item always shows its label ("Einstellungen" showed as
+ * "Einstellun…"), so it may shrink a little further than
+ * [NAV_LABEL_FONT_FLOOR_FRACTION] before an ellipsis.
+ */
+internal const val NAV_SELECTED_LABEL_MIN_SCALE = 0.45f
+
+/**
  * Font scale from which layouts reflow into their compact variant (#54):
  * past this the side-by-side rows no longer leave room for their text.
  */
