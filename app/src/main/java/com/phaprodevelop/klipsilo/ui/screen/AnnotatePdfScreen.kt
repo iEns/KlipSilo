@@ -101,7 +101,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.MarkupHistory
-import com.phaprodevelop.klipsilo.data.commitMarkupText
+import com.phaprodevelop.klipsilo.data.TextCommitDecision
 import com.phaprodevelop.klipsilo.data.markupTextSizeStep
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepCount
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepIndex
@@ -113,6 +113,7 @@ import com.phaprodevelop.klipsilo.data.nearestMarkupTextSize
 import com.phaprodevelop.klipsilo.data.nearestMarkupWidth
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
+import com.phaprodevelop.klipsilo.data.resolveTextCommit
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
@@ -261,12 +262,35 @@ fun AnnotatePdfScreen(
     var pageHeightPt by remember { mutableFloatStateOf(0f) }
     var savedAnnotations by remember { mutableStateOf(emptyList<PdfAnnotation>()) }
     var savedStrokes by remember { mutableStateOf(emptyList<PdfStroke>()) }
-    // An empty/whitespace-only draft text box is dropped on commit, so it
-    // does not count as a change (#50). An in-progress edit of an existing
-    // annotation still counts (its commit replaces the item).
+
+    // The commit decision for a draft text box (#50, #55): a new box left
+    // empty is dropped, an edit cleared to empty text deletes the item, an
+    // unchanged edit keeps it, anything else is added/replaced.
+    fun draftAnnotation(d: DraftAnnotation): PdfAnnotation =
+        PdfAnnotation(
+            pageIndex = pageIndex,
+            xFraction = d.xFraction,
+            yFraction = d.yFraction,
+            text = d.text,
+            sizeFraction = d.sizeFraction,
+            color = d.color,
+            zOrder = d.zOrder,
+        )
+
+    fun draftCommitDecision(d: DraftAnnotation): TextCommitDecision =
+        resolveTextCommit(
+            d.editingIndex?.let { annotations[pageIndex].orEmpty().getOrNull(it) },
+            draftAnnotation(d),
+        )
+
+    // A dropped new box (#50) and an unchanged edit record nothing, so they
+    // do not count as a change. Deleting (empty edit) and adding/replacing do.
     val draftDirty =
         draft?.let { d ->
-            commitMarkupText(d.text) != null || d.editingIndex != null
+            when (draftCommitDecision(d)) {
+                TextCommitDecision.Keep, TextCommitDecision.Drop -> false
+                else -> true
+            }
         } == true
     val dirty =
         annotations.values.flatten() != savedAnnotations ||
@@ -446,30 +470,44 @@ fun AnnotatePdfScreen(
     fun commitDrafts() {
         val d = draft
         val pendingStroke = draftStroke
-        // Empty/whitespace-only text boxes are dropped (#50): no annotation,
-        // no undo entry, screen not dirty.
-        val committedText = d?.let { commitMarkupText(it.text) }
-        if (committedText != null || (pendingStroke != null && pendingStroke.points.size >= 2)) {
+        val decision = d?.let { draftCommitDecision(it) }
+        // Add/Replace/Delete each change the markup and are one undoable
+        // step; a dropped empty new box (#50) and an unchanged edit record
+        // nothing.
+        if (
+            decision is TextCommitDecision.Add ||
+            decision is TextCommitDecision.Replace ||
+            decision is TextCommitDecision.Delete ||
+            (pendingStroke != null && pendingStroke.points.size >= 2)
+        ) {
             recordMarkup()
         }
-        if (d != null && committedText != null) {
-            val list = annotations[pageIndex].orEmpty().toMutableList()
-            val newAnn =
-                PdfAnnotation(
-                    pageIndex = pageIndex,
-                    xFraction = d.xFraction,
-                    yFraction = d.yFraction,
-                    text = committedText,
-                    sizeFraction = d.sizeFraction,
-                    color = d.color,
-                    zOrder = d.zOrder,
-                )
-            if (d.editingIndex != null && d.editingIndex < list.size) {
-                list[d.editingIndex] = newAnn
-            } else {
-                list.add(newAnn)
+        if (d != null) {
+            when (decision) {
+                is TextCommitDecision.Add -> {
+                    annotations[pageIndex] =
+                        annotations[pageIndex].orEmpty() + draftAnnotation(d).copy(text = decision.text)
+                }
+                is TextCommitDecision.Replace -> {
+                    val list = annotations[pageIndex].orEmpty().toMutableList()
+                    val index = d.editingIndex
+                    if (index != null && index < list.size) {
+                        list[index] = draftAnnotation(d).copy(text = decision.text)
+                    } else {
+                        list.add(draftAnnotation(d).copy(text = decision.text))
+                    }
+                    annotations[pageIndex] = list
+                }
+                is TextCommitDecision.Delete -> {
+                    val index = d.editingIndex
+                    val list = annotations[pageIndex].orEmpty().toMutableList()
+                    if (index != null && index < list.size) {
+                        list.removeAt(index)
+                        annotations[pageIndex] = list
+                    }
+                }
+                else -> {}
             }
-            annotations[pageIndex] = list
         }
         val s = draftStroke
         if (s != null && s.points.size >= 2) {

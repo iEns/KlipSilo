@@ -1,12 +1,58 @@
 package com.phaprodevelop.klipsilo.data
 
+import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
+
 /**
- * Returns the trimmed text to commit for a draft text annotation, or null
- * when the draft is empty or whitespace-only and must be dropped (#50):
- * placing an empty text box creates no annotation, records no undo entry
- * and does not make the screen dirty (Back leaves without the save dialog).
+ * What committing a draft text box does, decided by [resolveTextCommit].
  */
-internal fun commitMarkupText(text: String): String? = text.trim().takeIf { it.isNotEmpty() }
+internal sealed class TextCommitDecision {
+    /** A new box left empty creates nothing (#50). */
+    object Drop : TextCommitDecision()
+
+    /** A new box with text is added. */
+    data class Add(val text: String) : TextCommitDecision()
+
+    /** An edit that changed nothing keeps the original item. */
+    object Keep : TextCommitDecision()
+
+    /** An edit with changed text or geometry replaces the original item. */
+    data class Replace(val text: String) : TextCommitDecision()
+
+    /** An edit cleared to empty text deletes the original item (#55). */
+    object Delete : TextCommitDecision()
+}
+
+/**
+ * One pure decision for committing a draft text box, which the screen then
+ * applies identically for every commit path (tap elsewhere, IME Done, tool
+ * switch, page change, Save):
+ * - a new box ([original] null) with empty/whitespace-only text is dropped
+ *   (#50): no annotation, no undo entry, screen not dirty;
+ * - a new box with text is added;
+ * - an edit that changed nothing keeps the original item (no undo entry,
+ *   screen not dirty);
+ * - an edit cleared down to empty/whitespace-only text deletes the original
+ *   item (#55) as one undoable step (Undo restores the box with its old
+ *   text and position);
+ * - any other edit replaces the original item.
+ *
+ * [edited] carries the draft's full new state (text and geometry), so an
+ * edit that only moved or restyled the box still commits as Replace.
+ */
+internal fun resolveTextCommit(
+    original: PdfAnnotation?,
+    edited: PdfAnnotation,
+): TextCommitDecision {
+    val trimmed = edited.text.trim()
+    return when {
+        original == null && trimmed.isEmpty() -> TextCommitDecision.Drop
+        original == null -> TextCommitDecision.Add(trimmed)
+        trimmed.isEmpty() -> TextCommitDecision.Delete
+        trimmed == original.text &&
+            original.copy(text = trimmed) == edited.copy(text = trimmed) -> TextCommitDecision.Keep
+        else -> TextCommitDecision.Replace(trimmed)
+    }
+}
 
 /**
  * Undo and redo for markup. [record] stores the state from before a change.
