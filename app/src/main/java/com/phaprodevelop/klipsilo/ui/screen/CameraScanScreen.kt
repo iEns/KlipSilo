@@ -875,9 +875,9 @@ private fun CropActionButtons(
 /**
  * Solid header for the live camera screens (#51): the title and hint chip sit
  * on a black bar the preview is laid out below (portrait) or beside
- * (landscape), instead of overlaying the camera image. Text shrinks the bar
- * and ellipsizes at the end at large font scales rather than covering the
- * preview again.
+ * (landscape), instead of overlaying the camera image. The title ellipsizes
+ * and the hint wraps to up to three lines at word boundaries at large font
+ * scales rather than covering the preview again.
  */
 @Composable
 private fun CameraScanHeader(
@@ -910,12 +910,14 @@ private fun CameraScanHeader(
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.size(6.dp))
-            Text(
+            // 2-3 lines at word boundaries at large font scales (#51): the
+            // hint used to be one ellipsized line ("Text fotografie…").
+            // ButtonLabel shrinks a little and never breaks inside a word.
+            ButtonLabel(
                 text = hint,
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                maxLines = 3,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
