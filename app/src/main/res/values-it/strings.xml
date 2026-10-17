@@ -285,8 +285,8 @@
     <string name="markup_next_page">Pagina successiva</string>
     <string name="page_selector_indicator_cd">Pagina %1$d di %2$d, tocca per andare alla pagina</string>
     <string name="page_selector_error">Inserisci un numero di pagina tra 1 e %1$d</string>
-    <string name="page_selector_title">Go to page</string>
-    <string name="page_selector_field_label">Page (1–%1$d)</string>
+    <string name="page_selector_title">Vai alla pagina</string>
+    <string name="page_selector_field_label">Pagina (1–%1$d)</string>
     <string name="save_pdf">Salva PDF</string>
     <string name="done">Fine</string>
     <string name="remove">Rimuovi</string>

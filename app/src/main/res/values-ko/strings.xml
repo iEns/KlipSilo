@@ -284,8 +284,8 @@
     <string name="markup_next_page">다음 페이지</string>
     <string name="page_selector_indicator_cd">%2$d페이지 중 %1$d페이지, 탭하여 이동</string>
     <string name="page_selector_error">1에서 %1$d 사이의 페이지 번호를 입력</string>
-    <string name="page_selector_title">Go to page</string>
-    <string name="page_selector_field_label">Page (1–%1$d)</string>
+    <string name="page_selector_title">페이지로 이동</string>
+    <string name="page_selector_field_label">페이지(1–%1$d)</string>
     <string name="save_pdf">PDF 저장</string>
     <string name="done">완료</string>
     <string name="remove">제거</string>
