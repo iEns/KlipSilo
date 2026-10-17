@@ -276,6 +276,9 @@
     <string name="markup_color_red">빨강</string>
     <string name="markup_color_yellow">노랑</string>
     <string name="markup_font_size">Aa %1$d pt</string>
+    <string name="markup_size_decrease">Decrease size</string>
+    <string name="markup_size_increase">Increase size</string>
+    <string name="markup_stroke_size_value">%1$d pt</string>
     <string name="markup_prev_page">이전 페이지</string>
     <string name="markup_next_page">다음 페이지</string>
     <string name="save_pdf">PDF 저장</string>

@@ -13,6 +13,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,7 +26,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,10 +39,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.Highlight
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.AlertDialog
@@ -94,13 +97,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
-import com.phaprodevelop.klipsilo.data.MARKUP_TEXT_SIZES
-import com.phaprodevelop.klipsilo.data.MARKUP_WIDTHS
 import com.phaprodevelop.klipsilo.data.MarkupHistory
+import com.phaprodevelop.klipsilo.data.markupTextSizeStep
+import com.phaprodevelop.klipsilo.data.markupTextSizeStepCount
+import com.phaprodevelop.klipsilo.data.markupTextSizeStepIndex
+import com.phaprodevelop.klipsilo.data.markupWidthStep
+import com.phaprodevelop.klipsilo.data.markupWidthStepCount
+import com.phaprodevelop.klipsilo.data.markupWidthStepIndex
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearestMarkupTextSize
 import com.phaprodevelop.klipsilo.data.nearestMarkupWidth
@@ -212,9 +220,13 @@ fun AnnotatePdfScreen(
     val strokes = remember { mutableStateMapOf<Int, List<PdfStroke>>() }
     var draftStroke by remember { mutableStateOf<PdfStroke?>(null) }
     val savedAnnotate = remember { AnnotateSettingsStore.load(context) }
-    var strokeWidth by remember { mutableFloatStateOf(savedAnnotate.strokeWidthFraction) }
+    var strokeWidth by remember {
+        mutableFloatStateOf(nearestMarkupWidth(savedAnnotate.strokeWidthFraction))
+    }
     var strokeColor by remember { mutableIntStateOf(savedAnnotate.strokeColor) }
-    var textSizeFraction by remember { mutableFloatStateOf(savedAnnotate.textSizeFraction) }
+    var textSizeFraction by remember {
+        mutableFloatStateOf(nearestMarkupTextSize(savedAnnotate.textSizeFraction))
+    }
     var textColor by remember { mutableIntStateOf(savedAnnotate.textColor) }
     var zSeq by remember { mutableStateOf(0L) }
 
@@ -1234,27 +1246,36 @@ fun AnnotatePdfScreen(
                             (drawMode || (tool == MarkupTool.SELECT && selectedStroke >= 0))
                     if (showTextOptions) {
                         val size = draft?.sizeFraction ?: textSizeFraction
-                        val color = draft?.color ?: textColor
+                        val stepIndex = markupTextSizeStepIndex(size)
                         val pointSize =
                             if (pageHeightPt > 0f) (nearestMarkupTextSize(size) * pageHeightPt).toInt() else 0
                         MarkupChoices(
-                            sizes = MARKUP_TEXT_SIZES,
-                            selectedSize = nearestMarkupTextSize(size),
-                            color = color,
+                            stepDownDescription = context.getString(R.string.markup_size_decrease),
+                            stepUpDescription = context.getString(R.string.markup_size_increase),
+                            valueLabel = context.getString(R.string.markup_font_size, pointSize),
+                            canStepDown = stepIndex > 0,
+                            canStepUp = stepIndex < markupTextSizeStepCount() - 1,
+                            onStepDown = { applyTextSize(markupTextSizeStep(stepIndex - 1)) },
+                            onStepUp = { applyTextSize(markupTextSizeStep(stepIndex + 1)) },
+                            color = draft?.color ?: textColor,
                             includeYellow = false,
-                            pointLabel = context.getString(R.string.markup_font_size, pointSize),
-                            onSize = { applyTextSize(it) },
                             onColor = { applyTextColor(it) },
                         )
                     } else if (showStrokeOptions) {
                         val selected = strokes[pageIndex].orEmpty().getOrNull(selectedStroke)
+                        val width = selected?.widthFraction ?: strokeWidth
+                        val stepIndex = markupWidthStepIndex(width)
+                        val pointSize = if (pageHeightPt > 0f) (width * pageHeightPt).toInt() else 0
                         MarkupChoices(
-                            sizes = MARKUP_WIDTHS,
-                            selectedSize = nearestMarkupWidth(selected?.widthFraction ?: strokeWidth),
+                            stepDownDescription = context.getString(R.string.markup_size_decrease),
+                            stepUpDescription = context.getString(R.string.markup_size_increase),
+                            valueLabel = context.getString(R.string.markup_stroke_size_value, pointSize),
+                            canStepDown = stepIndex > 0,
+                            canStepUp = stepIndex < markupWidthStepCount() - 1,
+                            onStepDown = { applyStrokeWidth(markupWidthStep(stepIndex - 1)) },
+                            onStepUp = { applyStrokeWidth(markupWidthStep(stepIndex + 1)) },
                             color = selected?.color ?: strokeColor,
                             includeYellow = true,
-                            pointLabel = null,
-                            onSize = { applyStrokeWidth(it) },
                             onColor = { applyStrokeColor(it) },
                         )
                     }
@@ -1451,23 +1472,21 @@ private fun MarkupToolBar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MarkupChoices(
-    sizes: FloatArray,
-    selectedSize: Float,
+    stepDownDescription: String,
+    stepUpDescription: String,
+    valueLabel: String,
+    canStepDown: Boolean,
+    canStepUp: Boolean,
+    onStepDown: () -> Unit,
+    onStepUp: () -> Unit,
     color: Int,
     includeYellow: Boolean,
-    pointLabel: String?,
-    onSize: (Float) -> Unit,
     onColor: (Int) -> Unit,
 ) {
     val context = LocalContext.current
-    val sizeLabels =
-        listOf(
-            R.string.markup_size_s to R.string.markup_size_small,
-            R.string.markup_size_m to R.string.markup_size_medium,
-            R.string.markup_size_l to R.string.markup_size_large,
-        )
     val colors =
         buildList {
             add(android.graphics.Color.BLACK to R.string.markup_color_black)
@@ -1475,39 +1494,22 @@ private fun MarkupChoices(
             add(android.graphics.Color.RED to R.string.markup_color_red)
             if (includeYellow) add(android.graphics.Color.YELLOW to R.string.markup_color_yellow)
         }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    // FlowRow so the stepper and the colour swatches wrap to a second line
+    // instead of squeezing on narrow screens with large font scale (#50).
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        sizes.forEachIndexed { index, width ->
-            val chosen = kotlin.math.abs(selectedSize - width) < 0.0001f
-            val visible = context.getString(sizeLabels[index].first)
-            val description = context.getString(sizeLabels[index].second)
-            Box(
-                modifier =
-                    Modifier
-                        .padding(end = 4.dp)
-                        .size(36.dp)
-                        .semantics { contentDescription = description }
-                        .border(
-                            width = if (chosen) 2.dp else 1.dp,
-                            color =
-                                if (chosen) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline
-                                },
-                            shape = CircleShape,
-                        )
-                        .clickable { onSize(width) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(visible, style = MaterialTheme.typography.labelLarge)
-            }
-        }
+        MarkupSizeStepper(
+            stepDownDescription = stepDownDescription,
+            stepUpDescription = stepUpDescription,
+            valueLabel = valueLabel,
+            canStepDown = canStepDown,
+            canStepUp = canStepUp,
+            onStepDown = onStepDown,
+            onStepUp = onStepUp,
+        )
         colors.forEach { (argb, labelRes) ->
             val selected = color == argb
             val description = context.getString(labelRes)
@@ -1543,9 +1545,50 @@ private fun MarkupChoices(
                 )
             }
         }
-        if (pointLabel != null) {
-            Spacer(Modifier.width(8.dp))
-            Text(pointLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    }
+}
+
+@Composable
+private fun MarkupSizeStepper(
+    stepDownDescription: String,
+    stepUpDescription: String,
+    valueLabel: String,
+    canStepDown: Boolean,
+    canStepUp: Boolean,
+    onStepDown: () -> Unit,
+    onStepUp: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onStepDown, enabled = canStepDown) {
+            Icon(
+                Icons.Filled.Remove,
+                contentDescription = stepDownDescription,
+                tint =
+                    if (canStepDown) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+            )
+        }
+        Text(
+            text = valueLabel,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 48.dp),
+        )
+        IconButton(onClick = onStepUp, enabled = canStepUp) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = stepUpDescription,
+                tint =
+                    if (canStepUp) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    },
+            )
         }
     }
 }
@@ -1931,4 +1974,58 @@ private fun strokeBoundsFraction(
         (bounds.right / bitmapWidth).coerceIn(0f, 1f),
         (bounds.bottom / bitmapHeight).coerceIn(0f, 1f),
     )
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 120, showBackground = true)
+@Composable
+internal fun MarkupHistoryRowPreview() {
+    MaterialTheme {
+        MarkupHistoryRow(
+            canUndo = true,
+            canRedo = false,
+            canDelete = true,
+            pageIndex = 0,
+            pageCount = 250,
+            onUndo = {},
+            onRedo = {},
+            onDelete = {},
+            onPrev = {},
+            onNext = {},
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 140, showBackground = true)
+@Composable
+internal fun MarkupSizeStepperPreview() {
+    MaterialTheme {
+        MarkupSizeStepper(
+            stepDownDescription = "Decrease size",
+            stepUpDescription = "Increase size",
+            valueLabel = "Aa 76 pt",
+            canStepDown = true,
+            canStepUp = false,
+            onStepDown = {},
+            onStepUp = {},
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 160, showBackground = true)
+@Composable
+internal fun MarkupChoicesPreview() {
+    MaterialTheme {
+        MarkupChoices(
+            stepDownDescription = "Decrease size",
+            stepUpDescription = "Increase size",
+            valueLabel = "17 pt",
+            canStepDown = true,
+            canStepUp = true,
+            onStepDown = {},
+            onStepUp = {},
+            color = android.graphics.Color.BLACK,
+            includeYellow = true,
+            onColor = {},
+        )
+    }
 }

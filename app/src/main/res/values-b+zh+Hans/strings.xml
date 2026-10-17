@@ -276,6 +276,9 @@
     <string name="markup_color_red">红色</string>
     <string name="markup_color_yellow">黄色</string>
     <string name="markup_font_size">Aa %1$d pt</string>
+    <string name="markup_size_decrease">Decrease size</string>
+    <string name="markup_size_increase">Increase size</string>
+    <string name="markup_stroke_size_value">%1$d pt</string>
     <string name="markup_prev_page">上一页</string>
     <string name="markup_next_page">下一页</string>
     <string name="save_pdf">保存 PDF</string>
