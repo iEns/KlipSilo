@@ -7,9 +7,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
@@ -61,33 +62,49 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
+import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
+import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
+import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
+import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
+import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
+import com.phaprodevelop.klipsilo.ui.components.previewPointToPageLocal
+import com.phaprodevelop.klipsilo.ui.components.previewRenderDim
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
+import com.phaprodevelop.klipsilo.ui.components.transformPreviewZoom
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Preview height while the keyboard is open, so the field list keeps the screen space. */
 private val CollapsedPreviewHeight = 88.dp
+
+/** How long the preview zoom must be still before re-rendering sharper. */
+private const val RESHARPEN_SETTLE_MILLIS = 250L
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +130,7 @@ fun FormFillScreen(
     var pageCount by remember { mutableIntStateOf(0) }
     val displayed = rememberDisplayedBitmap()
     val pageGate = remember { AtomicInteger(0) }
+    var renderDim by remember { mutableIntStateOf(PREVIEW_BASE_RENDER_DIM) }
     var dirty by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var values by rememberSaveable(
@@ -199,11 +217,15 @@ fun FormFillScreen(
         }
     }
     LaunchedEffect(filePath, pageIndex) {
+        if (renderDim != PREVIEW_BASE_RENDER_DIM) renderDim = PREVIEW_BASE_RENDER_DIM
+    }
+    LaunchedEffect(filePath, pageIndex, renderDim) {
         val path = filePath ?: return@LaunchedEffect
+        val dim = renderDim
         val loaded =
             produceLatest(
                 pageGate,
-                produce = { withContext(Dispatchers.IO) { renderPdfPage(path, 1800, pageIndex) } },
+                produce = { withContext(Dispatchers.IO) { renderPdfPage(path, dim, pageIndex) } },
                 discard = { bitmap -> bitmap?.recycle() },
             ) ?: return@LaunchedEffect
         displayed.update(loaded.value)
@@ -261,6 +283,9 @@ fun FormFillScreen(
                     values = values,
                     imeVisible = imeVisible,
                     onFieldTap = { name -> focusField(name) },
+                    onZoomSettled = { scale ->
+                        previewRenderDim(renderDim, scale)?.let { renderDim = it }
+                    },
                 )
             }
             if (pageCount > 1) {
@@ -353,6 +378,7 @@ fun FormFillScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FormPdfPreview(
     bitmap: Bitmap,
@@ -361,60 +387,160 @@ private fun FormPdfPreview(
     values: Map<String, String>,
     imeVisible: Boolean,
     onFieldTap: (String) -> Unit,
+    onZoomSettled: (Float) -> Unit,
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
     val expandedHeight = LocalConfiguration.current.screenHeightDp.dp * 0.40f
     val previewHeight by animateDpAsState(
         targetValue = if (imeVisible) CollapsedPreviewHeight else expandedHeight,
         label = "formPreviewHeight",
     )
+    var zoom by remember { mutableStateOf(PreviewZoomState()) }
+    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+    // Fresh dimensions for the gesture callbacks, which stay attached across recompositions.
+    val layout = remember { PreviewLayout() }
+
+    // Pinch/pan/double-tap resets when another page is shown.
+    LaunchedEffect(pageIndex) {
+        zoom = PreviewZoomState()
+    }
+    // Re-render at a higher resolution only once the pinch has settled.
+    LaunchedEffect(zoom.scale) {
+        if (zoom.scale <= PREVIEW_MIN_SCALE) {
+            onZoomSettled(PREVIEW_MIN_SCALE)
+            return@LaunchedEffect
+        }
+        delay(RESHARPEN_SETTLE_MILLIS)
+        onZoomSettled(zoom.scale)
+    }
+
     Box(
         modifier = Modifier.fillMaxWidth().height(previewHeight),
         contentAlignment = Alignment.Center,
     ) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val aspect = bitmap.width.toFloat() / bitmap.height.toFloat().coerceAtLeast(1f)
-            val boxAspect = if (maxHeight > 0.dp) maxWidth / maxHeight else aspect
-            val imageWidth = if (aspect > boxAspect) maxWidth else maxHeight * aspect
-            val imageHeight = if (aspect == 0f) maxHeight else imageWidth / aspect
-            Box(
-                modifier =
-                    Modifier
-                        .size(imageWidth, imageHeight)
-                        .align(Alignment.Center)
-                        .pointerInput(fields, pageIndex) {
-                            detectTapGestures { offset ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .onSizeChanged {
+                        viewportSize = it
+                        layout.viewportWidth = it.width.toFloat()
+                        layout.viewportHeight = it.height.toFloat()
+                    }
+                    .clipToBounds()
+                    .pointerInput(fields, pageIndex) {
+                        detectTapGestures(
+                            onTap = { offset ->
+                                val (localX, localY) =
+                                    previewPointToPageLocal(
+                                        zoom,
+                                        offset.x,
+                                        offset.y,
+                                        layout.viewportWidth,
+                                        layout.viewportHeight,
+                                        layout.pageWidth,
+                                        layout.pageHeight,
+                                    )
                                 val name =
                                     hitField(
                                         fields,
                                         pageIndex,
-                                        offset.x,
-                                        offset.y,
-                                        size.width.toFloat(),
-                                        size.height.toFloat(),
+                                        localX,
+                                        localY,
+                                        layout.pageWidth,
+                                        layout.pageHeight,
                                     )
                                 if (name != null) onFieldTap(name)
-                            }
-                        },
-            ) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = context.getString(R.string.pdf),
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillBounds,
-                )
-                fields.forEach { field ->
-                    val value = values[field.fullyQualifiedName].orEmpty()
-                    field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
-                        val shown = formOverlayText(field, hit, value)
-                        if (shown.isEmpty()) return@forEach
-                        FormValueOverlay(hit, shown, imageWidth, imageHeight)
+                            },
+                            onDoubleTap = { offset ->
+                                zoom =
+                                    doubleTapPreviewZoom(
+                                        zoom,
+                                        offset.x - layout.viewportWidth / 2f,
+                                        offset.y - layout.viewportHeight / 2f,
+                                        layout.viewportWidth,
+                                        layout.viewportHeight,
+                                        layout.pageWidth,
+                                        layout.pageHeight,
+                                    )
+                            },
+                        )
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { centroid, pan, gestureZoom, _ ->
+                            zoom =
+                                transformPreviewZoom(
+                                    zoom,
+                                    gestureZoom,
+                                    pan.x,
+                                    pan.y,
+                                    centroid.x - layout.viewportWidth / 2f,
+                                    centroid.y - layout.viewportHeight / 2f,
+                                    layout.viewportWidth,
+                                    layout.viewportHeight,
+                                    layout.pageWidth,
+                                    layout.pageHeight,
+                                )
+                        }
+                    },
+        ) {
+            val viewportWidth = viewportSize.width.toFloat()
+            val viewportHeight = viewportSize.height.toFloat()
+            if (viewportWidth > 0f && viewportHeight > 0f) {
+                val aspect = bitmap.width.toFloat() / bitmap.height.toFloat().coerceAtLeast(1f)
+                val boxAspect = if (viewportHeight > 0f) viewportWidth / viewportHeight else aspect
+                val pageWidth = if (aspect > boxAspect) viewportWidth else viewportHeight * aspect
+                val pageHeight = if (aspect == 0f) viewportHeight else pageWidth / aspect
+                layout.pageWidth = pageWidth
+                layout.pageHeight = pageHeight
+
+                // Keep the page inside the viewport after the preview grew or shrank.
+                LaunchedEffect(viewportWidth, viewportHeight) {
+                    zoom = clampPreviewZoom(zoom, viewportWidth, viewportHeight, pageWidth, pageHeight)
+                }
+
+                Box(
+                    modifier =
+                        Modifier
+                            .size(pageWidth.toDp(density), pageHeight.toDp(density))
+                            .align(Alignment.Center)
+                            .graphicsLayer {
+                                scaleX = zoom.scale
+                                scaleY = zoom.scale
+                                translationX = zoom.offsetX
+                                translationY = zoom.offsetY
+                            },
+                ) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = context.getString(R.string.pdf),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds,
+                    )
+                    fields.forEach { field ->
+                        val value = values[field.fullyQualifiedName].orEmpty()
+                        field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
+                            val shown = formOverlayText(field, hit, value)
+                            if (shown.isEmpty()) return@forEach
+                            FormValueOverlay(hit, shown, pageWidth.toDp(density), pageHeight.toDp(density))
+                        }
                     }
                 }
             }
         }
     }
 }
+
+/** Viewport and page dimensions in px, read by the preview's gesture callbacks. */
+private class PreviewLayout {
+    var viewportWidth = 0f
+    var viewportHeight = 0f
+    var pageWidth = 0f
+    var pageHeight = 0f
+}
+
+private fun Float.toDp(density: Density): Dp = with(density) { toDp() }
 
 @Composable
 private fun FormValueOverlay(
@@ -576,6 +702,7 @@ private fun FormPdfPreviewPreview() {
             values = emptyMap(),
             imeVisible = false,
             onFieldTap = {},
+            onZoomSettled = {},
         )
     }
 }
