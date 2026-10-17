@@ -119,14 +119,15 @@ import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
-import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
+import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
-import com.phaprodevelop.klipsilo.ui.components.rememberCommonRowLabelSize
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
+import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -1656,60 +1657,45 @@ private fun MarkupToolBar(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         val slotWidth = constraints.maxWidth / items.size
-        // One size for all five labels, single words shrink to the nav floor
-        // (60%) instead of wrapping (#50): "Auswahl" broke as "Auswa/hl" and
-        // "Marker" rendered smaller than the other labels when the row fell
-        // back to per-label sizes.
-        val commonSize =
-            rememberCommonRowLabelSize(
-                labels,
-                slotWidth,
-                labelStyle,
-                floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+        // One scale for all five. Per-label fallback rendered "Auswahl",
+        // "Text" and "Marker" at three sizes, and the shorter label pulled
+        // its circle down because the row centered columns of different
+        // heights (#50).
+        val decisions =
+            rememberUniformLabelDecisions(
+                labels = labels,
+                slotWidthPx = slotWidth,
+                style = labelStyle,
+                policy = FitTextPolicy(maxLines = 2, minScale = TOOL_LABEL_MIN_SCALE),
             )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
         ) {
             items.forEachIndexed { index, (mode, icon, _) ->
                 val label = labels[index]
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                val decision = decisions[index]
+                Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
                     CompactIconButton(
                         onClick = { onTool(mode) },
                         icon = icon,
                         contentDescription = label,
                         active = tool == mode,
                         label = {
-                            if (commonSize != null) {
-                                // All five labels share ONE size: the size the
-                                // longest label needs in its slot (#50).
-                                Text(
-                                    text = label,
-                                    style =
-                                        scaledLabelStyle(
-                                            labelStyle,
-                                            commonSize,
-                                            labelStyle.fontSize.value,
-                                        ),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Clip,
-                                )
-                            } else {
-                                // Even the 60% floor does not fit the longest
-                                // label on one line: allow two lines at word
-                                // boundaries, never mid-word, at the same
-                                // floor (#50).
-                                ButtonLabel(
-                                    text = label,
-                                    style = labelStyle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
-                                )
-                            }
+                            Text(
+                                text = decision.text,
+                                style =
+                                    scaledLabelStyle(
+                                        labelStyle,
+                                        labelStyle.fontSize.value * decision.scale,
+                                        labelStyle.fontSize.value,
+                                    ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                softWrap = false,
+                                maxLines = decision.maxLines,
+                                overflow = TextOverflow.Clip,
+                            )
                         },
                     )
                 }
@@ -1867,6 +1853,10 @@ private fun CompactIconButton(
             Icon(
                 icon,
                 contentDescription,
+                // Same box for every tool. The highlight glyph is a pen, but
+                // the circle behind it is this 40dp button; a shorter label
+                // used to drop that circle when the row centered the columns.
+                modifier = Modifier.size(24.dp),
                 tint =
                     if (active) {
                         MaterialTheme.colorScheme.onPrimary
@@ -2360,7 +2350,8 @@ internal fun MarkupSizeStepperPreview() {
     }
 }
 
-@Preview(fontScale = 2f, widthDp = 320, heightDp = 120, showBackground = true)
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 140, showBackground = true)
+@Preview(fontScale = 2f, widthDp = 360, heightDp = 140, showBackground = true)
 @Composable
 internal fun MarkupToolBarPreview() {
     MaterialTheme {
