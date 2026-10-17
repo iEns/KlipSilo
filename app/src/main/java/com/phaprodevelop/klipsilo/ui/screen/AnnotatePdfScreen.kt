@@ -34,8 +34,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -117,6 +115,7 @@ import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
+import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -673,6 +672,15 @@ fun AnnotatePdfScreen(
                     if (pageIndex < pageCount - 1) {
                         commitDrafts()
                         pageIndex++
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+                onGoToPage = { target ->
+                    if (target != pageIndex) {
+                        commitDrafts()
+                        pageIndex = target
                         offsetX = 0f
                         offsetY = 0f
                         scale = 1f
@@ -1338,6 +1346,7 @@ private fun MarkupHistoryRow(
     onDelete: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    onGoToPage: (Int) -> Unit,
 ) {
     val context = LocalContext.current
     Row(
@@ -1365,11 +1374,12 @@ private fun MarkupHistoryRow(
             enabled = canDelete,
             onClick = onDelete,
         )
-        MarkupPageSelector(
+        PageSelector(
             pageIndex = pageIndex,
             pageCount = pageCount,
             onPrev = onPrev,
             onNext = onNext,
+            onGoToPage = onGoToPage,
             modifier = Modifier.weight(1f),
         )
     }
@@ -1398,42 +1408,6 @@ private fun MarkupHistoryButton(
                     } else {
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     },
-            )
-        }
-    }
-}
-
-@Composable
-private fun MarkupPageSelector(
-    pageIndex: Int,
-    pageCount: Int,
-    onPrev: () -> Unit,
-    onNext: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onPrev, enabled = pageIndex > 0) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = context.getString(R.string.markup_prev_page),
-            )
-        }
-        Text(
-            text = "${pageIndex + 1} / ${pageCount.coerceAtLeast(1)}",
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        IconButton(onClick = onNext, enabled = pageCount > 1 && pageIndex < pageCount - 1) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = context.getString(R.string.markup_next_page),
             )
         }
     }
@@ -1991,6 +1965,7 @@ internal fun MarkupHistoryRowPreview() {
             onDelete = {},
             onPrev = {},
             onNext = {},
+            onGoToPage = {},
         )
     }
 }

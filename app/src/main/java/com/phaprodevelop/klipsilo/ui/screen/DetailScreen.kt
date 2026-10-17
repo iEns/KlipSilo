@@ -38,8 +38,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
@@ -122,6 +120,7 @@ import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
+import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -1299,42 +1298,34 @@ private fun PdfViewer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (pageCount > 1) {
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                        IconButton(
-                            onClick = {
-                                if (pageIndex > 0) {
-                                    pageIndex--
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                    scale = 1f
-                                }
-                            },
-                            enabled = pageIndex > 0,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
-                        }
-                    }
-                    Text(
-                        text = "${pageIndex + 1} / $pageCount",
-                        style = MaterialTheme.typography.labelMedium,
+                    PageSelector(
+                        pageIndex = pageIndex,
+                        pageCount = pageCount,
+                        onPrev = {
+                            if (pageIndex > 0) {
+                                pageIndex--
+                                offsetX = 0f
+                                offsetY = 0f
+                                scale = 1f
+                            }
+                        },
+                        onNext = {
+                            if (pageIndex < pageCount - 1) {
+                                pageIndex++
+                                offsetX = 0f
+                                offsetY = 0f
+                                scale = 1f
+                            }
+                        },
+                        onGoToPage = { target ->
+                            if (target != pageIndex) {
+                                pageIndex = target
+                                offsetX = 0f
+                                offsetY = 0f
+                                scale = 1f
+                            }
+                        },
                     )
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                        IconButton(
-                            onClick = {
-                                if (pageIndex < pageCount - 1) {
-                                    pageIndex++
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                    scale = 1f
-                                }
-                            },
-                            enabled = pageIndex < pageCount - 1,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-                        }
-                    }
                 }
                 if (onSavePageAsPdf != null) {
                     PdfBarAction(
@@ -1603,7 +1594,24 @@ private fun TextPreviewPane(
                     }
                     if (pages.size > 1) {
                         val scope = androidx.compose.runtime.rememberCoroutineScope()
-                        Row(
+                        PageSelector(
+                            pageIndex = pagerState.currentPage,
+                            pageCount = pages.size,
+                            onPrev = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                }
+                            },
+                            onNext = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                }
+                            },
+                            onGoToPage = { target ->
+                                scope.launch {
+                                    pagerState.animateScrollToPage(target)
+                                }
+                            },
                             modifier =
                                 Modifier
                                     .align(Alignment.BottomCenter)
@@ -1614,41 +1622,7 @@ private fun TextPreviewPane(
                                         RoundedCornerShape(8.dp),
                                     )
                                     .padding(horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            androidx.compose.material3.IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(pagerState.currentPage - 1)
-                                    }
-                                },
-                                enabled = pagerState.currentPage > 0,
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                    contentDescription = null,
-                                )
-                            }
-                            Text(
-                                text = "${pagerState.currentPage + 1} / ${pages.size}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                            androidx.compose.material3.IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                    }
-                                },
-                                enabled = pagerState.currentPage < pages.size - 1,
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }

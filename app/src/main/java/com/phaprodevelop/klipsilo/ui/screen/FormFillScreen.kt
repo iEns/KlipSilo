@@ -24,8 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -76,6 +74,7 @@ import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
+import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
@@ -265,28 +264,14 @@ fun FormFillScreen(
                 )
             }
             if (pageCount > 1) {
-                Row(
+                PageSelector(
+                    pageIndex = pageIndex,
+                    pageCount = pageCount,
+                    onPrev = { if (pageIndex > 0) pageIndex-- },
+                    onNext = { if (pageIndex < pageCount - 1) pageIndex++ },
+                    onGoToPage = { pageIndex = it },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = { if (pageIndex > 0) pageIndex-- },
-                        enabled = pageIndex > 0,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
-                    }
-                    Text(
-                        text = "${pageIndex + 1} / $pageCount",
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    IconButton(
-                        onClick = { if (pageIndex < pageCount - 1) pageIndex++ },
-                        enabled = pageIndex < pageCount - 1,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
-                    }
-                }
+                )
             }
 
             when {
