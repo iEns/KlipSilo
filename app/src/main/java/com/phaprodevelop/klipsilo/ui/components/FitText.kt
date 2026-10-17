@@ -284,6 +284,26 @@ fun ButtonLabel(
     }
 }
 
+/**
+ * Dialog title (#62). The title slot of an [androidx.compose.material3.AlertDialog]
+ * is a narrow slot where a long word breaks mid-word in a plain Text
+ * ("Texte zusammenfüg/en"). The [FitTextPolicy] instead: wrap at spaces,
+ * shrink down to [TOP_BAR_TITLE_MIN_SCALE], ellipsis last.
+ */
+@Composable
+fun DialogTitleLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    ButtonLabel(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.titleLarge,
+        maxLines = 2,
+        floorFraction = TOP_BAR_TITLE_MIN_SCALE,
+    )
+}
+
 /** Width of [text] at [scale] times the style size, on one line. */
 internal fun textWidthPx(
     measurer: TextMeasurer,

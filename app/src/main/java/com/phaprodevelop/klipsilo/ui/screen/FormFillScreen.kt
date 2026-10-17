@@ -101,6 +101,7 @@ import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FORM_FIELD_FONT_FILL
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_FONT_FILL
@@ -415,7 +416,7 @@ fun FormFillScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(context.getString(R.string.markup_leave_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.markup_leave_title)) },
             text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
                 // FlowRow so the three choices stay reachable at font scale 2.0 (#7).

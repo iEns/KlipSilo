@@ -6,15 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,8 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacyPolicyScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
@@ -41,17 +35,13 @@ fun PrivacyPolicyScreen(onNavigateBack: () -> Unit) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(context.getString(R.string.privacy_policy)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = context.getString(R.string.back),
-                        )
-                    }
-                },
+            // The growing back-only bar (#62): the fixed 64dp Material
+            // bar broke a long single-word title mid-word or clipped its
+            // second line at font scale 2.0.
+            FitBackBar(
+                title = context.getString(R.string.privacy_policy),
+                onBack = onNavigateBack,
+                backContentDescription = context.getString(R.string.back),
             )
         },
     ) { padding ->

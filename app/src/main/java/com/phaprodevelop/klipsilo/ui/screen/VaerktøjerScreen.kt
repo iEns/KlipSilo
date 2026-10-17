@@ -68,6 +68,7 @@ import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.markLocationPermissionAsked
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.hapticClickable
 import com.phaprodevelop.klipsilo.ui.components.typeName
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -246,7 +247,7 @@ fun VaerktøjerScreen(
     if (showLocationDisclosure) {
         AlertDialog(
             onDismissRequest = { showLocationDisclosure = false },
-            title = { Text(context.getString(R.string.location_disclosure_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.location_disclosure_title)) },
             text = { Text(context.getString(R.string.location_disclosure_body)) },
             confirmButton = {
                 TextButton(
@@ -275,7 +276,7 @@ fun VaerktøjerScreen(
     if (showLocationDisabled) {
         AlertDialog(
             onDismissRequest = { showLocationDisabled = false },
-            title = { Text(context.getString(R.string.location_disabled_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.location_disabled_title)) },
             text = { Text(context.getString(R.string.location_disabled_body)) },
             confirmButton = {
                 TextButton(
@@ -301,7 +302,7 @@ fun VaerktøjerScreen(
     if (showLocationSettings) {
         AlertDialog(
             onDismissRequest = { showLocationSettings = false },
-            title = { Text(context.getString(R.string.location_permission_denied_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.location_permission_denied_title)) },
             text = { Text(context.getString(R.string.location_permission_denied_body)) },
             confirmButton = {
                 TextButton(
@@ -332,7 +333,7 @@ fun VaerktøjerScreen(
     if (showBackupWarning) {
         AlertDialog(
             onDismissRequest = { showBackupWarning = false },
-            title = { Text(context.getString(R.string.maintenance_backup)) },
+            title = { DialogTitleLabel(context.getString(R.string.maintenance_backup)) },
             text = { Text(context.getString(R.string.backup_unencrypted_warning)) },
             confirmButton = {
                 TextButton(
@@ -431,7 +432,7 @@ fun VaerktøjerScreen(
             }
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(context.getString(R.string.delete)) },
+            title = { DialogTitleLabel(context.getString(R.string.delete)) },
             text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = {
@@ -459,7 +460,7 @@ fun VaerktøjerScreen(
     if (isLocating) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text(context.getString(R.string.location_finding)) },
+            title = { DialogTitleLabel(context.getString(R.string.location_finding)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(24.dp))
@@ -563,7 +564,7 @@ private fun DeleteTypeDialog(
         )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(context.getString(R.string.maintenance_delete)) },
+        title = { DialogTitleLabel(context.getString(R.string.maintenance_delete)) },
         text = {
             Column {
                 val lockedEnabled = lockedCount > 0
@@ -661,7 +662,7 @@ private fun CombineDialog(
     var selectedIds by remember { mutableStateOf(listOf<Long>()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { DialogTitleLabel(title) },
         text = {
             if (entries.isEmpty()) {
                 Text(

@@ -99,6 +99,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.allowSensorOrientation
 import com.phaprodevelop.klipsilo.applyPhonePortraitLock
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
@@ -715,7 +716,7 @@ fun CameraScanScreen(
         extractedText?.let { text ->
             AlertDialog(
                 onDismissRequest = { extractedText = null },
-                title = { Text(stringResource(R.string.analyze)) },
+                title = { DialogTitleLabel(stringResource(R.string.analyze)) },
                 text = {
                     Text(
                         text,

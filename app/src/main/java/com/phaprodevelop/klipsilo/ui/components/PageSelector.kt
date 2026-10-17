@@ -1,5 +1,4 @@
 package com.phaprodevelop.klipsilo.ui.components
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.KeyboardActions
@@ -158,7 +157,7 @@ private fun PageJumpDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.page_selector_title)) },
+        title = { DialogTitleLabel(stringResource(R.string.page_selector_title)) },
         text = {
             OutlinedTextField(
                 value = value,

@@ -93,6 +93,7 @@ import com.phaprodevelop.klipsilo.data.withDisplayBreaks
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -148,7 +149,7 @@ fun KlipScreen(
         AlertDialog(
             onDismissRequest = {},
             confirmButton = {},
-            title = { Text(context.getString(R.string.download_in_progress)) },
+            title = { DialogTitleLabel(context.getString(R.string.download_in_progress)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(modifier = Modifier.size(28.dp))
@@ -160,7 +161,7 @@ fun KlipScreen(
     if (showDeleteConfirm && pendingDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(context.getString(R.string.delete)) },
+            title = { DialogTitleLabel(context.getString(R.string.delete)) },
             text = {
                 Text(context.resources.getQuantityString(R.plurals.delete_clip_count, 1, 1))
             },
@@ -289,7 +290,7 @@ fun KlipScreen(
         var renameText by remember(entry) { mutableStateOf(currentName) }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text(context.getString(R.string.rename)) },
+            title = { DialogTitleLabel(context.getString(R.string.rename)) },
             text = {
                 OutlinedTextField(
                     value = renameText,
@@ -950,7 +951,7 @@ private fun LinksDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(context.getString(R.string.links)) },
+        title = { DialogTitleLabel(context.getString(R.string.links)) },
         text = {
             when {
                 loading -> {

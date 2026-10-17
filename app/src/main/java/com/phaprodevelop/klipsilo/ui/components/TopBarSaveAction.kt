@@ -172,6 +172,36 @@ fun FitTopBar(
     }
 }
 
+/**
+ * Back-only top bar whose height follows the title (#62). The fixed 64dp
+ * Material bar broke a long single-word title mid-word
+ * ("Datenschutzerkl/ärung") or clipped its second line at font scale 2.0.
+ * Screens without an action button use this growing row — the same layout
+ * as [FitTopBar] without the save action.
+ */
+@Composable
+fun FitBackBar(
+    title: String,
+    onBack: () -> Unit,
+    backContentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = backContentDescription,
+                )
+            }
+            TopBarFitTitle(text = title, modifier = Modifier.weight(1f).padding(end = 4.dp))
+        }
+    }
+}
+
 /** The measured title width at its floor size, widest word when wrapped. */
 internal fun titleFloorWidthPx(
     measurer: TextMeasurer,
@@ -296,6 +326,16 @@ private fun TopBarEditPagesPreview() {
             onSave = {},
             backContentDescription = "Zurück",
         )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Composable
+private fun FitBackBarLargeScalePreview() {
+    // #62: the German privacy title used to break "Datenschutzerkl/ärung"
+    // inside the fixed 64dp bar; the growing bar wraps it at a word boundary.
+    MaterialTheme {
+        FitBackBar(title = "Datenschutzerklärung", onBack = {}, backContentDescription = "Zurück")
     }
 }
 

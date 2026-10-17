@@ -114,6 +114,7 @@ import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
@@ -469,7 +470,7 @@ fun DetailScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(context.getString(R.string.editor_leave_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.editor_leave_title)) },
             text = { Text(context.getString(R.string.editor_leave_message)) },
             confirmButton = {
                 FlowRow {
@@ -1075,7 +1076,7 @@ private fun MarkdownInsertDialog(
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(context.getString(R.string.md_title)) },
+        title = { DialogTitleLabel(context.getString(R.string.md_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1452,7 +1453,7 @@ private fun QrResultDialog(
     val results by viewModel.qrResults.collectAsState()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(context.getString(R.string.scan_content)) },
+        title = { DialogTitleLabel(context.getString(R.string.scan_content)) },
         text = {
             when {
                 scanning -> {

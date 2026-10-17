@@ -61,6 +61,7 @@ import androidx.core.view.ViewCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -285,7 +286,7 @@ fun PdfPagesScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(context.getString(R.string.markup_leave_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.markup_leave_title)) },
             text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
                 // FlowRow so the three choices stay reachable at font scale 2.0 (#7).

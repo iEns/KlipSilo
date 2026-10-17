@@ -119,6 +119,7 @@ import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
@@ -1527,7 +1528,7 @@ fun AnnotatePdfScreen(
     if (showExitWarning) {
         AlertDialog(
             onDismissRequest = { showExitWarning = false },
-            title = { Text(context.getString(R.string.markup_leave_title)) },
+            title = { DialogTitleLabel(context.getString(R.string.markup_leave_title)) },
             text = { Text(context.getString(R.string.markup_leave_message)) },
             confirmButton = {
                 FlowRow {

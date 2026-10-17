@@ -55,6 +55,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
 import com.phaprodevelop.klipsilo.ui.components.NAV_SELECTED_LABEL_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
@@ -439,7 +440,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
     if (showConverting) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text(stringResource(R.string.converting)) },
+            title = { DialogTitleLabel(stringResource(R.string.converting)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(24.dp))
@@ -454,7 +455,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
     if (showMaintenance) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text(stringResource(R.string.maintenance_busy)) },
+            title = { DialogTitleLabel(stringResource(R.string.maintenance_busy)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(24.dp))
@@ -469,7 +470,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
     duplicateShare?.let { offer ->
         AlertDialog(
             onDismissRequest = { viewModel.dismissDuplicateShare() },
-            title = { Text(stringResource(R.string.already_saved)) },
+            title = { DialogTitleLabel(stringResource(R.string.already_saved)) },
             text = { Text(stringResource(R.string.already_saved_message, offer.displayName)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.openExistingShare() }) {

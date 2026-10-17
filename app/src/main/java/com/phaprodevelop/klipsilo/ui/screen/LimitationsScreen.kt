@@ -9,27 +9,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
 private data class Limitation(val title: String, val body: String)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LimitationsScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
@@ -76,14 +70,13 @@ fun LimitationsScreen(onNavigateBack: () -> Unit) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(context.getString(R.string.tool_limitations)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
-                    }
-                },
+            // The growing back-only bar (#62): the fixed 64dp Material
+            // bar broke a long single-word title mid-word or clipped its
+            // second line at font scale 2.0.
+            FitBackBar(
+                title = context.getString(R.string.tool_limitations),
+                onBack = onNavigateBack,
+                backContentDescription = context.getString(R.string.back),
             )
         },
     ) { padding ->
