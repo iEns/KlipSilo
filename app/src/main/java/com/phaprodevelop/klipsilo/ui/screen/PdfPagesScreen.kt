@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -63,6 +62,8 @@ import androidx.core.view.ViewCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
+import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -199,23 +200,22 @@ fun PdfPagesScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(context.getString(R.string.edit_pages)) },
+                title = { TopBarFitTitle(context.getString(R.string.edit_pages)) },
                 navigationIcon = {
                     IconButton(onClick = { handleBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
                     }
                 },
                 actions = {
-                    Button(
+                    TopBarSaveAction(
+                        label = context.getString(R.string.save_pdf),
+                        enabled = pages.isNotEmpty() && filePath != null,
                         onClick = {
                             entry?.let {
                                 viewModel.savePdfPages(it, pages.map { p -> p.originalIndex })
                             }
                         },
-                        enabled = pages.isNotEmpty() && filePath != null,
-                    ) {
-                        ButtonLabel(context.getString(R.string.save_pdf))
-                    }
+                    )
                 },
             )
         },

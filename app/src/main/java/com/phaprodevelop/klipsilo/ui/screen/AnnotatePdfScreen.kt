@@ -46,7 +46,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -117,6 +116,8 @@ import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
+import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
+import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -607,11 +608,7 @@ fun AnnotatePdfScreen(
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
-                    Text(
-                        text = context.getString(R.string.annotate_title),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    TopBarFitTitle(text = context.getString(R.string.annotate_title))
                 },
                 navigationIcon = {
                     IconButton(
@@ -630,18 +627,17 @@ fun AnnotatePdfScreen(
                     }
                 },
                 actions = {
-                    Button(
+                    TopBarSaveAction(
+                        label = context.getString(R.string.save),
+                        enabled = entry.filePath != null,
                         onClick = {
                             commitDrafts()
                             val all = annotations.values.flatten()
                             val allStrokes = strokes.values.flatten()
                             viewModel.saveAnnotatedPdf(entry, all, allStrokes)
                         },
-                        enabled = entry.filePath != null,
                         modifier = Modifier.padding(end = 8.dp),
-                    ) {
-                        ButtonLabel(context.getString(R.string.save))
-                    }
+                    )
                 },
             )
         },

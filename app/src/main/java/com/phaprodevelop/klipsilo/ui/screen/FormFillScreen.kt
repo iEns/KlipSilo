@@ -30,7 +30,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -86,6 +85,8 @@ import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
+import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
+import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
@@ -256,19 +257,18 @@ fun FormFillScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(context.getString(R.string.fill_form)) },
+                title = { TopBarFitTitle(context.getString(R.string.fill_form)) },
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
                     }
                 },
                 actions = {
-                    Button(
-                        onClick = { viewModel.fillForm(entry, values) },
+                    TopBarSaveAction(
+                        label = context.getString(R.string.save_pdf),
                         enabled = entry.filePath != null && !isConverting,
-                    ) {
-                        ButtonLabel(context.getString(R.string.save_pdf))
-                    }
+                        onClick = { viewModel.fillForm(entry, values) },
+                    )
                 },
             )
         },
