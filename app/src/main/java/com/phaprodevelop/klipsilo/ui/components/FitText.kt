@@ -168,8 +168,10 @@ fun rememberCommonRowLabelSize(
  * composable ends up with, the font size is stepped down (1sp at a time,
  * floor ~75% of the style size) until every word fits on a line and the text
  * fits within [maxLines] — measured with a [androidx.compose.ui.text
- * .TextMeasurer]. Past the floor it falls back to [maxLines] with
- * [TextOverflow.Ellipsis].
+ * .TextMeasurer]. When [wrapFallbackLines] > 0, that many extra lines are
+ * tried at word boundaries as a last resort before the ellipsis (#47). Past
+ * the floor it falls back to a single line with [TextOverflow.Ellipsis] —
+ * never a soft wrap inside a word (#45/#50).
  */
 @Composable
 fun ButtonLabel(
@@ -180,6 +182,7 @@ fun ButtonLabel(
     maxLines: Int = 2,
     textAlign: TextAlign? = null,
     floorFraction: Float = LABEL_FONT_FLOOR_FRACTION,
+    wrapFallbackLines: Int = 0,
 ) {
     val baseSize = style.fontSize
     if (!baseSize.isSp || baseSize.value <= 0f) {
@@ -203,17 +206,38 @@ fun ButtonLabel(
                 constraints.maxWidth > 0 &&
                 constraints.maxWidth != Constraints.Infinity
         val fitted =
-            remember(text, style, maxLines, constraints.maxWidth, density.fontScale, floorFraction) {
+            remember(
+                text,
+                style,
+                maxLines,
+                wrapFallbackLines,
+                constraints.maxWidth,
+                density.fontScale,
+                floorFraction,
+            ) {
                 if (!bounded) {
                     base to false
                 } else {
-                    fit(measurer, text, style, base, constraints, maxLines, floorFraction)
+                    fit(
+                        measurer,
+                        text,
+                        style,
+                        base,
+                        constraints,
+                        maxLines,
+                        wrapFallbackLines,
+                        floorFraction,
+                    )
                 }
             }
         Text(
             text = text,
             color = color,
             style = scaledLabelStyle(style, fitted.first, base),
+            // The ellipsis fallback must never soft-wrap: a word too wide for
+            // the line would be broken mid-word ("Auswa/hl", #45/#50), so the
+            // last resort is one clipped line ending in an ellipsis.
+            softWrap = !fitted.second,
             maxLines = maxLines,
             overflow = if (fitted.second) TextOverflow.Ellipsis else TextOverflow.Clip,
             textAlign = textAlign,
@@ -229,27 +253,39 @@ private fun fit(
     base: Float,
     constraints: Constraints,
     maxLines: Int,
+    wrapFallbackLines: Int,
     floorFraction: Float,
 ): Pair<Float, Boolean> {
     val measureConstraints = constraints.copy(minWidth = 0, minHeight = 0)
 
-    fun fits(size: Float): Boolean {
+    fun fits(
+        size: Float,
+        lines: Int,
+    ): Boolean {
         val result =
             measurer.measure(
                 text = text,
                 style = scaledLabelStyle(style, size, base),
                 softWrap = true,
-                maxLines = maxLines,
+                maxLines = lines,
                 constraints = measureConstraints,
             )
         if (result.didOverflowWidth || result.didOverflowHeight) return false
-        if (result.lineCount > maxLines) return false
+        if (result.lineCount > lines) return false
         for (line in 1 until result.lineCount) {
             if (isMidWordBreak(text, result.getLineStart(line))) return false
         }
         return true
     }
-    val size = fittedFontSize(base, floorFraction) { fits(it) }
+    val size =
+        fittedFontSize(base, floorFraction) { fits(it, maxLines) }
+            // Last resort before the ellipsis (#47): extra lines, still only
+            // at word boundaries.
+            ?: if (wrapFallbackLines > 0) {
+                fittedFontSize(base, floorFraction) { fits(it, maxLines + wrapFallbackLines) }
+            } else {
+                null
+            }
     return if (size != null) {
         size to false
     } else {

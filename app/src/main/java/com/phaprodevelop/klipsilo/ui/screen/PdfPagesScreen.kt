@@ -209,6 +209,7 @@ fun PdfPagesScreen(
                 actions = {
                     TopBarSaveAction(
                         label = context.getString(R.string.save_pdf),
+                        title = context.getString(R.string.edit_pages),
                         enabled = pages.isNotEmpty() && filePath != null,
                         onClick = {
                             entry?.let {

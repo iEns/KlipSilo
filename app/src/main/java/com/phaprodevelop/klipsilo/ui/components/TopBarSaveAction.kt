@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,42 +43,64 @@ internal const val TOP_BAR_ICON_FONT_SCALE = 1.5f
 internal const val TOP_BAR_MIN_TITLE_FRACTION = 0.4f
 
 /**
+ * Bars this narrow always collapse the text action to its icon (#47): on a
+ * 320dp screen even a short label like "Speichern" leaves a title cramped
+ * against the pill, and the batch-2 retest showed the three top bars
+ * disagreeing there (Mark up kept its label while Fill form and Edit pages
+ * collapsed). Jens decided the ✓ is correct at 320dp, so the same rule must
+ * yield it on every screen.
+ */
+internal const val TOP_BAR_COMPACT_MAX_WIDTH_DP = 360
+
+/**
+ * Floor fraction of the title style size: the title shrinks to ~65% before
+ * it wraps to two lines, and only past that falls back to an ellipsis (#47).
+ */
+internal const val TOP_BAR_TITLE_FLOOR_FRACTION = 0.65f
+
+/**
  * True when a top bar text action must collapse to an icon-only button
- * (#47): either the font scale is too large for a labelled pill to leave a
- * readable title, or the label would leave less than
- * [TOP_BAR_MIN_TITLE_FRACTION] of the [barWidthPx] for the title.
- * [leadingWidthPx] is the navigation icon area; [actionLabelWidthPx] the
- * measured single-line width of the action label (padding added by caller).
+ * (#47). Every top bar uses the same inputs, so the three screens decide
+ * alike: the font scale, the bar width, the width the title needs at its
+ * floor size ([titleWidthPx], widest word when wrapped to two lines) and the
+ * measured action label width ([actionLabelWidthPx], padding added by
+ * caller). [leadingWidthPx] is the navigation icon area.
  */
 internal fun topBarActionCollapses(
     fontScale: Float,
     barWidthPx: Float,
+    pxPerDp: Float,
     leadingWidthPx: Float,
+    titleWidthPx: Float,
     actionLabelWidthPx: Float,
 ): Boolean {
     if (fontScale >= TOP_BAR_ICON_FONT_SCALE) return true
-    if (barWidthPx <= 0f) return false
+    if (barWidthPx <= 0f || pxPerDp <= 0f) return false
+    if (barWidthPx / pxPerDp <= TOP_BAR_COMPACT_MAX_WIDTH_DP) return true
     val titleSpace = barWidthPx - leadingWidthPx - actionLabelWidthPx
-    return titleSpace < barWidthPx * TOP_BAR_MIN_TITLE_FRACTION
+    return titleSpace < barWidthPx * TOP_BAR_MIN_TITLE_FRACTION || titleSpace < titleWidthPx
 }
 
 /**
  * Save-style top bar action shared by every top bar with a text action (#47).
- * At normal scale this is the usual labelled button; at large font scale (or
- * whenever the label would squeeze the title below [TOP_BAR_MIN_TITLE_FRACTION]
- * of the bar) it becomes an icon-only ✓ button with the localized [label] as
- * content description and a [androidx.compose.material3.PlainTooltip], so the
- * title keeps its space and stays readable.
+ * At normal scale on a wide bar this is the usual labelled button; at large
+ * font scale, on a compact bar (≤ [TOP_BAR_COMPACT_MAX_WIDTH_DP]) or whenever
+ * the label would squeeze the title unreadable, it becomes an icon-only ✓
+ * button with the localized [label] as content description and a
+ * [androidx.compose.material3.PlainTooltip], so the title keeps its space and
+ * stays readable. [title] is the title shown next to the action; the collapse
+ * decision accounts for its width.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarSaveAction(
     label: String,
+    title: String,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (rememberTopBarActionCollapses(label)) {
+    if (rememberTopBarActionCollapses(label, title)) {
         TooltipBox(
             positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             tooltip = { PlainTooltip { Text(label) } },
@@ -95,9 +118,10 @@ fun TopBarSaveAction(
 }
 
 /**
- * Top bar title that stays on one line and shrinks (floor ~75% of the style
- * size, reusing the [ButtonLabel] fitting logic) before falling back to an
- * ellipsis (#47).
+ * Top bar title that stays readable at large font scales (#47): it shrinks
+ * (floor [TOP_BAR_TITLE_FLOOR_FRACTION] of the style size) on one line, then
+ * wraps to two lines at word boundaries as the last resort before an
+ * ellipsis.
  */
 @Composable
 fun TopBarFitTitle(
@@ -109,16 +133,52 @@ fun TopBarFitTitle(
         modifier = modifier,
         style = MaterialTheme.typography.titleLarge,
         maxLines = 1,
+        floorFraction = TOP_BAR_TITLE_FLOOR_FRACTION,
+        wrapFallbackLines = 1,
     )
 }
 
+/** The measured title width at its floor size, widest word when wrapped. */
+internal fun titleFloorWidthPx(
+    measurer: TextMeasurer,
+    title: String,
+    style: TextStyle,
+): Float {
+    if (style.fontSize.value <= 0f) return 0f
+    val floor = style.fontSize.value * TOP_BAR_TITLE_FLOOR_FRACTION
+    return title
+        .split(Regex("""\s+"""))
+        .filter { it.isNotEmpty() }
+        .maxOfOrNull { word ->
+            measurer
+                .measure(
+                    text = word,
+                    style = scaledLabelStyle(style, floor, style.fontSize.value),
+                    softWrap = false,
+                    maxLines = 1,
+                ).size.width
+                .toFloat()
+        }
+        ?: 0f
+}
+
 @Composable
-private fun rememberTopBarActionCollapses(label: String): Boolean {
+private fun rememberTopBarActionCollapses(
+    label: String,
+    title: String,
+): Boolean {
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val measurer = rememberTextMeasurer()
+    val titleStyle = MaterialTheme.typography.titleLarge
+    // The top bar spans the window (the screens use zero window insets), so
+    // the configuration width is the bar width (#47).
     val barWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
     val leadingWidthPx = with(density) { 56.dp.toPx() }
+    val titleWidthPx =
+        remember(title, titleStyle, density.fontScale) {
+            titleFloorWidthPx(measurer, title, titleStyle)
+        }
     val labelWidthPx =
         remember(label, density.fontScale) {
             measurer
@@ -136,7 +196,9 @@ private fun rememberTopBarActionCollapses(label: String): Boolean {
     return topBarActionCollapses(
         fontScale = density.fontScale,
         barWidthPx = barWidthPx,
+        pxPerDp = density.density,
         leadingWidthPx = leadingWidthPx,
+        titleWidthPx = titleWidthPx,
         actionLabelWidthPx = actionWidthPx,
     )
 }
@@ -175,6 +237,11 @@ private fun TopBarRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TopBarFitTitle(title, modifier = Modifier.weight(1f))
-        TopBarSaveAction(label = label, enabled = true, onClick = {})
+        TopBarSaveAction(
+            label = label,
+            title = title,
+            enabled = true,
+            onClick = {},
+        )
     }
 }

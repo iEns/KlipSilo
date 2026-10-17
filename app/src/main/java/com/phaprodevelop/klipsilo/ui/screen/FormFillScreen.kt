@@ -266,6 +266,7 @@ fun FormFillScreen(
                 actions = {
                     TopBarSaveAction(
                         label = context.getString(R.string.save_pdf),
+                        title = context.getString(R.string.fill_form),
                         enabled = entry.filePath != null && !isConverting,
                         onClick = { viewModel.fillForm(entry, values) },
                     )

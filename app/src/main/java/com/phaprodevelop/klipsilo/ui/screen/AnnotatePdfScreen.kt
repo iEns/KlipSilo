@@ -697,6 +697,7 @@ fun AnnotatePdfScreen(
                 actions = {
                     TopBarSaveAction(
                         label = context.getString(R.string.save),
+                        title = context.getString(R.string.annotate_title),
                         enabled = entry.filePath != null,
                         onClick = {
                             commitDrafts()
