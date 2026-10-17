@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -99,6 +98,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.allowSensorOrientation
 import com.phaprodevelop.klipsilo.applyPhonePortraitLock
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import java.io.File
@@ -416,83 +416,73 @@ fun CameraScanScreen(
                             .navigationBarsPadding()
                             .padding(16.dp),
                     ) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            if (onSaveImage != null) {
-                                Button(
-                                    onClick = {
-                                        if (!isSaved) {
-                                            onSaveImage(rotated) { ok -> isSaved = ok }
-                                        }
-                                    },
-                                    enabled = !isSaved,
-                                ) {
-                                    ButtonLabel(
-                                        if (isSaved) {
-                                            stringResource(R.string.saved)
-                                        } else {
-                                            stringResource(R.string.save_image)
-                                        },
-                                    )
-                                }
+                        // Equal-width single-line buttons in a row at normal
+                        // scale; stacked full-width at large font scale so no
+                        // button ever becomes a tall round pill (#45).
+                        val saveImageLabel =
+                            if (isSaved) {
+                                stringResource(R.string.saved)
+                            } else {
+                                stringResource(R.string.save_image)
                             }
-                            if (onSaveCrop != null) {
-                                Button(
-                                    onClick = {
-                                        if (!isCropSaved) {
-                                            val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
-                                            val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
-                                            val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
-                                            val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
-                                            onSaveCrop(Bitmap.createBitmap(rotated, left, top, w, h)) { ok ->
-                                                isCropSaved = ok
-                                            }
-                                        }
-                                    },
-                                    enabled = !isCropSaved,
-                                ) {
-                                    ButtonLabel(
-                                        if (isCropSaved) {
-                                            stringResource(R.string.selection_saved)
-                                        } else {
-                                            stringResource(R.string.save_selection)
-                                        },
-                                    )
-                                }
+                        val saveCropLabel =
+                            if (isCropSaved) {
+                                stringResource(R.string.selection_saved)
+                            } else {
+                                stringResource(R.string.save_selection)
                             }
-                            Button(onClick = {
-                                val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
-                                val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
-                                val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
-                                val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
-                                val cropped = Bitmap.createBitmap(rotated, left, top, w, h)
-                                val inputImage = InputImage.fromBitmap(cropped, 0)
-                                val recognizer =
-                                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                                recognizer.process(inputImage)
-                                    .addOnSuccessListener { visionText ->
-                                        val text = visionText.text
-                                        if (text.isNotBlank()) {
-                                            scanned = true
-                                            if (onSaveTextAsClip != null || onOpenTextInEditor != null) {
-                                                extractedText = text
+                        val actions =
+                            listOfNotNull(
+                                onSaveImage?.let {
+                                    CropAction(saveImageLabel, enabled = !isSaved) {
+                                        onSaveImage(rotated) { ok ->
+                                            isSaved = ok
+                                        }
+                                    }
+                                },
+                                onSaveCrop?.let {
+                                    CropAction(saveCropLabel, enabled = !isCropSaved) {
+                                        val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
+                                        val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
+                                        val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
+                                        val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
+                                        onSaveCrop(Bitmap.createBitmap(rotated, left, top, w, h)) { ok ->
+                                            isCropSaved = ok
+                                        }
+                                    }
+                                },
+                                CropAction(stringResource(R.string.analyze)) {
+                                    val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
+                                    val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
+                                    val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
+                                    val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
+                                    val cropped = Bitmap.createBitmap(rotated, left, top, w, h)
+                                    val inputImage = InputImage.fromBitmap(cropped, 0)
+                                    val recognizer =
+                                        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                                    recognizer.process(inputImage)
+                                        .addOnSuccessListener { visionText ->
+                                            val text = visionText.text
+                                            if (text.isNotBlank()) {
+                                                scanned = true
+                                                if (onSaveTextAsClip != null || onOpenTextInEditor != null) {
+                                                    extractedText = text
+                                                } else {
+                                                    mainHandler.post { onScanned(text) }
+                                                }
                                             } else {
-                                                mainHandler.post { onScanned(text) }
+                                                mainHandler.post { showNoText = true }
                                             }
-                                        } else {
+                                        }
+                                        .addOnFailureListener {
                                             mainHandler.post { showNoText = true }
                                         }
-                                    }
-                                    .addOnFailureListener {
-                                        mainHandler.post { showNoText = true }
-                                    }
-                            }) {
-                                ButtonLabel(stringResource(R.string.analyze))
-                            }
-                        }
+                                },
+                            )
+                        CropActionButtons(
+                            stacked = LocalDensity.current.fontScale >= LARGE_FONT_SCALE,
+                            actions = actions,
+                        )
                     }
                 }
             } else if (staticImage) {
@@ -858,6 +848,60 @@ fun CameraScanScreen(
 }
 
 /**
+ * One action on the OCR crop screen (#45).
+ */
+private data class CropAction(
+    val label: String,
+    val enabled: Boolean = true,
+    val onClick: () -> Unit,
+)
+
+/**
+ * Bottom action row of the OCR crop screen (#45): equal-width single-line
+ * buttons in one row at normal scale, stacked full-width single-line buttons
+ * at large font scale — a wrap-content FlowRow can still squeeze one button
+ * into a tall round pill, so the large-scale layout fills the width instead.
+ */
+@Composable
+private fun CropActionButtons(
+    stacked: Boolean,
+    actions: List<CropAction>,
+    modifier: Modifier = Modifier,
+) {
+    if (stacked) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            actions.forEach { action ->
+                Button(
+                    onClick = action.onClick,
+                    enabled = action.enabled,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ButtonLabel(action.label, maxLines = 1)
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            actions.forEach { action ->
+                Button(
+                    onClick = action.onClick,
+                    enabled = action.enabled,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    ButtonLabel(action.label, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+/**
  * Standard camera shutter button (#51): a solid white disc inside a white ring
  * with a small transparent gap, so it never reads as a crescent moon. The disc
  * shrinks slightly while pressed or while a capture is in flight.
@@ -1007,5 +1051,41 @@ private fun exifRotate(
         bitmap
     } catch (_: OutOfMemoryError) {
         bitmap
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(fontScale = 2f, widthDp = 360, showBackground = true)
+@Composable
+private fun CropActionButtonsStackedPreview() {
+    MaterialTheme {
+        Column(Modifier.padding(16.dp)) {
+            CropActionButtons(
+                stacked = true,
+                actions =
+                    listOf(
+                        CropAction("Gem billede") {},
+                        CropAction("Gem udvalg") {},
+                        CropAction("Analysér") {},
+                    ),
+            )
+        }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(widthDp = 360, showBackground = true)
+@Composable
+private fun CropActionButtonsRowPreview() {
+    MaterialTheme {
+        Column(Modifier.padding(16.dp)) {
+            CropActionButtons(
+                stacked = false,
+                actions =
+                    listOf(
+                        CropAction("Gem billede") {},
+                        CropAction("Gem udvalg") {},
+                        CropAction("Analysér") {},
+                    ),
+            )
+        }
     }
 }
