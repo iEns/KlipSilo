@@ -84,6 +84,72 @@ internal fun scaledLabelStyle(
 }
 
 /**
+ * Largest font size (stepping down from [base] to the [LABEL_FONT_FLOOR_FRACTION]
+ * floor) at which [text] fits on a single line within [maxWidthPx]. Returns
+ * null when even the floor size is too wide — the caller should then allow
+ * more lines.
+ */
+internal fun fittedSingleLineSize(
+    measurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    base: Float,
+    maxWidthPx: Int,
+): Float? {
+    if (maxWidthPx <= 0) return null
+    return fittedFontSize(base) { size ->
+        val result =
+            measurer.measure(
+                text = text,
+                style = scaledLabelStyle(style, size, base),
+                softWrap = false,
+                maxLines = 1,
+                constraints = Constraints(maxWidth = maxWidthPx),
+            )
+        !result.didOverflowWidth
+    }
+}
+
+/**
+ * One shared font size for a row whose labels have individual fitted sizes
+ * (#50): the smallest of them, so every label in the row renders at the same
+ * size. Null when any label could not fit at the floor — the row then falls
+ * back to a common layout (e.g. two lines) instead of mixed sizes.
+ */
+internal fun commonFittedSize(sizes: List<Float?>): Float? =
+    if (sizes.isEmpty() || sizes.any { it == null }) {
+        null
+    } else {
+        sizes.filterNotNull().minOrNull()
+    }
+
+/**
+ * One common font size for a row of equal-width labels (#50): the size the
+ * longest label needs to fit its [slotWidthPx] slot on a single line, so all
+ * labels in the row render at the same size instead of shrinking
+ * individually. Returns null when even the floor size does not fit the
+ * longest label — the caller should then allow two lines.
+ */
+@Composable
+fun rememberCommonRowLabelSize(
+    labels: List<String>,
+    slotWidthPx: Int,
+    style: TextStyle,
+): Float? {
+    val base = style.fontSize
+    if (!base.isSp || base.value <= 0f) return null
+    val measurer = rememberTextMeasurer()
+    val fontScale = LocalDensity.current.fontScale
+    return remember(labels, slotWidthPx, style, fontScale) {
+        commonFittedSize(
+            labels.map { label ->
+                fittedSingleLineSize(measurer, label, style, base.value, slotWidthPx)
+            },
+        )
+    }
+}
+
+/**
  * Label used inside buttons, chips and other text controls so a long word is
  * never broken mid-word at large font scales (#45). Given the width the
  * composable ends up with, the font size is stepped down (1sp at a time,

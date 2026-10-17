@@ -36,4 +36,19 @@ class MarkupHistoryTest {
         assertFalse(history.canRedo)
         assertTrue(history.canUndo)
     }
+
+    @Test
+    fun commitMarkupText_dropsEmptyAndWhitespaceOnlyTextBoxes() {
+        // Placing an empty text box must not create an item (#50).
+        assertEquals(null, commitMarkupText(""))
+        assertEquals(null, commitMarkupText("   "))
+        assertEquals(null, commitMarkupText("\n\t "))
+    }
+
+    @Test
+    fun commitMarkupText_trimsRealText() {
+        assertEquals("Note", commitMarkupText("Note"))
+        assertEquals("Note", commitMarkupText("  Note  "))
+        assertEquals("a b", commitMarkupText(" a b "))
+    }
 }

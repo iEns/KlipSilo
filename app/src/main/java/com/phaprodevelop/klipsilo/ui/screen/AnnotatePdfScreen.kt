@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -100,6 +101,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.MarkupHistory
+import com.phaprodevelop.klipsilo.data.commitMarkupText
 import com.phaprodevelop.klipsilo.data.markupTextSizeStep
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepCount
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepIndex
@@ -121,8 +123,10 @@ import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
+import com.phaprodevelop.klipsilo.ui.components.rememberCommonRowLabelSize
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
+import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -257,10 +261,17 @@ fun AnnotatePdfScreen(
     var pageHeightPt by remember { mutableFloatStateOf(0f) }
     var savedAnnotations by remember { mutableStateOf(emptyList<PdfAnnotation>()) }
     var savedStrokes by remember { mutableStateOf(emptyList<PdfStroke>()) }
+    // An empty/whitespace-only draft text box is dropped on commit, so it
+    // does not count as a change (#50). An in-progress edit of an existing
+    // annotation still counts (its commit replaces the item).
+    val draftDirty =
+        draft?.let { d ->
+            commitMarkupText(d.text) != null || d.editingIndex != null
+        } == true
     val dirty =
         annotations.values.flatten() != savedAnnotations ||
             strokes.values.flatten() != savedStrokes ||
-            draft != null ||
+            draftDirty ||
             draftStroke != null
     val markupHistory = remember { MarkupHistory<MarkupSnapshot>() }
     var historyTick by remember { mutableIntStateOf(0) }
@@ -435,17 +446,20 @@ fun AnnotatePdfScreen(
     fun commitDrafts() {
         val d = draft
         val pendingStroke = draftStroke
-        if ((d != null && d.text.isNotBlank()) || (pendingStroke != null && pendingStroke.points.size >= 2)) {
+        // Empty/whitespace-only text boxes are dropped (#50): no annotation,
+        // no undo entry, screen not dirty.
+        val committedText = d?.let { commitMarkupText(it.text) }
+        if (committedText != null || (pendingStroke != null && pendingStroke.points.size >= 2)) {
             recordMarkup()
         }
-        if (d != null && d.text.isNotBlank()) {
+        if (d != null && committedText != null) {
             val list = annotations[pageIndex].orEmpty().toMutableList()
             val newAnn =
                 PdfAnnotation(
                     pageIndex = pageIndex,
                     xFraction = d.xFraction,
                     yFraction = d.yFraction,
-                    text = d.text.trim(),
+                    text = committedText,
                     sizeFraction = d.sizeFraction,
                     color = d.color,
                     zOrder = d.zOrder,
@@ -648,7 +662,7 @@ fun AnnotatePdfScreen(
                 .padding(padding),
         ) {
             MarkupHistoryRow(
-                canUndo = historyTick >= 0 && (markupHistory.canUndo || draftStroke != null || draft != null),
+                canUndo = historyTick >= 0 && (markupHistory.canUndo || draftStroke != null || draftDirty),
                 canRedo = historyTick >= 0 && markupHistory.canRedo,
                 canDelete = selectedIndex >= 0 || selectedStroke >= 0 || draft?.editingIndex != null,
                 pageIndex = pageIndex,
@@ -1424,20 +1438,58 @@ private fun MarkupToolBar(
             Triple(MarkupTool.DRAW, Icons.Filled.Gesture, R.string.markup_tool_draw),
             Triple(MarkupTool.HIGHLIGHT, Icons.Filled.Highlight, R.string.markup_tool_highlight),
         )
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    val labels = items.map { context.getString(it.third) }
+    val labelStyle = MaterialTheme.typography.labelSmall
+    // Horizontal padding keeps the outermost labels off the screen edge (#50).
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
     ) {
-        items.forEach { (mode, icon, labelRes) ->
-            val label = context.getString(labelRes)
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                CompactIconButton(
-                    onClick = { onTool(mode) },
-                    icon = icon,
-                    contentDescription = label,
-                    label = label,
-                    active = tool == mode,
-                )
+        val slotWidth = constraints.maxWidth / items.size
+        val commonSize = rememberCommonRowLabelSize(labels, slotWidth, labelStyle)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEachIndexed { index, (mode, icon, _) ->
+                val label = labels[index]
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    CompactIconButton(
+                        onClick = { onTool(mode) },
+                        icon = icon,
+                        contentDescription = label,
+                        active = tool == mode,
+                        label = {
+                            if (commonSize != null) {
+                                // All five labels share ONE size: the size the
+                                // longest label needs in its slot (#50).
+                                Text(
+                                    text = label,
+                                    style =
+                                        scaledLabelStyle(
+                                            labelStyle,
+                                            commonSize,
+                                            labelStyle.fontSize.value,
+                                        ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Clip,
+                                )
+                            } else {
+                                // Even the floor size does not fit the longest
+                                // label on one line: allow two lines instead of
+                                // shrinking or breaking mid-word (#50).
+                                ButtonLabel(
+                                    text = label,
+                                    style = labelStyle,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                )
+                            }
+                        },
+                    )
+                }
             }
         }
     }
@@ -1571,7 +1623,7 @@ private fun CompactIconButton(
     contentDescription: String?,
     enabled: Boolean = true,
     active: Boolean = false,
-    label: String? = null,
+    label: (@Composable () -> Unit)? = null,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         IconButton(
@@ -1600,15 +1652,7 @@ private fun CompactIconButton(
                     },
             )
         }
-        if (label != null) {
-            ButtonLabel(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-        }
+        label?.invoke()
     }
 }
 
@@ -1979,6 +2023,14 @@ internal fun MarkupSizeStepperPreview() {
             onStepDown = {},
             onStepUp = {},
         )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 120, showBackground = true)
+@Composable
+internal fun MarkupToolBarPreview() {
+    MaterialTheme {
+        MarkupToolBar(tool = MarkupTool.SELECT, onTool = {})
     }
 }
 

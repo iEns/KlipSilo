@@ -42,6 +42,21 @@ class FitTextTest {
     }
 
     @Test
+    fun commonFittedSize_picksTheSizeNeededByTheLongestLabel() {
+        // All labels in a row share one size: the smallest fitted one (#50).
+        assertEquals(9f, commonFittedSize(listOf(12f, 9f, 11f)))
+        assertEquals(12f, commonFittedSize(listOf(12f, 12f)))
+    }
+
+    @Test
+    fun commonFittedSize_isNullWhenAnyLabelDoesNotFit() {
+        // One label too wide → the whole row falls back (two lines) instead
+        // of rendering mixed sizes (#50).
+        assertNull(commonFittedSize(listOf(12f, null, 11f)))
+        assertNull(commonFittedSize(emptyList()))
+    }
+
+    @Test
     fun isMidWordBreak_rejectsLineStartsAtWordBoundaries() {
         val text = "Auswahl speichern"
         assertFalse(isMidWordBreak(text, 0))

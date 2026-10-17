@@ -1,6 +1,14 @@
 package com.phaprodevelop.klipsilo.data
 
 /**
+ * Returns the trimmed text to commit for a draft text annotation, or null
+ * when the draft is empty or whitespace-only and must be dropped (#50):
+ * placing an empty text box creates no annotation, records no undo entry
+ * and does not make the screen dirty (Back leaves without the save dialog).
+ */
+internal fun commitMarkupText(text: String): String? = text.trim().takeIf { it.isNotEmpty() }
+
+/**
  * Undo and redo for markup. [record] stores the state from before a change.
  * [undo] and [redo] take the current state and return the state to show.
  */
