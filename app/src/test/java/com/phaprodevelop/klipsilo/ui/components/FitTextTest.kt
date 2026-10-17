@@ -91,6 +91,31 @@ class FitTextTest {
     }
 
     @Test
+    fun singleWordLabels_canNeverBeAcceptedAsWrapped() {
+        // A single word ("Auswahl", "Marker", #50) has no word boundary, so
+        // every possible line start inside it is a mid-word break. fit()
+        // rejects all of them, so a single-word label can only render on one
+        // line (shrunk to the floor) or ellipsized — it never soft-wraps.
+        for (word in listOf("Auswahl", "Marker", "Auswa", "hl", "Highlight")) {
+            for (start in 1 until word.length) {
+                assertTrue(isMidWordBreak(word, start))
+            }
+            assertFalse(isMidWordBreak(word, 0))
+            assertFalse(isMidWordBreak(word, word.length))
+        }
+    }
+
+    @Test
+    fun toolRowCommonSize_usesTheSingleWordFloorBeforeFallingBack() {
+        // The tool rail's common size uses the ~60% single-word floor (#50):
+        // the fitted size stops at the floor, and only past it does the row
+        // fall back (null) to two lines.
+        val floor = 11f * NAV_LABEL_FONT_FLOOR_FRACTION
+        assertEquals(floor, fittedFontSize(11f, NAV_LABEL_FONT_FLOOR_FRACTION) { it <= floor })
+        assertNull(fittedFontSize(11f, NAV_LABEL_FONT_FLOOR_FRACTION) { it < floor })
+    }
+
+    @Test
     fun fittedFontSize_usesTheCustomFloorPercentage() {
         // Bottom navigation labels may shrink to ~60% of the base size (#45).
         val floor = 14f * NAV_LABEL_FONT_FLOOR_FRACTION

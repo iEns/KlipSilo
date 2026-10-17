@@ -121,6 +121,7 @@ import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
 import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
@@ -1581,12 +1582,23 @@ private fun MarkupToolBar(
         )
     val labels = items.map { context.getString(it.third) }
     val labelStyle = MaterialTheme.typography.labelSmall
-    // Horizontal padding keeps the outermost labels off the screen edge (#50).
+    // 8dp horizontal padding keeps the outermost labels off the screen edge
+    // (#50; "Marker" used to touch it).
     BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         val slotWidth = constraints.maxWidth / items.size
-        val commonSize = rememberCommonRowLabelSize(labels, slotWidth, labelStyle)
+        // One size for all five labels, single words shrink to the nav floor
+        // (60%) instead of wrapping (#50): "Auswahl" broke as "Auswa/hl" and
+        // "Marker" rendered smaller than the other labels when the row fell
+        // back to per-label sizes.
+        val commonSize =
+            rememberCommonRowLabelSize(
+                labels,
+                slotWidth,
+                labelStyle,
+                floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+            )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1617,15 +1629,17 @@ private fun MarkupToolBar(
                                     overflow = TextOverflow.Clip,
                                 )
                             } else {
-                                // Even the floor size does not fit the longest
-                                // label on one line: allow two lines instead of
-                                // shrinking or breaking mid-word (#50).
+                                // Even the 60% floor does not fit the longest
+                                // label on one line: allow two lines at word
+                                // boundaries, never mid-word, at the same
+                                // floor (#50).
                                 ButtonLabel(
                                     text = label,
                                     style = labelStyle,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Center,
                                     maxLines = 2,
+                                    floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
                                 )
                             }
                         },

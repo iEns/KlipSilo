@@ -97,10 +97,10 @@ internal fun scaledLabelStyle(
 }
 
 /**
- * Largest font size (stepping down from [base] to the [LABEL_FONT_FLOOR_FRACTION]
- * floor) at which [text] fits on a single line within [maxWidthPx]. Returns
- * null when even the floor size is too wide — the caller should then allow
- * more lines.
+ * Largest font size (stepping down from [base] to the [floorFraction] floor)
+ * at which [text] fits on a single line within [maxWidthPx]. Returns null
+ * when even the floor size is too wide — the caller should then allow more
+ * lines.
  */
 internal fun fittedSingleLineSize(
     measurer: TextMeasurer,
@@ -108,9 +108,10 @@ internal fun fittedSingleLineSize(
     style: TextStyle,
     base: Float,
     maxWidthPx: Int,
+    floorFraction: Float = LABEL_FONT_FLOOR_FRACTION,
 ): Float? {
     if (maxWidthPx <= 0) return null
-    return fittedFontSize(base) { size ->
+    return fittedFontSize(base, floorFraction) { size ->
         val result =
             measurer.measure(
                 text = text,
@@ -140,23 +141,26 @@ internal fun commonFittedSize(sizes: List<Float?>): Float? =
  * One common font size for a row of equal-width labels (#50): the size the
  * longest label needs to fit its [slotWidthPx] slot on a single line, so all
  * labels in the row render at the same size instead of shrinking
- * individually. Returns null when even the floor size does not fit the
- * longest label — the caller should then allow two lines.
+ * individually. [floorFraction] is how far a label may shrink before the row
+ * gives up (single-word tool labels use ~60%, #50). Returns null when even
+ * the floor size does not fit the longest label — the caller should then
+ * allow two lines (never inside a word).
  */
 @Composable
 fun rememberCommonRowLabelSize(
     labels: List<String>,
     slotWidthPx: Int,
     style: TextStyle,
+    floorFraction: Float = LABEL_FONT_FLOOR_FRACTION,
 ): Float? {
     val base = style.fontSize
     if (!base.isSp || base.value <= 0f) return null
     val measurer = rememberTextMeasurer()
     val fontScale = LocalDensity.current.fontScale
-    return remember(labels, slotWidthPx, style, fontScale) {
+    return remember(labels, slotWidthPx, style, fontScale, floorFraction) {
         commonFittedSize(
             labels.map { label ->
-                fittedSingleLineSize(measurer, label, style, base.value, slotWidthPx)
+                fittedSingleLineSize(measurer, label, style, base.value, slotWidthPx, floorFraction)
             },
         )
     }
