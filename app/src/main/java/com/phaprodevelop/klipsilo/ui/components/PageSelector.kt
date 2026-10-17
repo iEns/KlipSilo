@@ -158,9 +158,11 @@ private fun PageJumpDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.page_selector_title)) },
         text = {
             OutlinedTextField(
                 value = value,
+                label = { Text(stringResource(R.string.page_selector_field_label, pageCount)) },
                 onValueChange = { next ->
                     val digitsOnly = next.text.filter { it.isDigit() }
                     value =

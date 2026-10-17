@@ -284,6 +284,8 @@
     <string name="markup_next_page">次のページ</string>
     <string name="page_selector_indicator_cd">%2$dページ中%1$dページ目、タップして移動</string>
     <string name="page_selector_error">1〜%1$dのページ番号を入力</string>
+    <string name="page_selector_title">Go to page</string>
+    <string name="page_selector_field_label">Page (1–%1$d)</string>
     <string name="save_pdf">PDFを保存</string>
     <string name="done">完了</string>
     <string name="remove">削除</string>

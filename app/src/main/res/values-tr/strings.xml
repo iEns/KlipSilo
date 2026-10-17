@@ -285,6 +285,8 @@
     <string name="markup_next_page">Sonraki sayfa</string>
     <string name="page_selector_indicator_cd">Sayfa %1$d / %2$d, sayfaya gitmek için dokunun</string>
     <string name="page_selector_error">1 ile %1$d arasında bir sayfa numarası girin</string>
+    <string name="page_selector_title">Go to page</string>
+    <string name="page_selector_field_label">Page (1–%1$d)</string>
     <string name="save_pdf">PDF\'yi kaydet</string>
     <string name="done">Bitti</string>
     <string name="remove">Kaldır</string>

@@ -285,6 +285,8 @@
     <string name="markup_next_page">Next page</string>
     <string name="page_selector_indicator_cd">Page %1$d of %2$d, tap to go to page</string>
     <string name="page_selector_error">Enter a page number between 1 and %1$d</string>
+    <string name="page_selector_title">Go to page</string>
+    <string name="page_selector_field_label">Page (1–%1$d)</string>
     <string name="save_pdf">Save PDF</string>
     <string name="done">Done</string>
     <string name="remove">Remove</string>

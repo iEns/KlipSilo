@@ -284,6 +284,8 @@
     <string name="markup_next_page">Halaman berikutnya</string>
     <string name="page_selector_indicator_cd">Halaman %1$d dari %2$d, ketuk untuk pindah halaman</string>
     <string name="page_selector_error">Masukkan nomor halaman antara 1 dan %1$d</string>
+    <string name="page_selector_title">Go to page</string>
+    <string name="page_selector_field_label">Page (1–%1$d)</string>
     <string name="save_pdf">Simpan PDF</string>
     <string name="done">Selesai</string>
     <string name="remove">Hapus</string>

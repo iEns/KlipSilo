@@ -285,6 +285,8 @@
     <string name="markup_next_page">Nächste Seite</string>
     <string name="page_selector_indicator_cd">Seite %1$d von %2$d, tippen, um zur Seite zu wechseln</string>
     <string name="page_selector_error">Seitenzahl zwischen 1 und %1$d eingeben</string>
+    <string name="page_selector_title">Go to page</string>
+    <string name="page_selector_field_label">Page (1–%1$d)</string>
     <string name="save_pdf">PDF speichern</string>
     <string name="done">Fertig</string>
     <string name="remove">Entfernen</string>
