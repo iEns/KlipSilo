@@ -485,4 +485,8 @@
     <string name="location_disabled">Turn on location to save your position</string>
     <string name="location_unavailable">Could not get a location. Try again outdoors or with location turned on.</string>
     <string name="location_finding">Finding location…</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="form_password_saved_note">This will be saved in the PDF as readable text.</string>
+    <string name="form_password_saved_badge">Saved as readable text</string>
 </resources>

@@ -3064,11 +3064,13 @@ class ClipboardRepository(
             }
         val label = localizedFieldLabel(labelSource)
         var multiline = false
+        var isPassword = false
         var maxLength: Int? = null
         var keyboardKind = FormKeyboardKind.TEXT
         if (field is PDTextField) {
             val flags = parseTextFieldFlags(field.cosObject.getInt(COSName.FF).toLong())
             multiline = flags.multiline
+            isPassword = flags.password
             maxLength = field.cosObject.getInt(COSName.MAX_LEN).takeIf { it > 0 }
             val labelForTyping = if (resolved is ResolvedFieldLabel.Literal) label else null
             keyboardKind =
@@ -3091,6 +3093,7 @@ class ClipboardRepository(
             label = label,
             hits = hits,
             multiline = multiline,
+            isPassword = isPassword,
             maxLength = maxLength,
             keyboardKind = keyboardKind,
             valueKey =
@@ -4511,6 +4514,8 @@ data class FormFieldInfo(
     val hits: List<FormFieldHit> = emptyList(),
     /** False when the PDF declares the text field multiline (Enter types a line break). */
     val multiline: Boolean = false,
+    /** True when the PDF declares the text field a password field (/Ff bit 14). */
+    val isPassword: Boolean = false,
     /** Upper limit from the PDF's /MaxLen; null when the PDF does not limit the length. */
     val maxLength: Int? = null,
     /** Keyboard to open for a single-line text field. */

@@ -484,4 +484,8 @@
     <string name="location_disabled">请打开定位以保存位置</string>
     <string name="location_unavailable">无法获取位置。请到室外重试，或打开定位后再试。</string>
     <string name="location_finding">正在获取位置…</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="form_password_saved_note">This will be saved in the PDF as readable text.</string>
+    <string name="form_password_saved_badge">Saved as readable text</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -28,12 +29,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -41,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,12 +78,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
@@ -160,6 +171,8 @@ fun FormFillScreen(
     val focusRequesters = remember { mutableMapOf<String, FocusRequester>() }
     val bringIntoViewRequesters = remember { mutableMapOf<String, BringIntoViewRequester>() }
     var focusedField by remember { mutableStateOf<String?>(null) }
+    // Per-password-field show/hide, remembered until this screen is left (#61).
+    var revealedPasswords by remember { mutableStateOf<Set<String>>(emptySet()) }
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
     val imeVisible = imeBottom > 0
@@ -297,6 +310,7 @@ fun FormFillScreen(
                     pageIndex = pageIndex,
                     fields = formFields.orEmpty(),
                     values = values,
+                    revealedPasswords = revealedPasswords,
                     imeVisible = imeVisible,
                     onFieldTap = { name -> focusField(name) },
                     onZoomSettled = { scale ->
@@ -372,6 +386,15 @@ fun FormFillScreen(
                                     values = values + (name to it)
                                     dirty = true
                                 },
+                                passwordRevealed = name in revealedPasswords,
+                                onTogglePasswordRevealed = {
+                                    revealedPasswords =
+                                        if (name in revealedPasswords) {
+                                            revealedPasswords - name
+                                        } else {
+                                            revealedPasswords + name
+                                        }
+                                },
                                 onFocused = {
                                     focusedField = name
                                     field.hits.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
@@ -426,6 +449,7 @@ private fun FormPdfPreview(
     pageIndex: Int,
     fields: List<FormFieldInfo>,
     values: Map<String, String>,
+    revealedPasswords: Set<String>,
     imeVisible: Boolean,
     onFieldTap: (String) -> Unit,
     onZoomSettled: (Float) -> Unit,
@@ -562,7 +586,10 @@ private fun FormPdfPreview(
                     fields.forEach { field ->
                         val value = values[field.valueKey].orEmpty()
                         field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
-                            val shown = formOverlayText(field, hit, value)
+                            val revealed = field.valueKey in revealedPasswords
+                            // Hidden passwords draw as bullets; a revealed one shows the text (#61).
+                            val masked = passwordPreviewText(field.isPassword, revealed, value)
+                            val shown = formOverlayText(field, hit, masked)
                             if (shown.isEmpty()) return@forEach
                             FormValueOverlay(
                                 hit = hit,
@@ -571,6 +598,13 @@ private fun FormPdfPreview(
                                 imageWidth = pageWidth.toDp(density),
                                 imageHeight = pageHeight.toDp(density),
                             )
+                            if (showPasswordSavedBadge(field.isPassword, revealed, value)) {
+                                PasswordSavedBadge(
+                                    hit = hit,
+                                    imageWidth = pageWidth.toDp(density),
+                                    imageHeight = pageHeight.toDp(density),
+                                )
+                            }
                         }
                     }
                 }
@@ -671,6 +705,49 @@ private fun FormValueOverlay(
     )
 }
 
+/**
+ * Small "Saved as readable text" pill inside a hidden password field's preview rect (#61).
+ * A fixed font scale keeps it small at font scale 2.0, and clipping keeps it from ever
+ * covering neighbouring fields or spilling out of the preview.
+ */
+@Composable
+private fun PasswordSavedBadge(
+    hit: FormFieldHit,
+    imageWidth: Dp,
+    imageHeight: Dp,
+) {
+    CompositionLocalProvider(
+        LocalDensity provides Density(LocalDensity.current.density, fontScale = 1f),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .offset(x = imageWidth * hit.left, y = imageHeight * hit.top)
+                    .size(
+                        width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f),
+                        height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f),
+                    )
+                    .clipToBounds()
+                    .clearAndSetSemantics { },
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            Text(
+                text = stringResource(R.string.form_password_saved_badge),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1,
+                modifier =
+                    Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FormFieldRow(
@@ -679,6 +756,8 @@ private fun FormFieldRow(
     focusRequester: FocusRequester,
     bringIntoViewRequester: BringIntoViewRequester,
     imeAction: ImeAction,
+    passwordRevealed: Boolean,
+    onTogglePasswordRevealed: () -> Unit,
     onNextField: () -> Unit,
     onValueChange: (String) -> Unit,
     onFocused: () -> Unit,
@@ -752,19 +831,68 @@ private fun FormFieldRow(
                     // advance to the next field with ImeAction.Next instead.
                     singleLine = !field.multiline,
                     keyboardOptions =
-                        if (field.multiline) {
-                            KeyboardOptions()
+                        when {
+                            field.multiline -> KeyboardOptions()
+                            // Password fields: password keyboard, no autocorrect (#61).
+                            field.isPassword ->
+                                KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = imeAction,
+                                    autoCorrectEnabled = false,
+                                )
+                            else ->
+                                KeyboardOptions(
+                                    keyboardType =
+                                        when (field.keyboardKind) {
+                                            FormKeyboardKind.EMAIL -> KeyboardType.Email
+                                            FormKeyboardKind.PHONE -> KeyboardType.Phone
+                                            FormKeyboardKind.NUMBER -> KeyboardType.Number
+                                            FormKeyboardKind.TEXT -> KeyboardType.Text
+                                        },
+                                    imeAction = imeAction,
+                                )
+                        },
+                    // Hidden passwords are masked in the input; the eye toggle reveals them (#61).
+                    visualTransformation =
+                        if (field.isPassword && !passwordRevealed) {
+                            PasswordVisualTransformation()
                         } else {
-                            KeyboardOptions(
-                                keyboardType =
-                                    when (field.keyboardKind) {
-                                        FormKeyboardKind.EMAIL -> KeyboardType.Email
-                                        FormKeyboardKind.PHONE -> KeyboardType.Phone
-                                        FormKeyboardKind.NUMBER -> KeyboardType.Number
-                                        FormKeyboardKind.TEXT -> KeyboardType.Text
-                                    },
-                                imeAction = imeAction,
-                            )
+                            VisualTransformation.None
+                        },
+                    trailingIcon =
+                        if (field.isPassword) {
+                            {
+                                IconButton(
+                                    onClick = onTogglePasswordRevealed,
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector =
+                                            if (passwordRevealed) {
+                                                Icons.Default.VisibilityOff
+                                            } else {
+                                                Icons.Default.Visibility
+                                            },
+                                        contentDescription =
+                                            stringResource(
+                                                if (passwordRevealed) {
+                                                    R.string.hide_password
+                                                } else {
+                                                    R.string.show_password
+                                                },
+                                            ),
+                                    )
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                    // Real value warning: the saved PDF keeps the typed text as plain text (#61).
+                    supportingText =
+                        if (field.isPassword) {
+                            { Text(stringResource(R.string.form_password_saved_note)) }
+                        } else {
+                            null
                         },
                     keyboardActions =
                         KeyboardActions(
@@ -835,6 +963,7 @@ private fun FormPdfPreviewPreview() {
             pageIndex = 0,
             fields = emptyList(),
             values = emptyMap(),
+            revealedPasswords = emptySet(),
             imeVisible = false,
             onFieldTap = {},
             onZoomSettled = {},
@@ -863,9 +992,88 @@ private fun FormFieldRowCheckboxLongLabelPreview() {
                 focusRequester = FocusRequester(),
                 bringIntoViewRequester = BringIntoViewRequester(),
                 imeAction = ImeAction.Next,
+                passwordRevealed = false,
+                onTogglePasswordRevealed = {},
                 onNextField = {},
                 onValueChange = {},
                 onFocused = {},
+            )
+        }
+    }
+}
+
+// A hidden password field: masked input, eye toggle and the readable-text note (#61).
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 220, showBackground = true)
+@Composable
+private fun FormFieldRowPasswordHiddenPreview() {
+    MaterialTheme {
+        FormFieldRow(
+            field =
+                FormFieldInfo(
+                    name = "pw",
+                    fullyQualifiedName = "pw",
+                    type = FormFieldType.TEXT,
+                    currentValue = null,
+                    options = emptyList(),
+                    label = "Password",
+                    valueKey = "pw",
+                    isPassword = true,
+                ),
+            value = "secret",
+            focusRequester = FocusRequester(),
+            bringIntoViewRequester = BringIntoViewRequester(),
+            imeAction = ImeAction.Done,
+            passwordRevealed = false,
+            onTogglePasswordRevealed = {},
+            onNextField = {},
+            onValueChange = {},
+            onFocused = {},
+        )
+    }
+}
+
+// The same field with the eye toggled: the real text shows in both input and preview (#61).
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 220, showBackground = true)
+@Composable
+private fun FormFieldRowPasswordRevealedPreview() {
+    MaterialTheme {
+        FormFieldRow(
+            field =
+                FormFieldInfo(
+                    name = "pw",
+                    fullyQualifiedName = "pw",
+                    type = FormFieldType.TEXT,
+                    currentValue = null,
+                    options = emptyList(),
+                    label = "Password",
+                    valueKey = "pw",
+                    isPassword = true,
+                ),
+            value = "secret",
+            focusRequester = FocusRequester(),
+            bringIntoViewRequester = BringIntoViewRequester(),
+            imeAction = ImeAction.Done,
+            passwordRevealed = true,
+            onTogglePasswordRevealed = {},
+            onNextField = {},
+            onValueChange = {},
+            onFocused = {},
+        )
+    }
+}
+
+// The preview badge on a hidden password field at font scale 2.0 (#61).
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 180, showBackground = true)
+@Composable
+private fun PasswordSavedBadgePreview() {
+    MaterialTheme {
+        Box(Modifier.fillMaxWidth().height(72.dp)) {
+            PasswordSavedBadge(
+                hit = FormFieldHit(pageIndex = 0, left = 0.1f, top = 0.1f, right = 0.8f, bottom = 0.9f),
+                imageWidth = 320.dp,
+                imageHeight = 64.dp,
             )
         }
     }
