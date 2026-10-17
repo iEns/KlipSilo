@@ -176,6 +176,69 @@ internal fun nearbyFieldText(
 }
 
 /**
+ * Label printed to the right of a widget. Checkbox and radio boxes in a group draw their option
+ * text on the right, which is what distinguishes them from each other.
+ */
+internal fun nearbyFieldTextRight(
+    widget: PdfUserRect,
+    runs: List<PdfTextRun>,
+): String? {
+    val lines = groupRuns(runs)
+    val widgetHeight = (widget.top - widget.bottom).coerceAtLeast(1f)
+    return lines
+        .filter { line ->
+            line.text.length <= 80 &&
+                line.left >= widget.right - 8f &&
+                line.left - widget.right < 140f &&
+                verticalOverlap(line, widget) >= widgetHeight * 0.3f
+        }.minByOrNull { it.left - widget.right }
+        ?.text
+}
+
+private val ambiguousCheckOptions =
+    setOf("x", "0", "1", "no", "off", "on", "true", "false", "yes", "ja", "nej", "checked", "selected")
+
+/** A checkbox export value like "Yes" or "1" names no option by itself. */
+internal fun isAmbiguousCheckOption(value: String): Boolean {
+    return value.trim().lowercase(Locale.ROOT) in ambiguousCheckOptions
+}
+
+/**
+ * Label for one checkbox child inside a group. All children share the group name, so the
+ * widget's own tooltip wins, then its on-state export value ("Morning_session" -> "Morning
+ * session"), then the page text to the right of the widget. An ambiguous export value ("Yes")
+ * falls back to that nearby text and finally to "Group: Yes"; nothing at all falls back into
+ * the ordinary label chain with the group name as the field name.
+ */
+internal fun resolveCheckboxKidLabel(
+    tooltip: String?,
+    onState: String?,
+    nearbyRight: String?,
+    nearbyElsewhere: String?,
+    group: String?,
+    type: FormFieldType,
+    fallbackNumber: Int,
+): ResolvedFieldLabel {
+    val tip = tooltip?.trim().orEmpty()
+    if (tip.isNotEmpty()) return ResolvedFieldLabel.Literal(tip)
+    val state = onState?.trim().orEmpty()
+    val readableState = state.isNotEmpty() && !isAmbiguousCheckOption(state)
+    if (readableState) return ResolvedFieldLabel.Literal(prettifyFieldName(state))
+    val right = nearbyRight?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
+    if (right.isNotEmpty()) return ResolvedFieldLabel.Literal(right.take(80))
+    if (state.isNotEmpty() && !group.isNullOrBlank()) {
+        return ResolvedFieldLabel.Literal("${prettifyFieldName(group)}: ${prettifyFieldName(state)}")
+    }
+    return resolveFormFieldLabel(
+        partialName = group.orEmpty(),
+        alternateName = null,
+        type = type,
+        nearbyText = nearbyElsewhere,
+        fallbackNumber = fallbackNumber,
+    )
+}
+
+/**
  * Maps a widget to fractions of the page bitmap. [rotation] is the page's clockwise /Rotate.
  */
 internal fun widgetVisualFractions(

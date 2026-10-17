@@ -211,7 +211,7 @@ fun FormFillScreen(
     }
     LaunchedEffect(formFields) {
         formFields?.forEach { field ->
-            if (field.fullyQualifiedName !in values) {
+            if (field.valueKey !in values) {
                 val newValue =
                     when (field.type) {
                         FormFieldType.CHECKBOX -> {
@@ -220,7 +220,7 @@ fun FormFillScreen(
                         }
                         else -> field.currentValue ?: ""
                     }
-                values = values + (field.fullyQualifiedName to newValue)
+                values = values + (field.valueKey to newValue)
             }
         }
     }
@@ -256,7 +256,7 @@ fun FormFillScreen(
     }
 
     fun focusField(name: String) {
-        val field = formFields.orEmpty().firstOrNull { it.fullyQualifiedName == name }
+        val field = formFields.orEmpty().firstOrNull { it.valueKey == name }
         field?.hits?.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
         focusedField = name
         val requester = focusRequesters[name] ?: return
@@ -352,12 +352,12 @@ fun FormFillScreen(
                                 .map { it.index }
                         val nextTextFieldKey =
                             textRowIndexes.zipWithNext { current, next ->
-                                formFields.orEmpty()[current].fullyQualifiedName to
-                                    formFields.orEmpty()[next].fullyQualifiedName
+                                formFields.orEmpty()[current].valueKey to
+                                    formFields.orEmpty()[next].valueKey
                             }.toMap()
                         val lastTextFieldIndex = textRowIndexes.lastOrNull()
                         formFields.orEmpty().forEachIndexed { index, field ->
-                            val name = field.fullyQualifiedName
+                            val name = field.valueKey
                             val requester = focusRequesters.getOrPut(name) { FocusRequester() }
                             FormFieldRow(
                                 field = field,
@@ -559,7 +559,7 @@ private fun FormPdfPreview(
                         contentScale = ContentScale.FillBounds,
                     )
                     fields.forEach { field ->
-                        val value = values[field.fullyQualifiedName].orEmpty()
+                        val value = values[field.valueKey].orEmpty()
                         field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
                             val shown = formOverlayText(field, hit, value)
                             if (shown.isEmpty()) return@forEach
@@ -758,7 +758,7 @@ private fun hitField(
             val area = ((hit.right - hit.left) * (hit.bottom - hit.top)).coerceAtLeast(0.0001f)
             if (area < bestArea) {
                 bestArea = area
-                bestName = field.fullyQualifiedName
+                bestName = field.valueKey
             }
         }
     }

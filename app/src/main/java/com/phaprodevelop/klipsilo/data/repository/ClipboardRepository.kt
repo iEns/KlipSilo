@@ -47,8 +47,10 @@ import com.phaprodevelop.klipsilo.data.formKeyboardKind
 import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearbyFieldText
+import com.phaprodevelop.klipsilo.data.nearbyFieldTextRight
 import com.phaprodevelop.klipsilo.data.parseTextFieldFlags
 import com.phaprodevelop.klipsilo.data.refreshedTextClipTitle
+import com.phaprodevelop.klipsilo.data.resolveCheckboxKidLabel
 import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
@@ -70,6 +72,7 @@ import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
+import com.tom_roush.pdfbox.pdmodel.interactive.form.PDAcroForm
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDButton
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDCheckBox
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDComboBox
@@ -2859,9 +2862,23 @@ class ClipboardRepository(
                 val acroForm = document.documentCatalog.acroForm ?: return emptyList()
                 val runs = extractFormTextRuns(document)
                 val counters = mutableMapOf<FormFieldType, Int>()
-                acroForm.fields
-                    .flatMap { field -> terminalFields(field) }
-                    .mapNotNull { field -> toFormFieldInfo(document, field, runs, counters) }
+                val terminals = acroForm.fields.flatMap { field -> terminalFields(field) }
+                // Checkbox rows that share their (fully qualified) name are the boxes of one
+                // group; each gets its own option label and its own value key (#57).
+                val checkboxCountByFqn =
+                    terminals
+                        .filterIsInstance<PDCheckBox>()
+                        .groupingBy { it.fullyQualifiedName.orEmpty() }
+                        .eachCount()
+                val kidSlotByFqn = mutableMapOf<String, Int>()
+                terminals.mapNotNull { field ->
+                    val fqn = field.fullyQualifiedName.orEmpty()
+                    val kidCount =
+                        if (field is PDCheckBox) checkboxCountByFqn[fqn] ?: 0 else 0
+                    val kidSlot =
+                        if (kidCount > 1) (kidSlotByFqn[fqn] ?: 0).also { kidSlotByFqn[fqn] = it + 1 } else 0
+                    toFormFieldInfo(document, field, runs, counters, kidCount, kidSlot)
+                }
             }
         } catch (_: Exception) {
             emptyList()
@@ -2880,18 +2897,8 @@ class ClipboardRepository(
             try {
                 val acroForm = document.documentCatalog.acroForm ?: return 0L
                 var applied = 0
-                values.forEach { (name, value) ->
-                    val field = acroForm.getField(name) ?: return@forEach
-                    try {
-                        when (field) {
-                            is PDCheckBox -> {
-                                if (value == "true") field.check() else field.unCheck()
-                            }
-                            else -> field.setValue(value)
-                        }
-                        applied++
-                    } catch (_: Exception) {
-                    }
+                values.forEach { (key, value) ->
+                    applied += if (applyFillValue(acroForm, key, value)) 1 else 0
                 }
                 if (applied == 0) return 0L
                 try {
@@ -2926,14 +2933,66 @@ class ClipboardRepository(
         }
     }
 
+    internal fun applyFillValue(
+        acroForm: PDAcroForm,
+        key: String,
+        value: String,
+    ): Boolean {
+        val position = key.indexOf(CHECK_KID_KEY_SEPARATOR)
+        if (position > 0) {
+            // "Sessions\u0000Morning_session": check just that box of the group (#57).
+            val option = key.substring(position + CHECK_KID_KEY_SEPARATOR.length)
+            val kid =
+                checkboxFieldsNamed(acroForm, key.take(position))
+                    .firstOrNull { box ->
+                        try {
+                            box.onValue == option
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+            return try {
+                if (value == "true") kid?.check() else kid?.unCheck()
+                kid != null
+            } catch (_: Exception) {
+                false
+            }
+        }
+        val field = acroForm.getField(key) ?: return false
+        return try {
+            when (field) {
+                is PDCheckBox -> {
+                    if (value == "true") field.check() else field.unCheck()
+                }
+                else -> field.setValue(value)
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun checkboxFieldsNamed(
+        acroForm: PDAcroForm,
+        fqn: String,
+    ): List<PDCheckBox> {
+        return acroForm.fields
+            .flatMap { field -> terminalFields(field) }
+            .filterIsInstance<PDCheckBox>()
+            .filter { (it.fullyQualifiedName ?: it.partialName) == fqn }
+    }
+
     private fun toFormFieldInfo(
         document: PDDocument,
         field: PDField,
         runs: Map<Int, List<PdfTextRun>>,
         counters: MutableMap<FormFieldType, Int>,
+        sameNameCheckboxCount: Int = 0,
+        kidSlot: Int = 0,
     ): FormFieldInfo? {
         if (field is PDButton && field.isPushButton) return null
         val partial = field.partialName ?: field.fullyQualifiedName ?: return null
+        val fqn = field.fullyQualifiedName ?: partial
         val type =
             when (field) {
                 is PDCheckBox -> FormFieldType.CHECKBOX
@@ -2951,14 +3010,30 @@ class ClipboardRepository(
         val hits = fieldHits(document, field)
         val nearby = nearbyLabel(field, document, runs)
         val tooltip = alternateName(field)
+        // Checkboxes of one group share their name; the /AP /N on-state or the page text to the
+        // right of the widget is what makes the boxes distinguishable (#57).
+        val isCheckboxKid = field is PDCheckBox && sameNameCheckboxCount > 1
+        val kidGroup = field.parent?.fullyQualifiedName ?: fqn
         val resolved =
-            resolveFormFieldLabel(
-                partialName = partial,
-                alternateName = tooltip,
-                type = type,
-                nearbyText = nearby,
-                fallbackNumber = 1,
-            )
+            if (isCheckboxKid) {
+                resolveCheckboxKidLabel(
+                    tooltip = tooltip,
+                    onState = hits.firstNotNullOfOrNull { hit -> hit.option?.takeIf { it.isNotBlank() } },
+                    nearbyRight = nearbyRightLabel(field, document, runs),
+                    nearbyElsewhere = nearby,
+                    group = kidGroup,
+                    type = type,
+                    fallbackNumber = 1,
+                )
+            } else {
+                resolveFormFieldLabel(
+                    partialName = partial,
+                    alternateName = tooltip,
+                    type = type,
+                    nearbyText = nearby,
+                    fallbackNumber = 1,
+                )
+            }
         val labelSource =
             if (resolved is ResolvedFieldLabel.Numbered) {
                 val number = (counters[type] ?: 0) + 1
@@ -2998,6 +3073,13 @@ class ClipboardRepository(
             multiline = multiline,
             maxLength = maxLength,
             keyboardKind = keyboardKind,
+            valueKey =
+                if (isCheckboxKid) {
+                    val option = hits.firstNotNullOfOrNull { hit -> hit.option?.takeIf { it.isNotBlank() } }
+                    "$fqn$CHECK_KID_KEY_SEPARATOR${option ?: kidSlot.toString()}"
+                } else {
+                    fqn
+                },
         )
     }
 
@@ -3031,6 +3113,21 @@ class ClipboardRepository(
         val pageRuns = runs[pageIndexOf(document, widget)].orEmpty()
         if (pageRuns.isEmpty()) return null
         return nearbyFieldText(
+            PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY),
+            pageRuns,
+        )
+    }
+
+    private fun nearbyRightLabel(
+        field: PDField,
+        document: PDDocument,
+        runs: Map<Int, List<PdfTextRun>>,
+    ): String? {
+        val widget = field.widgets.firstOrNull() ?: return null
+        val rect = widget.rectangle ?: return null
+        val pageRuns = runs[pageIndexOf(document, widget)].orEmpty()
+        if (pageRuns.isEmpty()) return null
+        return nearbyFieldTextRight(
             PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY),
             pageRuns,
         )
@@ -4363,6 +4460,12 @@ enum class FormFieldType {
     OTHER,
 }
 
+/**
+ * Joins the group name and the option value for checkbox children that share one field name,
+ * so each box keeps its own entry in the value map and in the saved PDF.
+ */
+const val CHECK_KID_KEY_SEPARATOR = "\u0000"
+
 data class FormFieldHit(
     val pageIndex: Int,
     val left: Float,
@@ -4386,6 +4489,12 @@ data class FormFieldInfo(
     val maxLength: Int? = null,
     /** Keyboard to open for a single-line text field. */
     val keyboardKind: FormKeyboardKind = FormKeyboardKind.TEXT,
+    /**
+     * Unique key for this row's value. The fully qualified name for everything except checkbox
+     * children that share their group's name; those get "name\u0000option" so each box can be
+     * filled on its own. [fillPdfForm] understands both forms.
+     */
+    val valueKey: String = fullyQualifiedName,
 )
 
 data class ScannedItem(
