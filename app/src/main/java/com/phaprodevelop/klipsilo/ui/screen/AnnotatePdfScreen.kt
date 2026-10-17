@@ -34,7 +34,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -58,7 +57,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -121,10 +119,9 @@ import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.BitmapUseCounter
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
-import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
-import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -725,47 +722,30 @@ fun AnnotatePdfScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = {
-                    TopBarFitTitle(text = context.getString(R.string.annotate_title))
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (dirty) {
-                                showExitWarning = true
-                            } else {
-                                onNavigateBack()
-                            }
-                        },
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = context.getString(R.string.back),
-                        )
+            FitTopBar(
+                title = context.getString(R.string.annotate_title),
+                saveLabel = context.getString(R.string.save),
+                saveEnabled = entry.filePath != null,
+                onBack = {
+                    if (dirty) {
+                        showExitWarning = true
+                    } else {
+                        onNavigateBack()
                     }
                 },
-                actions = {
-                    TopBarSaveAction(
-                        label = context.getString(R.string.save),
-                        title = context.getString(R.string.annotate_title),
-                        enabled = entry.filePath != null,
-                        onClick = {
-                            if (dirty) {
-                                commitDrafts()
-                                val all = annotations.values.flatten()
-                                val allStrokes = strokes.values.flatten()
-                                viewModel.saveAnnotatedPdf(entry, all, allStrokes)
-                            } else {
-                                // Save with no changes (#60): just leave, like Back, instead
-                                // of creating an identical copy clip.
-                                onNavigateBack()
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
+                onSave = {
+                    if (dirty) {
+                        commitDrafts()
+                        val all = annotations.values.flatten()
+                        val allStrokes = strokes.values.flatten()
+                        viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                    } else {
+                        // Save with no changes (#60): just leave, like Back, instead
+                        // of creating an identical copy clip.
+                        onNavigateBack()
+                    }
                 },
+                backContentDescription = context.getString(R.string.back),
             )
         },
     ) { padding ->

@@ -2,8 +2,10 @@ package com.phaprodevelop.klipsilo.ui.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -11,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -51,12 +54,6 @@ internal const val TOP_BAR_MIN_TITLE_FRACTION = 0.4f
  * yield it on every screen.
  */
 internal const val TOP_BAR_COMPACT_MAX_WIDTH_DP = 360
-
-/**
- * Floor fraction of the title style size: the title shrinks to ~65% before
- * it wraps to two lines, and only past that falls back to an ellipsis (#47).
- */
-internal const val TOP_BAR_TITLE_FLOOR_FRACTION = 0.65f
 
 /**
  * True when a top bar text action must collapse to an icon-only button
@@ -118,10 +115,9 @@ fun TopBarSaveAction(
 }
 
 /**
- * Top bar title that stays readable at large font scales (#47): it shrinks
- * (floor [TOP_BAR_TITLE_FLOOR_FRACTION] of the style size) on one line, then
- * wraps to two lines at word boundaries as the last resort before an
- * ellipsis.
+ * Top bar title (#47). Two lines at the style size, then a shrink down to
+ * [TOP_BAR_TITLE_MIN_SCALE], then an ellipsis. The bar that hosts it must
+ * grow with the text: a fixed 64dp row clips the second line.
  */
 @Composable
 fun TopBarFitTitle(
@@ -132,10 +128,48 @@ fun TopBarFitTitle(
         text = text,
         modifier = modifier,
         style = MaterialTheme.typography.titleLarge,
-        maxLines = 1,
-        floorFraction = TOP_BAR_TITLE_FLOOR_FRACTION,
-        wrapFallbackLines = 1,
+        maxLines = 2,
+        floorFraction = TOP_BAR_TITLE_MIN_SCALE,
     )
+}
+
+/**
+ * Top bar whose height follows the title (#47). Material's single-row
+ * [androidx.compose.material3.TopAppBar] is 64dp, which at font scale 2.0
+ * leaves a German title ellipsized on one line.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FitTopBar(
+    title: String,
+    saveLabel: String,
+    saveEnabled: Boolean,
+    onBack: () -> Unit,
+    onSave: () -> Unit,
+    backContentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = backContentDescription,
+                )
+            }
+            TopBarFitTitle(text = title, modifier = Modifier.weight(1f))
+            TopBarSaveAction(
+                label = saveLabel,
+                title = title,
+                enabled = saveEnabled,
+                onClick = onSave,
+                modifier = Modifier.padding(end = 4.dp),
+            )
+        }
+    }
 }
 
 /** The measured title width at its floor size, widest word when wrapped. */
@@ -145,7 +179,7 @@ internal fun titleFloorWidthPx(
     style: TextStyle,
 ): Float {
     if (style.fontSize.value <= 0f) return 0f
-    val floor = style.fontSize.value * TOP_BAR_TITLE_FLOOR_FRACTION
+    val floor = style.fontSize.value * TOP_BAR_TITLE_MIN_SCALE
     return title
         .split(Regex("""\s+"""))
         .filter { it.isNotEmpty() }
@@ -220,10 +254,48 @@ private fun TopBarSaveActionNormalScalePreview() {
 }
 
 @Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Preview(fontScale = 2f, widthDp = 360, showBackground = true)
 @Composable
 private fun TopBarFitTitlePreview() {
     MaterialTheme {
-        TopBarRow(title = "Udfyld formular", label = "Gem PDF")
+        FitTopBar(
+            title = "Formular ausfüllen",
+            saveLabel = "PDF speichern",
+            saveEnabled = true,
+            onBack = {},
+            onSave = {},
+            backContentDescription = "Zurück",
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Composable
+private fun TopBarFitTitleDanishPreview() {
+    MaterialTheme {
+        FitTopBar(
+            title = "Udfyld formular",
+            saveLabel = "Gem PDF",
+            saveEnabled = true,
+            onBack = {},
+            onSave = {},
+            backContentDescription = "Tilbage",
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 360, showBackground = true)
+@Composable
+private fun TopBarEditPagesPreview() {
+    MaterialTheme {
+        FitTopBar(
+            title = "Seiten bearbeiten",
+            saveLabel = "PDF speichern",
+            saveEnabled = true,
+            onBack = {},
+            onSave = {},
+            backContentDescription = "Zurück",
+        )
     }
 }
 

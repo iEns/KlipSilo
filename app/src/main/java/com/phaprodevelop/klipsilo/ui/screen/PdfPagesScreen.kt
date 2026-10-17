@@ -22,21 +22,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,8 +61,7 @@ import androidx.core.view.ViewCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
-import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
-import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
+import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -81,7 +77,7 @@ private data class PdfPageEntry(
     val bitmap: Bitmap?,
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PdfPagesScreen(
     entryId: Long,
@@ -200,32 +196,23 @@ fun PdfPagesScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { TopBarFitTitle(context.getString(R.string.edit_pages)) },
-                navigationIcon = {
-                    IconButton(onClick = { handleBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
+            FitTopBar(
+                title = context.getString(R.string.edit_pages),
+                saveLabel = context.getString(R.string.save_pdf),
+                saveEnabled = pages.isNotEmpty() && filePath != null,
+                onBack = { handleBack() },
+                onSave = {
+                    entry?.let {
+                        if (hasChanges) {
+                            viewModel.savePdfPages(it, pages.map { p -> p.originalIndex })
+                        } else {
+                            // Save with no changes (#60): just leave, like Back,
+                            // instead of copying the unchanged PDF.
+                            onNavigateBack()
+                        }
                     }
                 },
-                actions = {
-                    TopBarSaveAction(
-                        label = context.getString(R.string.save_pdf),
-                        title = context.getString(R.string.edit_pages),
-                        enabled = pages.isNotEmpty() && filePath != null,
-                        onClick = {
-                            entry?.let {
-                                if (hasChanges) {
-                                    viewModel.savePdfPages(it, pages.map { p -> p.originalIndex })
-                                } else {
-                                    // Save with no changes (#60): just leave, like Back,
-                                    // instead of copying the unchanged PDF.
-                                    onNavigateBack()
-                                }
-                            }
-                        },
-                    )
-                },
+                backContentDescription = context.getString(R.string.back),
             )
         },
     ) { padding ->

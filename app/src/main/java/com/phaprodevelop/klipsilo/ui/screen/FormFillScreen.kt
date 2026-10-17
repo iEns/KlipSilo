@@ -31,21 +31,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -97,12 +91,11 @@ import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.FORM_FIELD_FONT_FILL
+import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
-import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
-import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.formFieldTextLayout
@@ -128,7 +121,6 @@ private const val RESHARPEN_SETTLE_MILLIS = 250L
 
 @OptIn(
     ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class,
     ExperimentalLayoutApi::class,
 )
 @Composable
@@ -277,31 +269,22 @@ fun FormFillScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { TopBarFitTitle(context.getString(R.string.fill_form)) },
-                navigationIcon = {
-                    IconButton(onClick = { leave() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
+            FitTopBar(
+                title = context.getString(R.string.fill_form),
+                saveLabel = context.getString(R.string.save_pdf),
+                saveEnabled = entry.filePath != null && !isConverting,
+                onBack = { leave() },
+                onSave = {
+                    if (dirty) {
+                        viewModel.fillForm(entry, values)
+                    } else {
+                        // Save with no changes (#60): just leave, like Back, instead
+                        // of filling a copy of the untouched form.
+                        viewModel.clearFormFields()
+                        onNavigateBack()
                     }
                 },
-                actions = {
-                    TopBarSaveAction(
-                        label = context.getString(R.string.save_pdf),
-                        title = context.getString(R.string.fill_form),
-                        enabled = entry.filePath != null && !isConverting,
-                        onClick = {
-                            if (dirty) {
-                                viewModel.fillForm(entry, values)
-                            } else {
-                                // Save with no changes (#60): just leave, like Back, instead
-                                // of filling a copy of the untouched form.
-                                viewModel.clearFormFields()
-                                onNavigateBack()
-                            }
-                        },
-                    )
-                },
+                backContentDescription = context.getString(R.string.back),
             )
         },
     ) { padding ->
