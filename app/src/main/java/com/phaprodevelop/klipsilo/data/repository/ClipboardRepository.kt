@@ -33,6 +33,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.FormKeyboardKind
 import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_FONT_SCALE
 import com.phaprodevelop.klipsilo.data.MARKDOWN_PREVIEW_MARGIN_PT
 import com.phaprodevelop.klipsilo.data.PdfTextRun
@@ -42,9 +43,11 @@ import com.phaprodevelop.klipsilo.data.db.ClipboardItem
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemListRow
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.formKeyboardKind
 import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearbyFieldText
+import com.phaprodevelop.klipsilo.data.parseTextFieldFlags
 import com.phaprodevelop.klipsilo.data.refreshedTextClipTitle
 import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
@@ -2947,10 +2950,11 @@ class ClipboardRepository(
             }
         val hits = fieldHits(document, field)
         val nearby = nearbyLabel(field, document, runs)
+        val tooltip = alternateName(field)
         val resolved =
             resolveFormFieldLabel(
                 partialName = partial,
-                alternateName = alternateName(field),
+                alternateName = tooltip,
                 type = type,
                 nearbyText = nearby,
                 fallbackNumber = 1,
@@ -2963,14 +2967,37 @@ class ClipboardRepository(
             } else {
                 resolved
             }
+        val label = localizedFieldLabel(labelSource)
+        var multiline = false
+        var maxLength: Int? = null
+        var keyboardKind = FormKeyboardKind.TEXT
+        if (field is PDTextField) {
+            val flags = parseTextFieldFlags(field.cosObject.getInt(COSName.FF).toLong())
+            multiline = flags.multiline
+            maxLength = field.cosObject.getInt(COSName.MAX_LEN).takeIf { it > 0 }
+            val labelForTyping = if (resolved is ResolvedFieldLabel.Literal) label else null
+            keyboardKind =
+                if (multiline) {
+                    FormKeyboardKind.TEXT
+                } else {
+                    formKeyboardKind(
+                        name = partial,
+                        alternateName = tooltip,
+                        label = labelForTyping,
+                    )
+                }
+        }
         return FormFieldInfo(
             name = partial,
             fullyQualifiedName = field.fullyQualifiedName ?: partial,
             type = type,
             currentValue = field.valueAsString,
             options = options,
-            label = localizedFieldLabel(labelSource),
+            label = label,
             hits = hits,
+            multiline = multiline,
+            maxLength = maxLength,
+            keyboardKind = keyboardKind,
         )
     }
 
@@ -4353,6 +4380,12 @@ data class FormFieldInfo(
     val options: List<String>,
     val label: String = name,
     val hits: List<FormFieldHit> = emptyList(),
+    /** False when the PDF declares the text field multiline (Enter types a line break). */
+    val multiline: Boolean = false,
+    /** Upper limit from the PDF's /MaxLen; null when the PDF does not limit the length. */
+    val maxLength: Int? = null,
+    /** Keyboard to open for a single-line text field. */
+    val keyboardKind: FormKeyboardKind = FormKeyboardKind.TEXT,
 )
 
 data class ScannedItem(

@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -68,7 +70,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
@@ -76,6 +82,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.FormKeyboardKind
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
@@ -331,7 +338,19 @@ fun FormFillScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
-                        formFields.orEmpty().forEach { field ->
+                        // Text rows in order: Next jumps to the next one, the last gets Done (#52).
+                        val textRowIndexes =
+                            formFields.orEmpty()
+                                .withIndex()
+                                .filter { it.value.type == FormFieldType.TEXT }
+                                .map { it.index }
+                        val nextTextFieldKey =
+                            textRowIndexes.zipWithNext { current, next ->
+                                formFields.orEmpty()[current].fullyQualifiedName to
+                                    formFields.orEmpty()[next].fullyQualifiedName
+                            }.toMap()
+                        val lastTextFieldIndex = textRowIndexes.lastOrNull()
+                        formFields.orEmpty().forEachIndexed { index, field ->
                             val name = field.fullyQualifiedName
                             val requester = focusRequesters.getOrPut(name) { FocusRequester() }
                             FormFieldRow(
@@ -340,6 +359,8 @@ fun FormFillScreen(
                                 focusRequester = requester,
                                 bringIntoViewRequester =
                                     bringIntoViewRequesters.getOrPut(name) { BringIntoViewRequester() },
+                                imeAction = if (index == lastTextFieldIndex) ImeAction.Done else ImeAction.Next,
+                                onNextField = { nextTextFieldKey[name]?.let { nextName -> focusField(nextName) } },
                                 onValueChange = {
                                     values = values + (name to it)
                                     dirty = true
@@ -584,6 +605,8 @@ private fun FormFieldRow(
     value: String,
     focusRequester: FocusRequester,
     bringIntoViewRequester: BringIntoViewRequester,
+    imeAction: ImeAction,
+    onNextField: () -> Unit,
     onValueChange: (String) -> Unit,
     onFocused: () -> Unit,
 ) {
@@ -637,10 +660,42 @@ private fun FormFieldRow(
                 }
             }
             else -> {
+                val keyboard = LocalSoftwareKeyboardController.current
+                val focusManager = LocalFocusManager.current
+                val limitedValueChange: (String) -> Unit = { typed ->
+                    val limited = field.maxLength?.let { typed.take(it) } ?: typed
+                    onValueChange(limited)
+                }
                 OutlinedTextField(
                     value = value,
-                    onValueChange = onValueChange,
+                    onValueChange = limitedValueChange,
                     label = { Text(field.label) },
+                    // Multiline PDF text fields keep Enter as a line break (#52); the rest
+                    // advance to the next field with ImeAction.Next instead.
+                    singleLine = !field.multiline,
+                    keyboardOptions =
+                        if (field.multiline) {
+                            KeyboardOptions()
+                        } else {
+                            KeyboardOptions(
+                                keyboardType =
+                                    when (field.keyboardKind) {
+                                        FormKeyboardKind.EMAIL -> KeyboardType.Email
+                                        FormKeyboardKind.PHONE -> KeyboardType.Phone
+                                        FormKeyboardKind.NUMBER -> KeyboardType.Number
+                                        FormKeyboardKind.TEXT -> KeyboardType.Text
+                                    },
+                                imeAction = imeAction,
+                            )
+                        },
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { onNextField() },
+                            onDone = {
+                                keyboard?.hide()
+                                focusManager.clearFocus()
+                            },
+                        ),
                     modifier =
                         Modifier
                             .fillMaxWidth()

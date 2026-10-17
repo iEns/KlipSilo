@@ -4,6 +4,7 @@ package com.phaprodevelop.klipsilo.data
 
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -138,6 +139,70 @@ class FormFieldLabelTest {
         assertEquals(0f, visual.top, 0.001f)
         assertEquals(20f / 400f, visual.right, 0.001f)
         assertEquals(20f / 200f, visual.bottom, 0.001f)
+    }
+
+    @Test
+    fun textFlags_parseBits13_14_and_29() {
+        val empty = parseTextFieldFlags(0L)
+        assertFalse(empty.multiline)
+        assertFalse(empty.password)
+        assertFalse(empty.comb)
+        val none = parseTextFieldFlags(null)
+        assertFalse(none.multiline)
+        assertFalse(none.password)
+        assertFalse(none.comb)
+        // Observed in the wild: exactly the multiline flag (#52).
+        assertEquals(
+            TextFieldFlagBits(multiline = true, password = false, comb = false),
+            parseTextFieldFlags(TEXT_FIELD_FLAG_MULTILINE),
+        )
+        assertTrue(parseTextFieldFlags(TEXT_FIELD_FLAG_PASSWORD).password)
+        assertTrue(parseTextFieldFlags(TEXT_FIELD_FLAG_COMB).comb)
+        assertTrue(
+            parseTextFieldFlags(
+                TEXT_FIELD_FLAG_MULTILINE or TEXT_FIELD_FLAG_PASSWORD or 2L or 4L,
+            ).multiline,
+        )
+    }
+
+    @Test
+    fun keyboardKind_emailWords() {
+        assertEquals(FormKeyboardKind.EMAIL, formKeyboardKind("Email", null, null))
+        assertEquals(FormKeyboardKind.EMAIL, formKeyboardKind("e_mail_address", null, null))
+        assertEquals(FormKeyboardKind.EMAIL, formKeyboardKind(null, "Kontakt", "E-Mail"))
+        assertEquals(FormKeyboardKind.EMAIL, formKeyboardKind("fld_7", null, "Mail address"))
+        assertEquals(FormKeyboardKind.EMAIL, formKeyboardKind("UserEmail", null, null))
+    }
+
+    @Test
+    fun keyboardKind_phoneWords() {
+        assertEquals(FormKeyboardKind.PHONE, formKeyboardKind("Phone", null, null))
+        assertEquals(FormKeyboardKind.PHONE, formKeyboardKind("Tel.", null, null))
+        assertEquals(FormKeyboardKind.PHONE, formKeyboardKind(null, "Telefon", null))
+        assertEquals(FormKeyboardKind.PHONE, formKeyboardKind("Mobil", null, null))
+        // A field named "Phone number" is phone, not number.
+        assertEquals(FormKeyboardKind.PHONE, formKeyboardKind("Phone number", null, null))
+    }
+
+    @Test
+    fun keyboardKind_numberWords() {
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("Number", null, null))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("ZIP", null, null))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("Postnr", null, null))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind(null, null, "Postcode"))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("Age", null, null))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("Alder", null, null))
+        assertEquals(FormKeyboardKind.NUMBER, formKeyboardKind("Year", null, null))
+    }
+
+    @Test
+    fun keyboardKind_otherNames_stayText() {
+        assertEquals(FormKeyboardKind.TEXT, formKeyboardKind("Name", null, null))
+        assertEquals(FormKeyboardKind.TEXT, formKeyboardKind("Date", null, null))
+        assertEquals(FormKeyboardKind.TEXT, formKeyboardKind("Fødselsdato", null, null))
+        // Keyword only as part of an unrelated word must not match.
+        assertEquals(FormKeyboardKind.TEXT, formKeyboardKind("package_count", null, null))
+        assertEquals(FormKeyboardKind.TEXT, formKeyboardKind("Telephone_holder", null, "microphone note"))
     }
 
     private fun literal(

@@ -74,6 +74,64 @@ internal fun resolveFormFieldLabel(
     return ResolvedFieldLabel.Numbered(type, fallbackNumber)
 }
 
+/** Keyboard the on-screen keyboard should use for one form field. */
+enum class FormKeyboardKind {
+    TEXT,
+    EMAIL,
+    PHONE,
+    NUMBER,
+}
+
+/** Bits of a text field's /Ff entry that change how the field looks on screen. */
+data class TextFieldFlagBits(
+    val multiline: Boolean,
+    val password: Boolean,
+    val comb: Boolean,
+)
+
+/** Bit 13 of /Ff (zero based 12): the text field spans several lines. */
+const val TEXT_FIELD_FLAG_MULTILINE = 1L shl 12
+
+/** Bit 14 of /Ff (zero based 13): the text field is a password field. */
+const val TEXT_FIELD_FLAG_PASSWORD = 1L shl 13
+
+/** Bit 29 of /Ff (zero based 28): the text field is divided into equal cells. */
+const val TEXT_FIELD_FLAG_COMB = 1L shl 28
+
+internal fun parseTextFieldFlags(fieldFlags: Long?): TextFieldFlagBits {
+    val flags = fieldFlags ?: 0L
+    return TextFieldFlagBits(
+        multiline = flags and TEXT_FIELD_FLAG_MULTILINE != 0L,
+        password = flags and TEXT_FIELD_FLAG_PASSWORD != 0L,
+        comb = flags and TEXT_FIELD_FLAG_COMB != 0L,
+    )
+}
+
+private val emailKeyboardWords = setOf("email", "mail")
+
+private val phoneKeyboardWords = setOf("phone", "tel", "telefon", "mobil")
+
+private val numberKeyboardWords = setOf("number", "zip", "postnr", "postcode", "age", "alder", "year")
+
+/**
+ * Keyboard type from the field's name, tooltip and label. URL/email-like words suggest an email
+ * keyboard, phone words a phone keyboard, count words a number keyboard; anything else stays text
+ * (including date fields, where the typed separators vary too much for a numeric keyboard).
+ */
+internal fun formKeyboardKind(
+    name: String?,
+    alternateName: String?,
+    label: String?,
+): FormKeyboardKind {
+    val haystack = listOfNotNull(name, alternateName, label).joinToString(" ").lowercase(Locale.ROOT)
+    if (haystack.contains("email")) return FormKeyboardKind.EMAIL
+    val words = haystack.split(Regex("[^a-z0-9]+")).filter { it.isNotEmpty() }
+    if (words.any { it in emailKeyboardWords }) return FormKeyboardKind.EMAIL
+    if (words.any { it in phoneKeyboardWords }) return FormKeyboardKind.PHONE
+    if (words.any { it in numberKeyboardWords }) return FormKeyboardKind.NUMBER
+    return FormKeyboardKind.TEXT
+}
+
 internal fun prettifyFieldName(raw: String): String {
     val spaced =
         raw
