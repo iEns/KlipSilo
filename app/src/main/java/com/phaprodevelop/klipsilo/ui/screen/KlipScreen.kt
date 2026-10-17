@@ -73,11 +73,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.HapticFeedbackConstantsCompat
@@ -89,6 +91,7 @@ import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
+import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.formatTimestamp
@@ -337,7 +340,9 @@ fun KlipScreen(
             ) {
                 Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                ButtonLabel(context.getString(R.string.save_current_clipboard))
+                // 3 lines at word boundaries instead of an ellipsis when even the
+                // floor font size cannot fit 2 lines at large font scales (#54, #45).
+                ButtonLabel(context.getString(R.string.save_current_clipboard), maxLines = 3)
             }
 
             CompactSearchField(
@@ -661,6 +666,15 @@ internal val LeadingIconSize = 24.dp
 /** Identical gap between the leading slot and the text column in every row type. */
 internal val LeadingSlotSpacing = 12.dp
 
+/** Narrower leading slot for the reflowed clip row at large font scale (#54). */
+internal val CompactLeadingSlotSize = 32.dp
+
+/** Smaller leading icon inside the compact slot (#54). */
+internal val CompactLeadingIconSize = 20.dp
+
+/** Gap between the leading slot and the text column in the compact row (#54). */
+internal val CompactLeadingSlotSpacing = 8.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ClipItemRow(
@@ -672,6 +686,9 @@ private fun ClipItemRow(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    // Reflow the row at large font scales (#54): the side-by-side layout squeezes
+    // the title down to a few characters and wraps the meta line word by word.
+    val compact = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
     val openRow = {
         ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
         onClick()
@@ -691,13 +708,15 @@ private fun ClipItemRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = if (compact) Alignment.Top else Alignment.CenterVertically,
         ) {
+            val slotSize = if (compact) CompactLeadingSlotSize else LeadingSlotSize
+            val iconSize = if (compact) CompactLeadingIconSize else LeadingIconSize
             val hasThumbnail = entry.contentType == ContentType.IMAGE && entry.filePath != null
             Box(
                 modifier =
                     Modifier
-                        .size(LeadingSlotSize)
+                        .size(slotSize)
                         .then(
                             if (onDoubleTap != null) {
                                 Modifier.pointerInput(entry.id) {
@@ -719,7 +738,7 @@ private fun ClipItemRow(
                         contentDescription = null,
                         modifier =
                             Modifier
-                                .size(LeadingSlotSize)
+                                .size(slotSize)
                                 .clip(RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Crop,
                     )
@@ -727,72 +746,143 @@ private fun ClipItemRow(
                     Icon(
                         imageVector = typeIcon(entry.contentType),
                         contentDescription = null,
-                        modifier = Modifier.size(LeadingIconSize),
+                        modifier = Modifier.size(iconSize),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
-            Spacer(Modifier.width(LeadingSlotSpacing))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text =
-                        clipListTitle(entry.contentType, entry.previewText)
-                            .ifBlank { context.getString(R.string.untitled_clip) },
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = remember(entry.filePath) { clipInfo(context, entry) },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = formatTimestamp(context, entry.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (entry.isPinned) {
-                        IconButton(
-                            onClick = {
-                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                onTogglePin()
-                            },
-                            modifier = Modifier.size(40.dp),
+            Spacer(Modifier.width(if (compact) CompactLeadingSlotSpacing else LeadingSlotSpacing))
+            val title =
+                clipListTitle(entry.contentType, entry.previewText)
+                    .ifBlank { context.getString(R.string.untitled_clip) }
+            val info = remember(entry.filePath) { clipInfo(context, entry) }
+            if (compact) {
+                Column(Modifier.weight(1f)) {
+                    // Full-width title over up to 2 lines; ButtonLabel keeps the
+                    // wrap at word boundaries and ellipsizes at the end (#54).
+                    ButtonLabel(
+                        text = title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Type, size and age share one line that is never broken
+                        // per word — the least important tail is ellipsized (#54).
+                        Text(
+                            text = "$info • ${formatTimestamp(context, entry.timestamp)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        CompositionLocalProvider(
+                            LocalMinimumInteractiveComponentSize provides Dp.Unspecified,
                         ) {
-                            Icon(
-                                Icons.Filled.PushPin,
-                                contentDescription = context.getString(R.string.pin_or_unpin),
-                                tint = Color(0xFF4CAF50),
-                            )
+                            if (entry.isPinned) {
+                                IconButton(
+                                    onClick = {
+                                        ViewCompat.performHapticFeedback(
+                                            view,
+                                            HapticFeedbackConstantsCompat.CONFIRM,
+                                        )
+                                        onTogglePin()
+                                    },
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.PushPin,
+                                        contentDescription = context.getString(R.string.pin_or_unpin),
+                                        tint = Color(0xFF4CAF50),
+                                    )
+                                }
+                            }
+                            if (entry.isLocked) {
+                                Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Filled.Lock,
+                                        contentDescription = context.getString(R.string.lock_or_unlock),
+                                        modifier = Modifier.size(22.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
                         }
                     }
-                    if (entry.isLocked) {
-                        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.Lock,
-                                contentDescription = context.getString(R.string.lock_or_unlock),
-                                modifier = Modifier.size(22.dp),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
+                }
+                Spacer(Modifier.width(4.dp))
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                     IconButton(
-                        onClick = {
-                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            onOpenSheet()
-                        },
+                        onClick = openMenu,
                         modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
                             Icons.Filled.MoreVert,
                             contentDescription = context.getString(R.string.clip_more_actions),
                         )
+                    }
+                }
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = info,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatTimestamp(context, entry.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (entry.isPinned) {
+                            IconButton(
+                                onClick = {
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    onTogglePin()
+                                },
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.PushPin,
+                                    contentDescription = context.getString(R.string.pin_or_unpin),
+                                    tint = Color(0xFF4CAF50),
+                                )
+                            }
+                        }
+                        if (entry.isLocked) {
+                            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Filled.Lock,
+                                    contentDescription = context.getString(R.string.lock_or_unlock),
+                                    modifier = Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = {
+                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                onOpenSheet()
+                            },
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = context.getString(R.string.clip_more_actions),
+                            )
+                        }
                     }
                 }
             }
@@ -921,3 +1011,73 @@ private fun looksLikeHtml(text: String?): Boolean {
     return trimmed.startsWith("<html", ignoreCase = true) ||
         text.contains("<body>", ignoreCase = true)
 }
+
+@Preview(name = "clip rows - normal scale", widthDp = 360, showBackground = true)
+@Composable
+private fun ClipRowsNormalPreview() {
+    MaterialTheme {
+        Column(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ClipItemRow(
+                entry = previewEntry(isPinned = true, isLocked = true),
+                onClick = {},
+                onTogglePin = {},
+                onOpenSheet = {},
+            )
+            ClipItemRow(
+                entry = previewEntry(title = "Kort titel"),
+                onClick = {},
+                onTogglePin = {},
+                onOpenSheet = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "clip rows - large font", fontScale = 2f, widthDp = 360, showBackground = true)
+@Composable
+private fun ClipRowsLargeFontPreview() {
+    MaterialTheme {
+        Column(Modifier.fillMaxWidth().padding(8.dp)) {
+            Button(
+                onClick = {},
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            ) {
+                Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                ButtonLabel("Aktuelle Zwischenablage speichern", maxLines = 3)
+            }
+            Spacer(Modifier.height(8.dp))
+            ClipItemRow(
+                entry = previewEntry(isPinned = true, isLocked = true),
+                onClick = {},
+                onTogglePin = {},
+                onOpenSheet = {},
+            )
+            ClipItemRow(
+                entry = previewEntry(title = "Kort titel"),
+                onClick = {},
+                onTogglePin = {},
+                onOpenSheet = {},
+            )
+        }
+    }
+}
+
+/** A long-named file clip for the row previews. */
+private fun previewEntry(
+    title: String = "Langt_dokument_navn_der_ikke_plads",
+    isPinned: Boolean = false,
+    isLocked: Boolean = false,
+): ClipboardEntry =
+    ClipboardEntry(
+        id = 1,
+        contentType = ContentType.FILE,
+        filePath = "missing/preview.pdf",
+        previewText = title,
+        timestamp = 0,
+        isPinned = isPinned,
+        isLocked = isLocked,
+    )

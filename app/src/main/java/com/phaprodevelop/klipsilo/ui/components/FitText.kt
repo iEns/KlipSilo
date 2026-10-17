@@ -39,6 +39,12 @@ internal const val LABEL_FONT_FLOOR_FRACTION = 0.75f
 internal const val NAV_LABEL_FONT_FLOOR_FRACTION = 0.6f
 
 /**
+ * Font scale from which layouts reflow into their compact variant (#54):
+ * past this the side-by-side rows no longer leave room for their text.
+ */
+internal const val LARGE_FONT_SCALE = 1.5f
+
+/**
  * Largest font size (stepping down 1sp at a time from [base], floor at
  * [floorFraction] of it) for which [fits] reports the text renders without
  * overflow. Returns `null` when even the floor size does not fit — the caller
