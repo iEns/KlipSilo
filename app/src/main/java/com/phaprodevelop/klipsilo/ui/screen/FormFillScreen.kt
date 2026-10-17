@@ -2,6 +2,8 @@ package com.phaprodevelop.klipsilo.ui.screen
 
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,6 +22,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,7 +50,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,13 +63,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
@@ -81,12 +83,13 @@ import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Preview height while the keyboard is open, so the field list keeps the screen space. */
+private val CollapsedPreviewHeight = 88.dp
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun FormFillScreen(
     entryId: Long,
@@ -120,12 +123,12 @@ fun FormFillScreen(
             ),
     ) { mutableStateOf<Map<String, String>>(emptyMap()) }
     val scroll = rememberScrollState()
-    val scope = rememberCoroutineScope()
     val focusRequesters = remember { mutableMapOf<String, FocusRequester>() }
-    var anchors by remember { mutableStateOf(mapOf<String, Int>()) }
+    val bringIntoViewRequesters = remember { mutableMapOf<String, BringIntoViewRequester>() }
     var focusedField by remember { mutableStateOf<String?>(null) }
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
+    val imeVisible = imeBottom > 0
 
     val navigateBack by viewModel.navigateBack.collectAsState()
     LaunchedEffect(navigateBack) {
@@ -139,8 +142,7 @@ fun FormFillScreen(
     LaunchedEffect(imeBottom, focusedField) {
         val name = focusedField ?: return@LaunchedEffect
         if (imeBottom <= 0) return@LaunchedEffect
-        val y = anchors[name] ?: return@LaunchedEffect
-        scroll.animateScrollTo(y)
+        bringIntoViewRequesters[name]?.bringIntoView()
     }
 
     if (!lookupDone && entry == null) {
@@ -221,10 +223,7 @@ fun FormFillScreen(
         field?.hits?.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
         focusedField = name
         val requester = focusRequesters[name] ?: return
-        scope.launch {
-            runCatching { requester.requestFocus() }
-            anchors[name]?.let { y -> scroll.animateScrollTo(y) }
-        }
+        runCatching { requester.requestFocus() }
     }
 
     BackHandler { leave() }
@@ -260,6 +259,7 @@ fun FormFillScreen(
                     pageIndex = pageIndex,
                     fields = formFields.orEmpty(),
                     values = values,
+                    imeVisible = imeVisible,
                     onFieldTap = { name -> focusField(name) },
                 )
             }
@@ -311,6 +311,8 @@ fun FormFillScreen(
                                 field = field,
                                 value = values[name].orEmpty(),
                                 focusRequester = requester,
+                                bringIntoViewRequester =
+                                    bringIntoViewRequesters.getOrPut(name) { BringIntoViewRequester() },
                                 onValueChange = {
                                     values = values + (name to it)
                                     dirty = true
@@ -318,12 +320,6 @@ fun FormFillScreen(
                                 onFocused = {
                                     focusedField = name
                                     field.hits.firstOrNull()?.pageIndex?.let { page -> pageIndex = page }
-                                    scope.launch {
-                                        anchors[name]?.let { y -> scroll.animateScrollTo(y) }
-                                    }
-                                },
-                                onPositioned = { y ->
-                                    if (anchors[name] != y) anchors = anchors + (name to y)
                                 },
                             )
                         }
@@ -363,10 +359,15 @@ private fun FormPdfPreview(
     pageIndex: Int,
     fields: List<FormFieldInfo>,
     values: Map<String, String>,
+    imeVisible: Boolean,
     onFieldTap: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val previewHeight = LocalConfiguration.current.screenHeightDp.dp * 0.40f
+    val expandedHeight = LocalConfiguration.current.screenHeightDp.dp * 0.40f
+    val previewHeight by animateDpAsState(
+        targetValue = if (imeVisible) CollapsedPreviewHeight else expandedHeight,
+        label = "formPreviewHeight",
+    )
     Box(
         modifier = Modifier.fillMaxWidth().height(previewHeight),
         contentAlignment = Alignment.Center,
@@ -448,23 +449,22 @@ private fun FormValueOverlay(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FormFieldRow(
     field: FormFieldInfo,
     value: String,
     focusRequester: FocusRequester,
+    bringIntoViewRequester: BringIntoViewRequester,
     onValueChange: (String) -> Unit,
     onFocused: () -> Unit,
-    onPositioned: (Int) -> Unit,
 ) {
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .onGloballyPositioned { coords ->
-                    onPositioned(coords.positionInParent().y.roundToInt())
-                },
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
         when (field.type) {
             FormFieldType.CHECKBOX -> {
@@ -563,4 +563,19 @@ private fun hitField(
         }
     }
     return bestName
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 240, showBackground = true)
+@Composable
+private fun FormPdfPreviewPreview() {
+    MaterialTheme {
+        FormPdfPreview(
+            bitmap = Bitmap.createBitmap(80, 104, Bitmap.Config.ARGB_8888),
+            pageIndex = 0,
+            fields = emptyList(),
+            values = emptyMap(),
+            imeVisible = false,
+            onFieldTap = {},
+        )
+    }
 }
