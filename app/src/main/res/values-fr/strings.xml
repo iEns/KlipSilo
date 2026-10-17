@@ -34,7 +34,7 @@
     <string name="clip_saved">Extrait enregistré</string>
     <string name="already_saved">Déjà enregistré</string>
     <string name="already_saved_message">%1$s est déjà enregistré.</string>
-    <string name="open_existing">Ouvrir l\'existant</string>
+    <string name="open_existing">Ouvrir l\'extrait</string>
     <string name="save_again">Enregistrer à nouveau</string>
     <string name="image_saved">Image enregistrée</string>
     <string name="try_again">Réessayer</string>
@@ -198,7 +198,7 @@
     <string name="system">Système</string>
     <string name="back">Retour</string>
     <string name="save">Enregistrer</string>
-    <string name="take_photo">Take photo</string>
+    <string name="take_photo">Prendre une photo</string>
     <string name="captured">Capturé</string>
     <string name="file_cannot_open">Impossible d\'ouvrir le fichier</string>
     <string name="text_editor">Modifier</string>
@@ -279,13 +279,13 @@
     <string name="markup_color_red">Rouge</string>
     <string name="markup_color_yellow">Jaune</string>
     <string name="markup_font_size">Aa %1$d pt</string>
-    <string name="markup_size_decrease">Decrease size</string>
-    <string name="markup_size_increase">Increase size</string>
+    <string name="markup_size_decrease">Réduire la taille</string>
+    <string name="markup_size_increase">Augmenter la taille</string>
     <string name="markup_stroke_size_value">%1$d pt</string>
     <string name="markup_prev_page">Page précédente</string>
     <string name="markup_next_page">Page suivante</string>
-    <string name="page_selector_indicator_cd">Page %1$d of %2$d, tap to go to page</string>
-    <string name="page_selector_error">Enter a page number between 1 and %1$d</string>
+    <string name="page_selector_indicator_cd">Page %1$d sur %2$d, appuyer pour changer de page</string>
+    <string name="page_selector_error">Saisissez un numéro de page entre 1 et %1$d</string>
     <string name="save_pdf">Enregistrer le PDF</string>
     <string name="done">Terminé</string>
     <string name="remove">Retirer</string>
