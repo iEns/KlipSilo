@@ -73,10 +73,16 @@ class FitTextTest {
     }
 
     @Test
-    fun isMidWordBreak_treatsMixedCaseHyphenBreaksAsMidWord() {
-        // Conservative: breaking after a hyphen is also flagged so the font
-        // keeps shrinking until the whole hyphenated chunk fits.
-        assertTrue(isMidWordBreak("SVG-Datei", 4))
+    fun isMidWordBreak_acceptsBreaksAfterAHyphen() {
+        // A hyphen is a word boundary: "OCR-Seite" may wrap after "OCR-" in
+        // the PDF viewer toolbar at large font scales (#45) instead of being
+        // clipped or ellipsized.
+        assertFalse(isMidWordBreak("OCR-Seite", 4))
+        assertFalse(isMidWordBreak("SVG-Datei", 4))
+        // But the characters on either side of the break must be the
+        // separator — inside "OCR" or "Seite" it is still a mid-word break.
+        assertTrue(isMidWordBreak("OCR-Seite", 2))
+        assertTrue(isMidWordBreak("OCR-Seite", 6))
     }
 
     @Test

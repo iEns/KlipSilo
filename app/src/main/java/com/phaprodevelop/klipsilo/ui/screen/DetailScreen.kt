@@ -1411,13 +1411,14 @@ private fun PdfBarAction(
             modifier = Modifier.size(22.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
-        Text(
+        // Icon plus up to two label lines at word boundaries (#45): the
+        // single-line label clipped "OCR-Seite" at large font scales.
+        ButtonLabel(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
         )
     }
 }

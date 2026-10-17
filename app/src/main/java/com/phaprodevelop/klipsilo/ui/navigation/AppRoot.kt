@@ -185,9 +185,10 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     NavigationBar {
                         BottomNavItem.entries.forEach { item ->
                             val label = stringResource(item.labelRes)
+                            val selected = currentRoute == item.route
                             val labelFits = navLabelFits(label, slotWidthPx)
                             NavigationBarItem(
-                                selected = currentRoute == item.route,
+                                selected = selected,
                                 onClick = {
                                     if (item == BottomNavItem.VÆRKTØJER) {
                                         if (
@@ -212,7 +213,22 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                                         }
                                     }
                                 },
-                                icon = { Icon(item.icon, contentDescription = null) },
+                                icon = {
+                                    // When the label is hidden (icon-only
+                                    // unselected item, #45) the label must
+                                    // still be exposed to TalkBack; when the
+                                    // label is shown it would be announced
+                                    // twice, so the icon stays silent there.
+                                    Icon(
+                                        item.icon,
+                                        contentDescription =
+                                            if (labelFits || selected) {
+                                                null
+                                            } else {
+                                                label
+                                            },
+                                    )
+                                },
                                 alwaysShowLabel = labelFits,
                                 label = {
                                     // Single line, never broken inside a word:

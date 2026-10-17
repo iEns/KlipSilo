@@ -514,14 +514,20 @@ private fun ToolRow(
             Icon(icon, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium)
+                // Titles and notes wrap only at word boundaries at large font
+                // scales (#45): "Clips wiederherstellen" broke as
+                // "wiederherstelle/n" in a plain soft-wrapping Text.
+                ButtonLabel(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                )
                 if (note != null) {
-                    Text(
+                    ButtonLabel(
                         text = note,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
