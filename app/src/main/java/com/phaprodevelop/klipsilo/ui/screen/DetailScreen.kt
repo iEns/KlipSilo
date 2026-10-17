@@ -14,7 +14,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -30,7 +29,6 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -43,7 +41,6 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -62,7 +59,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -70,7 +66,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,9 +95,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -123,6 +116,8 @@ import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
+import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
+import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -1288,138 +1283,85 @@ private fun PdfViewer(
                     filterQuality = FilterQuality.High,
                 )
             }
-            Row(
+            val actions =
+                buildList {
+                    if (onSavePageAsPdf != null) {
+                        add(
+                            PdfBarActionSpec(
+                                icon = Icons.Filled.PictureAsPdf,
+                                label = context.getString(R.string.save_page_pdf),
+                                onClick = { onSavePageAsPdf(pageIndex) },
+                            ),
+                        )
+                    }
+                    if (onOcrPage != null) {
+                        add(
+                            PdfBarActionSpec(
+                                icon = Icons.Filled.TextFields,
+                                label = context.getString(R.string.ocr_page),
+                                onClick = { onOcrPage(pageIndex) },
+                            ),
+                        )
+                    }
+                }
+            val menu =
+                buildList {
+                    if (onExtractImages != null) {
+                        add(
+                            PdfBarActionSpec(
+                                icon = Icons.Filled.Photo,
+                                label = context.getString(R.string.pdf_to_image),
+                                onClick = { onExtractImages(pageIndex) },
+                            ),
+                        )
+                    }
+                    if (onScanQr != null) {
+                        add(
+                            PdfBarActionSpec(
+                                icon = Icons.Filled.QrCodeScanner,
+                                label = context.getString(R.string.scan_content),
+                                onClick = { onScanQr(pageIndex) },
+                            ),
+                        )
+                    }
+                }
+            PdfViewerActionBar(
+                pageIndex = pageIndex,
+                pageCount = pageCount,
+                onPrev = {
+                    if (pageIndex > 0) {
+                        pageIndex--
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+                onNext = {
+                    if (pageIndex < pageCount - 1) {
+                        pageIndex++
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+                onGoToPage = { target ->
+                    if (target != pageIndex) {
+                        pageIndex = target
+                        offsetX = 0f
+                        offsetY = 0f
+                        scale = 1f
+                    }
+                },
+                actions = actions,
+                menu = menu,
+                moreLabel = context.getString(R.string.more_options),
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
                         .padding(8.dp)
-                        .horizontalScroll(rememberScrollState())
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.94f),
-                            RoundedCornerShape(16.dp),
-                        )
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (pageCount > 1) {
-                    PageSelector(
-                        pageIndex = pageIndex,
-                        pageCount = pageCount,
-                        onPrev = {
-                            if (pageIndex > 0) {
-                                pageIndex--
-                                offsetX = 0f
-                                offsetY = 0f
-                                scale = 1f
-                            }
-                        },
-                        onNext = {
-                            if (pageIndex < pageCount - 1) {
-                                pageIndex++
-                                offsetX = 0f
-                                offsetY = 0f
-                                scale = 1f
-                            }
-                        },
-                        onGoToPage = { target ->
-                            if (target != pageIndex) {
-                                pageIndex = target
-                                offsetX = 0f
-                                offsetY = 0f
-                                scale = 1f
-                            }
-                        },
-                    )
-                }
-                if (onSavePageAsPdf != null) {
-                    PdfBarAction(
-                        icon = Icons.Filled.PictureAsPdf,
-                        label = context.getString(R.string.save_page_pdf),
-                        onClick = { onSavePageAsPdf(pageIndex) },
-                    )
-                }
-                if (onOcrPage != null) {
-                    PdfBarAction(
-                        icon = Icons.Filled.TextFields,
-                        label = context.getString(R.string.ocr_page),
-                        onClick = { onOcrPage(pageIndex) },
-                    )
-                }
-                var extraMenuOpen by remember { mutableStateOf(false) }
-                Box {
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                        IconButton(
-                            onClick = { extraMenuOpen = true },
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.MoreVert,
-                                contentDescription = context.getString(R.string.more_options),
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = extraMenuOpen,
-                        onDismissRequest = { extraMenuOpen = false },
-                    ) {
-                        if (onExtractImages != null) {
-                            DropdownMenuItem(
-                                text = { Text(context.getString(R.string.pdf_to_image)) },
-                                leadingIcon = { Icon(Icons.Filled.Photo, null) },
-                                onClick = {
-                                    extraMenuOpen = false
-                                    onExtractImages(pageIndex)
-                                },
-                            )
-                        }
-                        if (onScanQr != null) {
-                            DropdownMenuItem(
-                                text = { Text(context.getString(R.string.scan_content)) },
-                                leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null) },
-                                onClick = {
-                                    extraMenuOpen = false
-                                    onScanQr(pageIndex)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
+                        .fillMaxWidth(),
+            )
         }
-    }
-}
-
-@Composable
-private fun PdfBarAction(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier =
-            Modifier
-                .widthIn(max = 88.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onClick)
-                .clearAndSetSemantics { contentDescription = label }
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        // Icon plus up to two label lines at word boundaries (#45): the
-        // single-line label clipped "OCR-Seite" at large font scales.
-        ButtonLabel(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-        )
     }
 }
 
