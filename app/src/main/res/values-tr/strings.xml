@@ -197,6 +197,7 @@
     <string name="system">Sistem</string>
     <string name="back">Geri</string>
     <string name="save">Kaydet</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Yakalandı</string>
     <string name="file_cannot_open">Dosya açılamıyor</string>
     <string name="text_editor">Düzenle</string>

@@ -199,6 +199,7 @@
     <string name="system">Система</string>
     <string name="back">Назад</string>
     <string name="save">Сохранить</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Снято</string>
     <string name="file_cannot_open">Не удаётся открыть файл</string>
     <string name="text_editor">Изменить</string>

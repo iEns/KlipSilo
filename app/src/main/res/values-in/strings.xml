@@ -196,6 +196,7 @@
     <string name="system">Sistem</string>
     <string name="back">Kembali</string>
     <string name="save">Simpan</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Diambil</string>
     <string name="file_cannot_open">File tidak dapat dibuka</string>
     <string name="text_editor">Edit</string>

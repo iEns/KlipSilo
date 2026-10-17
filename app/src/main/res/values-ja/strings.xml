@@ -196,6 +196,7 @@
     <string name="system">システム</string>
     <string name="back">戻る</string>
     <string name="save">保存</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">取り込み済み</string>
     <string name="file_cannot_open">ファイルを開けません</string>
     <string name="text_editor">編集</string>

@@ -196,6 +196,7 @@
     <string name="system">시스템</string>
     <string name="back">뒤로</string>
     <string name="save">저장</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">캡처됨</string>
     <string name="file_cannot_open">파일을 열 수 없습니다</string>
     <string name="text_editor">편집</string>

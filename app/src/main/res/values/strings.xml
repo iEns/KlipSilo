@@ -197,6 +197,7 @@
     <string name="system">System</string>
     <string name="back">Back</string>
     <string name="save">Save</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Captured</string>
     <string name="file_cannot_open">File can\'t be opened</string>
     <string name="text_editor">Edit</string>

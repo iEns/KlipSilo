@@ -196,6 +196,7 @@
     <string name="system">系统</string>
     <string name="back">返回</string>
     <string name="save">保存</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">已捕获</string>
     <string name="file_cannot_open">无法打开文件</string>
     <string name="text_editor">编辑</string>

@@ -197,6 +197,7 @@
     <string name="system">System</string>
     <string name="back">Zurück</string>
     <string name="save">Speichern</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Erfasst</string>
     <string name="file_cannot_open">Datei kann nicht geöffnet werden</string>
     <string name="text_editor">Bearbeiten</string>

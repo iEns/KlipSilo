@@ -197,6 +197,7 @@
     <string name="system">System</string>
     <string name="back">Tilbage</string>
     <string name="save">Gem</string>
+    <string name="take_photo">Take photo</string>
     <string name="captured">Billede taget</string>
     <string name="file_cannot_open">Filen kan ikke åbnes</string>
     <string name="text_editor">Rediger</string>

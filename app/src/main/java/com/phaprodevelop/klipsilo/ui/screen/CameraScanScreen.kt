@@ -28,6 +28,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +56,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -77,6 +80,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
@@ -607,65 +613,53 @@ fun CameraScanScreen(
                             Modifier
                                 .align(if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter)
                                 .navigationBarsPadding()
-                                .padding(32.dp),
-                        contentAlignment = Alignment.Center,
+                                .padding(24.dp),
                     ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(72.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.2f))
-                                    .border(3.dp, Color.White, CircleShape)
-                                    .clickable(enabled = !capturing && !scanned) {
-                                        capturing = true
-                                        val photoFile =
-                                            File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
-                                        val outputOptions =
-                                            ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                                        imageCapture.takePicture(
-                                            outputOptions,
-                                            ContextCompat.getMainExecutor(context),
-                                            object : ImageCapture.OnImageSavedCallback {
-                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                                    val decoded =
-                                                        decodeSampledWithFallback(
-                                                            context,
-                                                            photoFile.absolutePath,
-                                                            MAX_CAPTURE_DIM,
-                                                        )
-                                                    displayed.update(decoded)
-                                                    photoFile.delete()
-                                                    capturing = false
-                                                    if (decoded == null) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            context.getString(R.string.clip_save_failed),
-                                                            Toast.LENGTH_SHORT,
-                                                        ).show()
-                                                    }
-                                                }
+                        CameraShutterButton(
+                            contentDescription = stringResource(R.string.take_photo),
+                            enabled = !capturing && !scanned,
+                            onClick = {
+                                capturing = true
+                                val photoFile =
+                                    File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
+                                val outputOptions =
+                                    ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                                imageCapture.takePicture(
+                                    outputOptions,
+                                    ContextCompat.getMainExecutor(context),
+                                    object : ImageCapture.OnImageSavedCallback {
+                                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                            val decoded =
+                                                decodeSampledWithFallback(
+                                                    context,
+                                                    photoFile.absolutePath,
+                                                    MAX_CAPTURE_DIM,
+                                                )
+                                            displayed.update(decoded)
+                                            photoFile.delete()
+                                            capturing = false
+                                            if (decoded == null) {
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.clip_save_failed),
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                        }
 
-                                                override fun onError(exception: ImageCaptureException) {
-                                                    photoFile.delete()
-                                                    capturing = false
-                                                    Toast.makeText(
-                                                        context,
-                                                        context.getString(R.string.clip_save_failed),
-                                                        Toast.LENGTH_SHORT,
-                                                    ).show()
-                                                }
-                                            },
-                                        )
+                                        override fun onError(exception: ImageCaptureException) {
+                                            photoFile.delete()
+                                            capturing = false
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.clip_save_failed),
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
+                                        }
                                     },
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(if (capturing) 40.dp else 54.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White),
-                            )
-                        }
+                                )
+                            },
+                        )
                     }
                 }
                 if (cameraBindFailed) {
@@ -855,6 +849,47 @@ fun CameraScanScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Standard camera shutter button (#51): a solid white disc inside a white ring
+ * with a small transparent gap, so it never reads as a crescent moon. The disc
+ * shrinks slightly while pressed or while a capture is in flight.
+ */
+@Composable
+private fun CameraShutterButton(
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val discSize = if (pressed || !enabled) 40.dp else 48.dp
+    Box(
+        modifier =
+            modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = ripple(),
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+                .semantics { this.contentDescription = contentDescription }
+                .border(4.dp, Color.White, CircleShape)
+                .padding(6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(discSize)
+                .clip(CircleShape)
+                .background(Color.White),
+        )
     }
 }
 
