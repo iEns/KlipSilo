@@ -701,10 +701,16 @@ fun AnnotatePdfScreen(
                         title = context.getString(R.string.annotate_title),
                         enabled = entry.filePath != null,
                         onClick = {
-                            commitDrafts()
-                            val all = annotations.values.flatten()
-                            val allStrokes = strokes.values.flatten()
-                            viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                            if (dirty) {
+                                commitDrafts()
+                                val all = annotations.values.flatten()
+                                val allStrokes = strokes.values.flatten()
+                                viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                            } else {
+                                // Save with no changes (#60): just leave, like Back, instead
+                                // of creating an identical copy clip.
+                                onNavigateBack()
+                            }
                         },
                         modifier = Modifier.padding(end = 8.dp),
                     )

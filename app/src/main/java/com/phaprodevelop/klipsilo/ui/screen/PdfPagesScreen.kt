@@ -215,7 +215,13 @@ fun PdfPagesScreen(
                         enabled = pages.isNotEmpty() && filePath != null,
                         onClick = {
                             entry?.let {
-                                viewModel.savePdfPages(it, pages.map { p -> p.originalIndex })
+                                if (hasChanges) {
+                                    viewModel.savePdfPages(it, pages.map { p -> p.originalIndex })
+                                } else {
+                                    // Save with no changes (#60): just leave, like Back,
+                                    // instead of copying the unchanged PDF.
+                                    onNavigateBack()
+                                }
                             }
                         },
                     )

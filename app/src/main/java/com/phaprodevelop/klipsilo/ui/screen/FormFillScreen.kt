@@ -290,7 +290,16 @@ fun FormFillScreen(
                         label = context.getString(R.string.save_pdf),
                         title = context.getString(R.string.fill_form),
                         enabled = entry.filePath != null && !isConverting,
-                        onClick = { viewModel.fillForm(entry, values) },
+                        onClick = {
+                            if (dirty) {
+                                viewModel.fillForm(entry, values)
+                            } else {
+                                // Save with no changes (#60): just leave, like Back, instead
+                                // of filling a copy of the untouched form.
+                                viewModel.clearFormFields()
+                                onNavigateBack()
+                            }
+                        },
                     )
                 },
             )
