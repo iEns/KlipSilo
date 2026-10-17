@@ -91,6 +91,7 @@ import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.withDisplayBreaks
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
@@ -765,12 +766,13 @@ private fun ClipItemRow(
             val info = remember(entry.filePath) { clipInfo(context, entry) }
             if (compact) {
                 Column(Modifier.weight(1f)) {
-                    // Full-width title over up to 2 lines; ButtonLabel keeps the
-                    // wrap at word boundaries and ellipsizes at the end (#54).
+                    // Two lines at the body size. A title that needs a third line
+                    // ends in an ellipsis; it is not shrunk onto one line (#54).
                     ButtonLabel(
                         text = title,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
+                        floorFraction = CLIP_TITLE_MIN_SCALE,
                     )
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1043,7 +1045,8 @@ private fun ClipRowsNormalPreview() {
     }
 }
 
-@Preview(name = "clip rows - large font", fontScale = 2f, widthDp = 360, showBackground = true)
+@Preview(name = "clip rows - large font", fontScale = 2f, widthDp = 320, showBackground = true)
+@Preview(name = "clip rows - large font 360", fontScale = 2f, widthDp = 360, showBackground = true)
 @Composable
 private fun ClipRowsLargeFontPreview() {
     MaterialTheme {
@@ -1064,7 +1067,13 @@ private fun ClipRowsLargeFontPreview() {
                 onOpenSheet = {},
             )
             ClipItemRow(
-                entry = previewEntry(title = "Kort titel"),
+                entry = previewEntry(title = "Event_Registration_Form"),
+                onClick = {},
+                onTogglePin = {},
+                onOpenSheet = {},
+            )
+            ClipItemRow(
+                entry = previewEntry(title = "HTML from Weekend i København"),
                 onClick = {},
                 onTogglePin = {},
                 onOpenSheet = {},
