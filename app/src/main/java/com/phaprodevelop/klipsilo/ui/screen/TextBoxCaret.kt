@@ -88,3 +88,41 @@ internal fun expandedEditTapBounds(
     } else {
         Rect(box.left - padPx, box.top - padPx, box.right + trailingPadPx, box.bottom + padPx)
     }
+
+/**
+ * A tap mapped as a fraction of the rendered text block (#55b): the block is the canvas text
+ * estimate (wrapped lines, page bitmap pixels), so the screen can place the caret through the
+ * text field's own layout ([androidx.compose.ui.text.TextLayoutResult.getOffsetForPosition])
+ * once that renders. Returns null when the estimate is unusable (the caller keeps the fallback
+ * caret).
+ */
+internal fun caretFractionInText(
+    fx: Float,
+    fy: Float,
+    annotationXFraction: Float,
+    annotationYFraction: Float,
+    textWidthPx: Float,
+    textHeightPx: Float,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): Pair<Float, Float>? {
+    if (bitmapWidth <= 0 || bitmapHeight <= 0 || textWidthPx <= 0f || textHeightPx <= 0f) return null
+    val localX = (fx - annotationXFraction).coerceIn(0f, 1f) * bitmapWidth
+    val localY = (fy - annotationYFraction).coerceIn(0f, 1f) * bitmapHeight
+    // Caret rounding (#55b): the fraction maps through the field's layout, which then rounds to
+    // the nearest glyph boundary via the horizontal midpoints of the glyphs.
+    return (localX / textWidthPx).coerceIn(0f, 1f) to
+        (localY / textHeightPx).coerceIn(0f, 1f)
+}
+
+/** Field-local pixel position of a tap given as fractions of the text block (#55b). */
+internal fun localCaretPosition(
+    xFraction: Float,
+    yFraction: Float,
+    widthPx: Float,
+    heightPx: Float,
+): Offset =
+    Offset(
+        xFraction.coerceIn(0f, 1f) * widthPx,
+        yFraction.coerceIn(0f, 1f) * heightPx,
+    )

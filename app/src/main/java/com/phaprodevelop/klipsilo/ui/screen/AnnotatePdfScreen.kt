@@ -167,6 +167,16 @@ private sealed class DrawItem(val z: Long) {
     class Stroke(val index: Int, val stroke: PdfStroke, z: Long) : DrawItem(z)
 }
 
+/**
+ * Pending caret refinement (#55b): the tap, as fractions of the canvas text estimate, plus the
+ * draft text it belongs to. Applied through the text field's own layout at its first render.
+ */
+private class PendingCaret(
+    val forText: String,
+    val xFraction: Float,
+    val yFraction: Float,
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AnnotatePdfScreen(
@@ -229,6 +239,10 @@ fun AnnotatePdfScreen(
     var draftField by remember { mutableStateOf(TextFieldValue("")) }
     var draftFieldSize by remember { mutableStateOf(IntSize.Zero) }
     var draftFieldLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    // Caret refinement (#55b): the tap position as a fraction of the canvas text
+    // estimate, applied through the text field's own layout once it first renders
+    // (the pre-layout estimate can still be one character off).
+    var draftPendingCaret by remember { mutableStateOf<PendingCaret?>(null) }
     val annotationMode = tool == MarkupTool.TEXT
     val drawMode = tool == MarkupTool.LINE || tool == MarkupTool.DRAW || tool == MarkupTool.HIGHLIGHT
     val straightMode = tool == MarkupTool.LINE
@@ -349,7 +363,14 @@ fun AnnotatePdfScreen(
             historyTick++
             return
         }
-        if (pendingStroke != null || draft != null) {
+        val pendingDraft = draft
+        val draftWouldChangeMarkup =
+            pendingDraft != null &&
+                when (draftCommitDecision(pendingDraft)) {
+                    TextCommitDecision.Keep, TextCommitDecision.Drop -> false
+                    else -> true
+                }
+        if (pendingStroke != null || draftWouldChangeMarkup) {
             draftStroke = null
             draft = null
             selectedIndex = -1
@@ -357,12 +378,14 @@ fun AnnotatePdfScreen(
             historyTick++
             return
         }
-        val restored = markupHistory.undo(markupSnapshot()) ?: return
-        applyMarkupSnapshot(restored)
-        draft = null
+        // A draft that would change nothing (#50/#55: a new empty box, an unchanged edit) must
+        // not consume the undo press (#55): drop it and undo the last recorded step in one go.
         draftStroke = null
+        draft = null
         selectedIndex = -1
         selectedStroke = -1
+        val restored = markupHistory.undo(markupSnapshot()) ?: return
+        applyMarkupSnapshot(restored)
         historyTick++
     }
 
@@ -379,6 +402,7 @@ fun AnnotatePdfScreen(
     fun beginDraft(
         next: DraftAnnotation,
         caret: Int = next.text.length,
+        tapTextFraction: Pair<Float, Float>? = null,
     ) {
         draft = next
         // Caret where the user tapped (#55), default end of text.
@@ -386,6 +410,33 @@ fun AnnotatePdfScreen(
         draftFieldLayout = null
         draftFieldSize = IntSize.Zero
         draftEpoch += 1
+        // The estimate from the canvas metrics is refined by the text field's own
+        // layout as soon as it renders (#55b); nothing to refine for a new box.
+        draftPendingCaret =
+            tapTextFraction?.let { PendingCaret(next.text, it.first, it.second) }
+    }
+
+    /**
+     * Applies a pending caret refinement (#55b): the tap is mapped through the text field's own
+     * layout with [androidx.compose.ui.text.TextLayoutResult.getOffsetForPosition], which puts
+     * the caret at the nearest glyph boundary (horizontal midpoints) with the field's real line
+     * wrapping. Skipped when the field is unmeasured, the text changed or nothing is pending.
+     */
+    fun refineDraftCaret(layout: TextLayoutResult) {
+        val pending = draftPendingCaret ?: return
+        val size = draftFieldSize
+        if (size.width <= 0 || size.height <= 0) return
+        draftPendingCaret = null
+        if (pending.forText != draftField.text) return
+        val position =
+            localCaretPosition(
+                xFraction = pending.xFraction,
+                yFraction = pending.yFraction,
+                widthPx = size.width.toFloat(),
+                heightPx = size.height.toFloat(),
+            )
+        val offset = layout.getOffsetForPosition(position).coerceIn(0, draftField.text.length)
+        draftField = draftField.copy(selection = TextRange(offset))
     }
 
     fun replaceSelectedText(transform: (PdfAnnotation) -> PdfAnnotation) {
@@ -935,7 +986,34 @@ fun AnnotatePdfScreen(
                                                         if (targetIndex in list.indices) {
                                                             val a = list[targetIndex]
                                                             // Caret where the user tapped (#55),
-                                                            // falling back to end of text.
+                                                            // falling back to end of text, then
+                                                            // refined by the field's own layout
+                                                            // once it renders (#55b).
+                                                            val fraction =
+                                                                bmp?.let { pageBmp ->
+                                                                    val basis =
+                                                                        annotationCanvasLines(
+                                                                            a,
+                                                                            pageBmp.width,
+                                                                            pageBmp.height,
+                                                                        ) ?: return@let null
+                                                                    val textWidthPx =
+                                                                        basis.lines
+                                                                            .maxOfOrNull(basis.paint::measureText)
+                                                                            ?: 0f
+                                                                    val textHeightPx =
+                                                                        basis.lines.size * basis.paint.fontSpacing
+                                                                    caretFractionInText(
+                                                                        fx = fx,
+                                                                        fy = fy,
+                                                                        annotationXFraction = a.xFraction,
+                                                                        annotationYFraction = a.yFraction,
+                                                                        textWidthPx = textWidthPx,
+                                                                        textHeightPx = textHeightPx,
+                                                                        bitmapWidth = pageBmp.width,
+                                                                        bitmapHeight = pageBmp.height,
+                                                                    )
+                                                                }
                                                             val caret =
                                                                 bmp?.let {
                                                                     tappedCaretOffset(fx, fy, a, it.width, it.height)
@@ -953,6 +1031,7 @@ fun AnnotatePdfScreen(
                                                                     nextZ(),
                                                                 ),
                                                                 caret.coerceIn(0, a.text.length),
+                                                                fraction,
                                                             )
                                                         }
                                                         lastTapUpTime = 0L
@@ -1254,7 +1333,10 @@ fun AnnotatePdfScreen(
                                     draftField = value
                                     draft = draft?.copy(text = value.text)
                                 },
-                                onTextLayout = { draftFieldLayout = it },
+                                onTextLayout = { layout ->
+                                    draftFieldLayout = layout
+                                    refineDraftCaret(layout)
+                                },
                                 modifier =
                                     Modifier
                                         .offset { IntOffset(x.toInt(), y.toInt()) }
@@ -2067,6 +2149,33 @@ private fun tappedCaretOffset(
             paint::measureText,
         )
     return caret.coerceIn(0, annotation.text.length)
+}
+
+/**
+ * The canvas text estimate of an annotation (#55b): its wrapped lines and the paint that
+ * measured them, at page bitmap resolution. Used for the pre-layout caret mapping and its
+ * refinement through the text field's own layout.
+ */
+private class AnnotationCanvasBasis(
+    val lines: List<String>,
+    val paint: android.graphics.Paint,
+)
+
+private fun annotationCanvasLines(
+    annotation: PdfAnnotation,
+    bitmapWidth: Int,
+    bitmapHeight: Int,
+): AnnotationCanvasBasis? {
+    if (bitmapWidth <= 0 || bitmapHeight <= 0 || annotation.text.isEmpty()) return null
+    val paint =
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = annotation.sizeFraction * bitmapHeight
+            typeface = android.graphics.Typeface.DEFAULT
+        }
+    return AnnotationCanvasBasis(
+        wrapAnnotationText(annotation.text, paint, (bitmapWidth * 0.95f).toInt()),
+        paint,
+    )
 }
 
 private fun mapTapToFraction(

@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.IntSize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -95,5 +96,59 @@ class TextBoxCaretTest {
         val point = Offset(250f, 300f)
         assertEquals(point, pageToScreen(point, container, 0f, 0f, 0f))
         assertEquals(point, screenToPage(point, container, 0f, 0f, 0f))
+    }
+
+    @Test
+    fun caretFraction_mapsTheTapIntoTheTextBlock() {
+        // Text block at (0.1, 0.2)*400x600 = origin (40,120) in the page bitmap,
+        // 120px wide, 60px high (#55b).
+        val fraction =
+            caretFractionInText(
+                fx = 0.25f,
+                fy = 0.25f,
+                annotationXFraction = 0.1f,
+                annotationYFraction = 0.2f,
+                textWidthPx = 120f,
+                textHeightPx = 60f,
+                bitmapWidth = 400,
+                bitmapHeight = 600,
+            )
+        // fy - 0.2 = 0.05 of a 600px-high bitmap over a 60px block reaches half its height.
+        assertEquals(0.5f, fraction!!.first, 0.0001f)
+        assertEquals(0.5f, fraction.second, 0.0001f)
+    }
+
+    @Test
+    fun caretFraction_nullWithoutABlock() {
+        assertNull(
+            caretFractionInText(0.5f, 0.5f, 0f, 0f, 0f, 60f, 400, 600),
+        )
+        assertNull(
+            caretFractionInText(0.5f, 0.5f, 0f, 0f, 120f, 60f, 0, 600),
+        )
+    }
+
+    @Test
+    fun caretFraction_clampsOutsideTaps() {
+        val fraction =
+            caretFractionInText(
+                fx = 1.2f,
+                fy = -0.4f,
+                annotationXFraction = 0.2f,
+                annotationYFraction = 0.2f,
+                textWidthPx = 100f,
+                textHeightPx = 50f,
+                bitmapWidth = 500,
+                bitmapHeight = 500,
+            )
+        assertEquals(1f, fraction!!.first, 0.0001f)
+        assertEquals(0f, fraction.second, 0.0001f)
+    }
+
+    @Test
+    fun localCaretPosition_scalesAndClamps() {
+        assertEquals(Offset(50f, 25f), localCaretPosition(0.5f, 0.5f, 100f, 50f))
+        // Fractions beyond the block clamp to its edge (keep the caret inside the field).
+        assertEquals(Offset(100f, 0f), localCaretPosition(1.2f, -1f, 100f, 50f))
     }
 }
