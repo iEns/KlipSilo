@@ -50,8 +50,8 @@ import com.phaprodevelop.klipsilo.data.nearbyFieldText
 import com.phaprodevelop.klipsilo.data.nearbyFieldTextRight
 import com.phaprodevelop.klipsilo.data.parseTextFieldFlags
 import com.phaprodevelop.klipsilo.data.refreshedTextClipTitle
-import com.phaprodevelop.klipsilo.data.resolveCheckboxKidLabel
 import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
+import com.phaprodevelop.klipsilo.data.resolveWidgetLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.data.widgetVisualFractions
@@ -2870,6 +2870,25 @@ class ClipboardRepository(
                         .filterIsInstance<PDCheckBox>()
                         .groupingBy { it.fullyQualifiedName.orEmpty() }
                         .eachCount()
+                // Every widget rectangle, by page, so a checkbox/radio label can stop at the
+                // next widget instead of pulling in its neighbour's option text (#57).
+                val pageWidgets = mutableMapOf<Int, MutableList<Pair<PDField, PdfUserRect>>>()
+                terminals.forEach { field ->
+                    field.widgets.forEach { widget ->
+                        val rect = widget.rectangle ?: return@forEach
+                        pageWidgets
+                            .getOrPut(pageIndexOf(document, widget)) { mutableListOf() }
+                            .add(
+                                field to
+                                    PdfUserRect(
+                                        rect.lowerLeftX,
+                                        rect.lowerLeftY,
+                                        rect.upperRightX,
+                                        rect.upperRightY,
+                                    ),
+                            )
+                    }
+                }
                 val kidSlotByFqn = mutableMapOf<String, Int>()
                 terminals.mapNotNull { field ->
                     val fqn = field.fullyQualifiedName.orEmpty()
@@ -2877,7 +2896,7 @@ class ClipboardRepository(
                         if (field is PDCheckBox) checkboxCountByFqn[fqn] ?: 0 else 0
                     val kidSlot =
                         if (kidCount > 1) (kidSlotByFqn[fqn] ?: 0).also { kidSlotByFqn[fqn] = it + 1 } else 0
-                    toFormFieldInfo(document, field, runs, counters, kidCount, kidSlot)
+                    toFormFieldInfo(document, field, runs, counters, kidCount, kidSlot, pageWidgets)
                 }
             }
         } catch (_: Exception) {
@@ -2989,6 +3008,7 @@ class ClipboardRepository(
         counters: MutableMap<FormFieldType, Int>,
         sameNameCheckboxCount: Int = 0,
         kidSlot: Int = 0,
+        pageWidgets: Map<Int, List<Pair<PDField, PdfUserRect>>> = emptyMap(),
     ): FormFieldInfo? {
         if (field is PDButton && field.isPushButton) return null
         val partial = field.partialName ?: field.fullyQualifiedName ?: return null
@@ -3010,18 +3030,18 @@ class ClipboardRepository(
         val hits = fieldHits(document, field)
         val nearby = nearbyLabel(field, document, runs)
         val tooltip = alternateName(field)
-        // Checkboxes of one group share their name; the /AP /N on-state or the page text to the
-        // right of the widget is what makes the boxes distinguishable (#57).
+        // Checkbox and radio widgets draw their option text to the right, which is what makes
+        // even separate fields like s0/s1/s2 distinguishable (#57).
         val isCheckboxKid = field is PDCheckBox && sameNameCheckboxCount > 1
         val kidGroup = field.parent?.fullyQualifiedName ?: fqn
         val resolved =
-            if (isCheckboxKid) {
-                resolveCheckboxKidLabel(
+            if (type == FormFieldType.CHECKBOX || type == FormFieldType.RADIO) {
+                resolveWidgetLabel(
+                    nearbyRight = nearbyRightLabel(field, document, runs, pageWidgets),
                     tooltip = tooltip,
                     onState = hits.firstNotNullOfOrNull { hit -> hit.option?.takeIf { it.isNotBlank() } },
-                    nearbyRight = nearbyRightLabel(field, document, runs),
-                    nearbyElsewhere = nearby,
-                    group = kidGroup,
+                    partialName = partial,
+                    group = if (isCheckboxKid) kidGroup else null,
                     type = type,
                     fallbackNumber = 1,
                 )
@@ -3122,14 +3142,20 @@ class ClipboardRepository(
         field: PDField,
         document: PDDocument,
         runs: Map<Int, List<PdfTextRun>>,
+        pageWidgets: Map<Int, List<Pair<PDField, PdfUserRect>>>,
     ): String? {
         val widget = field.widgets.firstOrNull() ?: return null
         val rect = widget.rectangle ?: return null
-        val pageRuns = runs[pageIndexOf(document, widget)].orEmpty()
-        if (pageRuns.isEmpty()) return null
+        val self =
+            PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY)
+        val otherWidgets =
+            pageWidgets[pageIndexOf(document, widget)].orEmpty()
+                .filter { (owner, other) -> owner !== field && other != self }
+                .map { (_, other) -> other }
         return nearbyFieldTextRight(
-            PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY),
-            pageRuns,
+            self,
+            runs[pageIndexOf(document, widget)].orEmpty(),
+            otherWidgets,
         )
     }
 

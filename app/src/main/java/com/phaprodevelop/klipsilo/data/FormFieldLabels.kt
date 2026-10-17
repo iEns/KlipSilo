@@ -176,23 +176,60 @@ internal fun nearbyFieldText(
 }
 
 /**
- * Label printed to the right of a widget. Checkbox and radio boxes in a group draw their option
- * text on the right, which is what distinguishes them from each other.
+ * Label printed to the right of a widget. Checkbox and radio widgets draw their option text on
+ * the right, which is what distinguishes them from each other (#57).
+ *
+ * A candidate word starts within [wordWindow] points right of the widget and its baseline sits
+ * inside the widget's vertical span. The run stops at a large gap ([groupRuns] keeps only
+ * adjacent words) or at the left edge of the next widget on the same line, so a neighbouring
+ * checkbox's own option text is never pulled in.
  */
 internal fun nearbyFieldTextRight(
     widget: PdfUserRect,
     runs: List<PdfTextRun>,
+    otherWidgets: List<PdfUserRect> = emptyList(),
 ): String? {
-    val lines = groupRuns(runs)
     val widgetHeight = (widget.top - widget.bottom).coerceAtLeast(1f)
-    return lines
-        .filter { line ->
-            line.text.length <= 80 &&
-                line.left >= widget.right - 8f &&
-                line.left - widget.right < 140f &&
-                verticalOverlap(line, widget) >= widgetHeight * 0.3f
-        }.minByOrNull { it.left - widget.right }
-        ?.text
+    val candidates =
+        runs.filter { run ->
+            run.width > 0f &&
+                verticalOverlap(run, widget) >= widgetHeight * 0.3f &&
+                run.left >= widget.right - 8f &&
+                run.left - widget.right < 200f
+        }
+    // The nearest other widget to the right on the same line bounds the label (#57).
+    val nextWidgetLeft =
+        otherWidgets
+            .filter { other ->
+                rectOverlap(other, widget) >= widgetHeight * 0.3f && other.left >= widget.right - 8f
+            }.minOfOrNull { it.left - 4f }
+    val reachable =
+        if (nextWidgetLeft == null) {
+            candidates
+        } else {
+            candidates.filter { it.left < nextWidgetLeft }
+        }
+    return groupRuns(reachable).minByOrNull { it.left - widget.right }?.text
+}
+
+/**
+ * True when a text run (left, baseline, height) and a widget rectangle (left, bottom, right, top)
+ * share one line: the run's vertical overlap with the widget is at least 30% of the widget height.
+ */
+private fun verticalOverlap(
+    run: PdfTextRun,
+    widget: PdfUserRect,
+): Float {
+    val top = run.baseline + run.height * 0.25f
+    val bottom = run.baseline - run.height * 0.85f
+    return (min(top, widget.top) - max(bottom, widget.bottom)).coerceAtLeast(0f)
+}
+
+private fun rectOverlap(
+    a: PdfUserRect,
+    b: PdfUserRect,
+): Float {
+    return (min(a.top, b.top) - max(a.bottom, b.bottom)).coerceAtLeast(0f)
 }
 
 private val ambiguousCheckOptions =
@@ -204,38 +241,42 @@ internal fun isAmbiguousCheckOption(value: String): Boolean {
 }
 
 /**
- * Label for one checkbox child inside a group. All children share the group name, so the
- * widget's own tooltip wins, then its on-state export value ("Morning_session" -> "Morning
- * session"), then the page text to the right of the widget. An ambiguous export value ("Yes")
- * falls back to that nearby text and finally to "Group: Yes"; nothing at all falls back into
- * the ordinary label chain with the group name as the field name.
+ * Label for one checkbox or radio widget (#57): the printed text to the right of the widget on
+ * the same line wins, then the widget's tooltip (TU), then a meaningful on-state export value
+ * ("Morning_session" -> "Morning session"), then the prettified partial field name. All children
+ * of one checkbox group share their field name, so for an ambiguous export value without
+ * neighbour text ("Yes") the group name is kept in front so the rows stay distinguishable.
+ * Cryptic names ("s0") without any hint fall through to "Checkbox N" (like text fields do).
  */
-internal fun resolveCheckboxKidLabel(
+internal fun resolveWidgetLabel(
+    nearbyRight: String?,
     tooltip: String?,
     onState: String?,
-    nearbyRight: String?,
-    nearbyElsewhere: String?,
+    partialName: String,
     group: String?,
     type: FormFieldType,
     fallbackNumber: Int,
 ): ResolvedFieldLabel {
+    val right = nearbyRight?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
+    if (right.isNotEmpty()) return ResolvedFieldLabel.Literal(right.take(80))
     val tip = tooltip?.trim().orEmpty()
     if (tip.isNotEmpty()) return ResolvedFieldLabel.Literal(tip)
     val state = onState?.trim().orEmpty()
-    val readableState = state.isNotEmpty() && !isAmbiguousCheckOption(state)
-    if (readableState) return ResolvedFieldLabel.Literal(prettifyFieldName(state))
-    val right = nearbyRight?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
-    if (right.isNotEmpty()) return ResolvedFieldLabel.Literal(right.take(80))
-    if (state.isNotEmpty() && !group.isNullOrBlank()) {
-        return ResolvedFieldLabel.Literal("${prettifyFieldName(group)}: ${prettifyFieldName(state)}")
+    if (state.isNotEmpty()) {
+        if (isAmbiguousCheckOption(state)) {
+            // "Yes" alone names no option; the group name at least tells the boxes apart.
+            if (!group.isNullOrBlank()) {
+                return ResolvedFieldLabel.Literal("${prettifyFieldName(group)}: ${prettifyFieldName(state)}")
+            }
+        } else {
+            return ResolvedFieldLabel.Literal(prettifyFieldName(state))
+        }
     }
-    return resolveFormFieldLabel(
-        partialName = group.orEmpty(),
-        alternateName = null,
-        type = type,
-        nearbyText = nearbyElsewhere,
-        fallbackNumber = fallbackNumber,
-    )
+    val partial = partialName.trim()
+    if (partial.isNotEmpty() && !genericFieldName.matches(partial)) {
+        return ResolvedFieldLabel.Literal(prettifyFieldName(partial))
+    }
+    return ResolvedFieldLabel.Numbered(type, fallbackNumber)
 }
 
 /**

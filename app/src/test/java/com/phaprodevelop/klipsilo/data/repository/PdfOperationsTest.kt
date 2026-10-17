@@ -840,10 +840,11 @@ class PdfOperationsTest {
 
                 acroForm.fields = listOf(nameField, emailField, phoneField)
                 page.annotations = listOf(nameWidget, emailWidget, phoneWidget)
+                // Checkbox labels (#57) come from the text to the RIGHT of the widget.
                 PDPageContentStream(document, page).use { stream ->
                     stream.beginText()
                     stream.setFont(PDType1Font.HELVETICA, 12f)
-                    stream.newLineAtOffset(40f, 704f)
+                    stream.newLineAtOffset(128f, 704f)
                     stream.showText("Phone")
                     stream.endText()
                 }

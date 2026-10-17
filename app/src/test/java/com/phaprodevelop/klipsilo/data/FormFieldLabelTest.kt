@@ -206,53 +206,62 @@ class FormFieldLabelTest {
     }
 
     @Test
-    fun checkboxKid_labelUsesTheOnStateOption() {
-        // "Morning_session" becomes "Morning session" with no group prefix (#57).
-        assertEquals(
-            ResolvedFieldLabel.Literal("Morning session"),
-            resolveCheckboxKidLabel(
-                tooltip = null,
-                onState = "Morning_session",
-                nearbyRight = "Morning session",
-                nearbyElsewhere = "Sessions",
-                group = "Sessions",
-                type = FormFieldType.CHECKBOX,
-                fallbackNumber = 1,
-            ),
-        )
-        assertEquals(
-            ResolvedFieldLabel.Literal("Afternoon session"),
-            resolveCheckboxKidLabel(null, "Afternoon_session", null, null, "Sessions", FormFieldType.CHECKBOX, 1),
-        )
-    }
-
-    @Test
-    fun checkboxKid_tooltipWinsOverTheOption() {
-        assertEquals(
-            ResolvedFieldLabel.Literal("Join the field trip"),
-            resolveCheckboxKidLabel(
-                tooltip = "Join the field trip",
-                onState = "Morning_session",
-                nearbyRight = "Morning session",
-                nearbyElsewhere = null,
-                group = "Sessions",
-                type = FormFieldType.CHECKBOX,
-                fallbackNumber = 1,
-            ),
-        )
-    }
-
-    @Test
-    fun checkboxKid_ambiguousOption_fallsToNeighborTextThenGroup() {
-        // "Yes" alone is ambiguous: prefer the printed neighbor text.
+    fun checkboxWidget_theNeighbourTextWinsOverEverything() {
+        // Printed text right of the widget names the option (#57): even a tooltip and a
+        // meaningful export value lose against it.
         assertEquals(
             ResolvedFieldLabel.Literal("Dinner"),
-            resolveCheckboxKidLabel(null, "Yes", "Dinner", null, "Sessions", FormFieldType.CHECKBOX, 1),
+            resolveWidgetLabel(
+                nearbyRight = "Dinner",
+                tooltip = "Join the field trip",
+                onState = "Morning_session",
+                partialName = "s2",
+                group = null,
+                type = FormFieldType.CHECKBOX,
+                fallbackNumber = 1,
+            ),
         )
-        // No neighbor text: keep the group in front so the user knows which box.
+    }
+
+    @Test
+    fun checkboxWidget_tooltipWinsWhenThereIsNoNeighbourText() {
+        assertEquals(
+            ResolvedFieldLabel.Literal("Join the field trip"),
+            resolveWidgetLabel(
+                nearbyRight = null,
+                tooltip = "Join the field trip",
+                onState = "Morning_session",
+                partialName = "s0",
+                group = null,
+                type = FormFieldType.CHECKBOX,
+                fallbackNumber = 1,
+            ),
+        )
+    }
+
+    @Test
+    fun checkboxWidget_meaningfulExportValue_isPrettified() {
+        // "Morning_session" becomes "Morning session" (matches #57's row expectations).
+        assertEquals(
+            ResolvedFieldLabel.Literal("Afternoon session"),
+            resolveWidgetLabel(
+                nearbyRight = null,
+                tooltip = null,
+                onState = "Afternoon_session",
+                partialName = "Sessions",
+                group = "Sessions",
+                type = FormFieldType.CHECKBOX,
+                fallbackNumber = 1,
+            ),
+        )
+    }
+
+    @Test
+    fun checkboxWidget_ambiguousExportValue_fallsToTheGroup() {
+        // "Yes" alone is ambiguous: keep the group in front so the user knows which box.
         assertEquals(
             ResolvedFieldLabel.Literal("Sessions: Yes"),
-            resolveCheckboxKidLabel(null, "Yes", null, null, "Sessions", FormFieldType.CHECKBOX, 1),
+            resolveWidgetLabel(null, null, "Yes", "Sessions", "Sessions", FormFieldType.CHECKBOX, 1),
         )
         assertTrue(isAmbiguousCheckOption("Yes"))
         assertTrue(isAmbiguousCheckOption("1"))
@@ -260,11 +269,19 @@ class FormFieldLabelTest {
     }
 
     @Test
-    fun checkboxKid_withoutAnyHint_fallsBackToTheGroupLabelChain() {
-        // No option at all: the ordinary label chain with the group as the field name.
+    fun checkboxWidget_readableName_isPrettified() {
         assertEquals(
-            ResolvedFieldLabel.Literal("Sessions"),
-            resolveCheckboxKidLabel(null, null, null, null, "Sessions", FormFieldType.CHECKBOX, 1),
+            ResolvedFieldLabel.Literal("Newsletter"),
+            resolveWidgetLabel(null, null, null, "Newsletter", null, FormFieldType.CHECKBOX, 1),
+        )
+    }
+
+    @Test
+    fun checkboxWidget_crypticNameWithoutHint_isNumbered() {
+        // "s0" carries no meaning; the ordinary numbered fallback applies.
+        assertEquals(
+            ResolvedFieldLabel.Numbered(FormFieldType.CHECKBOX, 3),
+            resolveWidgetLabel(null, null, null, "s0", null, FormFieldType.CHECKBOX, 3),
         )
     }
 
@@ -291,6 +308,40 @@ class FormFieldLabelTest {
                 listOf(PdfTextRun("Footer", left = 560f, baseline = 706f, width = 40f, height = 12f)),
             )
         assertNull(text)
+    }
+
+    @Test
+    fun nearbyTextRight_stopsAtTheNextWidget() {
+        // Two checkboxes in one row, each with its own option text (#57): the first label must
+        // not pull in the second one's text.
+        val widget = PdfUserRect(left = 300f, bottom = 700f, right = 320f, top = 720f)
+        val nextWidget = PdfUserRect(left = 430f, bottom = 700f, right = 450f, top = 720f)
+        val text =
+            nearbyFieldTextRight(
+                widget,
+                listOf(
+                    PdfTextRun("One", left = 330f, baseline = 706f, width = 30f, height = 12f),
+                    PdfTextRun("Two", left = 360f, baseline = 706f, width = 30f, height = 12f),
+                    PdfTextRun("Other option", left = 460f, baseline = 706f, width = 90f, height = 12f),
+                ),
+                otherWidgets = listOf(nextWidget),
+            )
+        assertEquals("One Two", text)
+    }
+
+    @Test
+    fun nearbyTextRight_ignoresWidgetsOnAnotherLine() {
+        // The next checkbox sits on the row below: it must not cut the first label short.
+        val widget = PdfUserRect(left = 300f, bottom = 700f, right = 320f, top = 720f)
+        val text =
+            nearbyFieldTextRight(
+                widget,
+                listOf(
+                    PdfTextRun("Full option name", left = 330f, baseline = 706f, width = 130f, height = 12f),
+                ),
+                otherWidgets = listOf(PdfUserRect(left = 430f, bottom = 660f, right = 450f, top = 672f)),
+            )
+        assertEquals("Full option name", text)
     }
 
     private fun literal(

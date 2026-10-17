@@ -709,7 +709,12 @@ private fun FormFieldRow(
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { state -> if (state.isFocused) onFocused() },
                     )
-                    Text(field.label, style = MaterialTheme.typography.bodyLarge)
+                    // A long single word ("Kontrollkästchen 1") must never break mid-word at
+                    // large font scales: ButtonLabel shrinks it within word boundaries (#57).
+                    ButtonLabel(
+                        text = field.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                 }
             }
             FormFieldType.RADIO, FormFieldType.CHOICE -> {
@@ -842,5 +847,34 @@ private fun FormPdfPreviewPreview() {
             onFieldTap = {},
             onZoomSettled = {},
         )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 160, showBackground = true)
+@Composable
+private fun FormFieldRowCheckboxLongLabelPreview() {
+    MaterialTheme {
+        Column {
+            FormFieldRow(
+                field =
+                    FormFieldInfo(
+                        name = "s2",
+                        fullyQualifiedName = "s2",
+                        type = FormFieldType.CHECKBOX,
+                        currentValue = null,
+                        options = emptyList(),
+                        label = "Kontrollkästchen 12",
+                        valueKey = "s2",
+                    ),
+                value = "",
+                focusRequester = FocusRequester(),
+                bringIntoViewRequester = BringIntoViewRequester(),
+                imeAction = ImeAction.Next,
+                onNextField = {},
+                onValueChange = {},
+                onFocused = {},
+            )
+        }
     }
 }
