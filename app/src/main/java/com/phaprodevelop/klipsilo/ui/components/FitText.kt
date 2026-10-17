@@ -32,6 +32,13 @@ import kotlin.math.abs
 internal const val LABEL_FONT_FLOOR_FRACTION = 0.75f
 
 /**
+ * Lower floor for single-line bottom navigation labels (#45): a single word
+ * has no good second line, so it may shrink to ~60% of the base size before
+ * the item falls back to showing its label only when selected.
+ */
+internal const val NAV_LABEL_FONT_FLOOR_FRACTION = 0.6f
+
+/**
  * Largest font size (stepping down 1sp at a time from [base], floor at
  * [floorFraction] of it) for which [fits] reports the text renders without
  * overflow. Returns `null` when even the floor size does not fit — the caller
@@ -166,6 +173,7 @@ fun ButtonLabel(
     color: Color = Color.Unspecified,
     maxLines: Int = 2,
     textAlign: TextAlign? = null,
+    floorFraction: Float = LABEL_FONT_FLOOR_FRACTION,
 ) {
     val baseSize = style.fontSize
     if (!baseSize.isSp || baseSize.value <= 0f) {
@@ -189,11 +197,11 @@ fun ButtonLabel(
                 constraints.maxWidth > 0 &&
                 constraints.maxWidth != Constraints.Infinity
         val fitted =
-            remember(text, style, maxLines, constraints.maxWidth, density.fontScale) {
+            remember(text, style, maxLines, constraints.maxWidth, density.fontScale, floorFraction) {
                 if (!bounded) {
                     base to false
                 } else {
-                    fit(measurer, text, style, base, constraints, maxLines)
+                    fit(measurer, text, style, base, constraints, maxLines, floorFraction)
                 }
             }
         Text(
@@ -215,6 +223,7 @@ private fun fit(
     base: Float,
     constraints: Constraints,
     maxLines: Int,
+    floorFraction: Float,
 ): Pair<Float, Boolean> {
     val measureConstraints = constraints.copy(minWidth = 0, minHeight = 0)
 
@@ -234,11 +243,11 @@ private fun fit(
         }
         return true
     }
-    val size = fittedFontSize(base) { fits(it) }
+    val size = fittedFontSize(base, floorFraction) { fits(it) }
     return if (size != null) {
         size to false
     } else {
-        (base * LABEL_FONT_FLOOR_FRACTION) to true
+        (base * floorFraction) to true
     }
 }
 

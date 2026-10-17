@@ -80,6 +80,29 @@ class FitTextTest {
     }
 
     @Test
+    fun isMidWordBreak_flagsTheWerkzeugeBottomNavBreak() {
+        // "Werkzeuge" wrapped as "Werkzeu"/"ge" in a too-narrow bottom
+        // navigation slot at font scale 2.0 (#45) — a single-line label can
+        // never produce this break.
+        assertTrue(isMidWordBreak("Werkzeuge", 7))
+        assertTrue(isMidWordBreak("Einstellungen", 9))
+        assertFalse(isMidWordBreak("Werkzeuge", 0))
+        assertFalse(isMidWordBreak("Werkzeuge", "Werkzeuge".length))
+    }
+
+    @Test
+    fun fittedFontSize_usesTheCustomFloorPercentage() {
+        // Bottom navigation labels may shrink to ~60% of the base size (#45).
+        val floor = 14f * NAV_LABEL_FONT_FLOOR_FRACTION
+        val floorFit =
+            fittedFontSize(14f, floorPercentage = NAV_LABEL_FONT_FLOOR_FRACTION) {
+                it <= floor + 0.0001f
+            }
+        assertEquals(floor, floorFit)
+        assertNull(fittedFontSize(14f, floorPercentage = NAV_LABEL_FONT_FLOOR_FRACTION) { false })
+    }
+
+    @Test
     fun scaledLabelStyle_scalesTheLineHeightInProportion() {
         val style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
         val scaled = scaledLabelStyle(style, 7f, 14f)

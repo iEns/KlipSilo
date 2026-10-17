@@ -1,5 +1,6 @@
 package com.phaprodevelop.klipsilo.ui.navigation
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -37,7 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -48,6 +55,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.NAV_LABEL_FONT_FLOOR_FRACTION
+import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.ui.presentation.TextPresentationScreen
 import com.phaprodevelop.klipsilo.ui.screen.AboutScreen
 import com.phaprodevelop.klipsilo.ui.screen.AnnotatePdfScreen
@@ -166,17 +175,35 @@ fun AppRoot(viewModel: ClipboardViewModel) {
             },
         bottomBar = {
             if (!isFullScreenRoute) {
-                NavigationBar {
-                    BottomNavItem.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                if (item == BottomNavItem.VÆRKTØJER) {
-                                    if (
-                                        currentRoute != BottomNavItem.VÆRKTØJER.route &&
-                                        !navController.popBackStack(BottomNavItem.VÆRKTØJER.route, false)
-                                    ) {
-                                        navController.navigate(BottomNavItem.VÆRKTØJER.route) {
+                BoxWithConstraints {
+                    // Per-item slot for measuring whether the label fits on
+                    // one line at the nav floor (#45); a small safety margin
+                    // covers the item's internal padding.
+                    val slotWidthPx =
+                        constraints.maxWidth / BottomNavItem.entries.size -
+                            with(LocalDensity.current) { 16.dp.toPx() }.toInt()
+                    NavigationBar {
+                        BottomNavItem.entries.forEach { item ->
+                            val label = stringResource(item.labelRes)
+                            val labelFits = navLabelFits(label, slotWidthPx)
+                            NavigationBarItem(
+                                selected = currentRoute == item.route,
+                                onClick = {
+                                    if (item == BottomNavItem.VÆRKTØJER) {
+                                        if (
+                                            currentRoute != BottomNavItem.VÆRKTØJER.route &&
+                                            !navController.popBackStack(BottomNavItem.VÆRKTØJER.route, false)
+                                        ) {
+                                            navController.navigate(BottomNavItem.VÆRKTØJER.route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    } else {
+                                        navController.navigate(item.route) {
                                             popUpTo(navController.graph.findStartDestination().id) {
                                                 saveState = true
                                             }
@@ -184,25 +211,22 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                                             restoreState = true
                                         }
                                     }
-                                } else {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                            icon = { Icon(item.icon, contentDescription = null) },
-                            label = {
-                                ButtonLabel(
-                                    text = stringResource(item.labelRes),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    maxLines = 2,
-                                )
-                            },
-                        )
+                                },
+                                icon = { Icon(item.icon, contentDescription = null) },
+                                alwaysShowLabel = labelFits,
+                                label = {
+                                    // Single line, never broken inside a word:
+                                    // shrink to the nav floor before the item
+                                    // hides its label (#45).
+                                    ButtonLabel(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1,
+                                        floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -438,5 +462,66 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                 }
             },
         )
+    }
+}
+
+/**
+ * True when a bottom navigation label fits its [slotWidthPx] slot on one
+ * line at the [NAV_LABEL_FONT_FLOOR_FRACTION] floor (#45). When it does not,
+ * the item shows its label only while selected (alwaysShowLabel = false)
+ * instead of wrapping it mid-word or clipping it at full size.
+ */
+@Composable
+private fun navLabelFits(
+    label: String,
+    slotWidthPx: Int,
+): Boolean {
+    val style = MaterialTheme.typography.labelMedium
+    val base = style.fontSize
+    if (!base.isSp || base.value <= 0f || slotWidthPx <= 0) return true
+    val measurer = rememberTextMeasurer()
+    val fontScale = LocalDensity.current.fontScale
+    return remember(label, slotWidthPx, style, fontScale) {
+        val floor = base.value * NAV_LABEL_FONT_FLOOR_FRACTION
+        val result =
+            measurer.measure(
+                text = label,
+                style = scaledLabelStyle(style, floor, base.value),
+                softWrap = false,
+                maxLines = 1,
+                constraints = Constraints(maxWidth = slotWidthPx),
+            )
+        !result.didOverflowWidth
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 120, showBackground = true)
+@Composable
+private fun BottomNavLargeScalePreview() {
+    // German labels from #45: "Werkzeuge"/"Einstellungen" must stay on one
+    // line (shrunk, never broken mid-word) at font scale 2.0.
+    MaterialTheme {
+        BoxWithConstraints {
+            val slotWidthPx =
+                constraints.maxWidth / 3 - with(LocalDensity.current) { 16.dp.toPx() }.toInt()
+            NavigationBar {
+                listOf("Clips", "Werkzeuge", "Einstellungen").forEachIndexed { index, label ->
+                    NavigationBarItem(
+                        selected = index == 0,
+                        onClick = {},
+                        icon = { Icon(Icons.Filled.Check, contentDescription = null) },
+                        alwaysShowLabel = navLabelFits(label, slotWidthPx),
+                        label = {
+                            ButtonLabel(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                floorFraction = NAV_LABEL_FONT_FLOOR_FRACTION,
+                            )
+                        },
+                    )
+                }
+            }
+        }
     }
 }
