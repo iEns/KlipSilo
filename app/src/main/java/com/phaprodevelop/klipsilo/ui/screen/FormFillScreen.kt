@@ -60,9 +60,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -75,10 +77,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -90,6 +96,7 @@ import com.phaprodevelop.klipsilo.data.repository.FormFieldHit
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.FORM_FIELD_FONT_FILL
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_BASE_RENDER_DIM
 import com.phaprodevelop.klipsilo.ui.components.PREVIEW_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
@@ -98,6 +105,7 @@ import com.phaprodevelop.klipsilo.ui.components.TopBarFitTitle
 import com.phaprodevelop.klipsilo.ui.components.TopBarSaveAction
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
+import com.phaprodevelop.klipsilo.ui.components.formFieldTextLayout
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.previewPointToPageLocal
 import com.phaprodevelop.klipsilo.ui.components.previewRenderDim
@@ -110,6 +118,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 
 /** Preview height while the keyboard is open, so the field list keeps the screen space. */
 private val CollapsedPreviewHeight = 88.dp
@@ -563,7 +572,13 @@ private fun FormPdfPreview(
                         field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
                             val shown = formOverlayText(field, hit, value)
                             if (shown.isEmpty()) return@forEach
-                            FormValueOverlay(hit, shown, pageWidth.toDp(density), pageHeight.toDp(density))
+                            FormValueOverlay(
+                                hit = hit,
+                                text = shown,
+                                multiline = field.multiline,
+                                imageWidth = pageWidth.toDp(density),
+                                imageHeight = pageHeight.toDp(density),
+                            )
                         }
                     }
                 }
@@ -586,33 +601,82 @@ private fun Float.toDp(density: Density): Dp = with(density) { toDp() }
 private fun FormValueOverlay(
     hit: FormFieldHit,
     text: String,
+    multiline: Boolean,
     imageWidth: Dp,
     imageHeight: Dp,
 ) {
+    val textMeasurer = rememberTextMeasurer()
     val width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f)
     val height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f)
-    val fontSize =
-        with(LocalDensity.current) {
-            (height.toPx() * 0.62f).toSp()
-        }
+    // The overlay is transparent; only the value is drawn, with the exact
+    // baseline from formFieldTextLayout so it never rides on inherited
+    // composable styles (the inherited line height made text ride too low).
     Box(
         modifier =
             Modifier
                 .offset(x = imageWidth * hit.left, y = imageHeight * hit.top)
                 .size(width, height)
                 .clipToBounds()
-                .clearAndSetSemantics { },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(
-            text = text,
-            color = Color.Black,
-            fontSize = fontSize,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            modifier = Modifier.padding(horizontal = 2.dp),
-        )
-    }
+                .clearAndSetSemantics { }
+                .drawWithCache {
+                    val rectWidthPx = size.width
+                    val rectHeightPx = size.height
+                    val pad = 2.dp.toPx()
+                    // Measure the default font's real metrics at the height-fit
+                    // size; nothing here inherits composable styles.
+                    val fontPx = (rectHeightPx * FORM_FIELD_FONT_FILL).coerceAtLeast(1f)
+
+                    fun measureAt(
+                        size: Float,
+                        wrap: Boolean,
+                    ) = textMeasurer.measure(
+                        AnnotatedString(text),
+                        TextStyle(fontSize = size.toSp()),
+                        maxLines = if (wrap) 0 else 1,
+                        softWrap = wrap,
+                        constraints =
+                            if (wrap) {
+                                Constraints(maxWidth = (rectWidthPx - 2f * pad).roundToInt())
+                            } else {
+                                Constraints()
+                            },
+                    )
+                    val probe = measureAt(fontPx, wrap = false)
+                    val layout =
+                        formFieldTextLayout(
+                            rectWidthPx = rectWidthPx,
+                            rectHeightPx = rectHeightPx,
+                            multiline = multiline,
+                            ascentPerEmPx = probe.firstBaseline / fontPx,
+                            descentPerEmPx = (probe.size.height - probe.firstBaseline) / fontPx,
+                            // Multiline values wrap instead of shrinking to fit.
+                            textWidthPerEmPx =
+                                if (multiline || probe.size.width <= 0) {
+                                    0f
+                                } else {
+                                    probe.size.width / fontPx
+                                },
+                            leftPaddingPx = pad,
+                        )
+                    val drawn =
+                        when {
+                            multiline -> measureAt(layout.fontSizePx, wrap = true)
+                            layout.fontSizePx != fontPx -> measureAt(layout.fontSizePx, wrap = false)
+                            else -> probe
+                        }
+                    onDrawBehind {
+                        drawText(
+                            drawn,
+                            color = Color.Black,
+                            topLeft =
+                                Offset(
+                                    layout.leftPaddingPx,
+                                    layout.baselinePx - drawn.firstBaseline,
+                                ),
+                        )
+                    }
+                },
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
