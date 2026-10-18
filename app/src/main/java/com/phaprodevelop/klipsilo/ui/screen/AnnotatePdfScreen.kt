@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -28,6 +27,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -87,6 +88,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
@@ -1734,9 +1736,10 @@ private fun MarkupChoices(
         }
     // FlowRow so the stepper and the colour swatches wrap to a second line
     // instead of squeezing on narrow screens with large font scale (#50).
+    // Each line is centered, so the wrapped row still looks balanced (#65).
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         MarkupSizeStepper(
@@ -1748,39 +1751,52 @@ private fun MarkupChoices(
             onStepDown = onStepDown,
             onStepUp = onStepUp,
         )
-        colors.forEach { (argb, labelRes) ->
-            val selected = color == argb
-            val description = context.getString(labelRes)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 3.dp),
-            ) {
+        // One selectable group on one line: TalkBack steps through the
+        // swatches as a set and announces each colour with its selected
+        // state (#65). The 4 × 48dp targets plus spacing fit every width
+        // the FlowRow can give a line, so the group never wraps inside.
+        Row(
+            modifier = Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            colors.forEach { (argb, labelRes) ->
+                val selected = color == argb
+                val description = context.getString(labelRes)
+                // The visible circle stays 28dp, centered inside a 48dp
+                // touch target (#65). The colour name lives in the
+                // semantics — no visible text label under the swatch —
+                // and the selectable's selected state makes TalkBack say
+                // e.g. "Rot, ausgewählt".
                 Box(
                     modifier =
                         Modifier
-                            .size(28.dp)
-                            .semantics { contentDescription = description.withoutSoftHyphens() }
-                            .clip(CircleShape)
-                            .background(Color(argb))
-                            .border(
-                                width = if (selected) 2.dp else 1.dp,
-                                color =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.outline
-                                    },
-                                shape = CircleShape,
-                            )
-                            .clickable { onColor(argb) },
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                            .size(48.dp)
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = { onColor(argb) },
+                            ).semantics { contentDescription = description.withoutSoftHyphens() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(argb))
+                                .border(
+                                    width = if (selected) 2.dp else 1.dp,
+                                    color =
+                                        if (selected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outline
+                                        },
+                                    shape = CircleShape,
+                                ),
+                    )
+                }
             }
         }
     }
@@ -2368,6 +2384,7 @@ internal fun MarkupToolBarPreview() {
 }
 
 @Preview(fontScale = 2f, widthDp = 320, heightDp = 160, showBackground = true)
+@Preview(fontScale = 1f, widthDp = 480, heightDp = 120, showBackground = true)
 @Composable
 internal fun MarkupChoicesPreview() {
     MaterialTheme {
