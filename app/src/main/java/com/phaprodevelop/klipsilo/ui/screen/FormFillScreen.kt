@@ -906,7 +906,7 @@ private fun FormFieldRow(
                                                 } else {
                                                     R.string.show_password
                                                 },
-                                            ),
+                                            ).withoutSoftHyphens(),
                                     )
                                 }
                             }

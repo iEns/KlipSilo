@@ -76,6 +76,7 @@ import com.phaprodevelop.klipsilo.ui.screen.UseCasesScreen
 import com.phaprodevelop.klipsilo.ui.screen.VaerktøjerScreen
 import com.phaprodevelop.klipsilo.ui.screen.WhyScreen
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutInvisibleBreaks
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -227,7 +228,11 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                                             if (labelFits || selected) {
                                                 null
                                             } else {
-                                                label
+                                                // Icon-only unselected item: the
+                                                // label string carries the soft
+                                                // hyphen (#64) — TalkBack must
+                                                // not read it.
+                                                label.withoutInvisibleBreaks()
                                             },
                                     )
                                 },

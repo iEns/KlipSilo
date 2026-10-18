@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
+import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 
 @Composable
 fun AboutScreen(
@@ -84,6 +85,13 @@ fun AboutScreen(
             )
             Text(
                 text = context.getString(R.string.about_version, displayVersion),
+                // The display version carries the zero-width spaces that let
+                // it wrap after '+' and '-' (#64): the semantics get the
+                // token without them.
+                modifier =
+                    Modifier.fitTextSemantics(
+                        context.getString(R.string.about_version, displayVersion),
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

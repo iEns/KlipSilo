@@ -194,13 +194,15 @@ fun TextPresentationScreen(
                             Icon(
                                 if (isPageMode) Icons.Default.UnfoldMore else Icons.Default.AutoStories,
                                 contentDescription =
-                                    if (isPageMode) {
-                                        stringResource(
-                                            R.string.reader_scroll,
-                                        )
-                                    } else {
-                                        stringResource(R.string.reader_page_turn)
-                                    },
+                                    (
+                                        if (isPageMode) {
+                                            stringResource(
+                                                R.string.reader_scroll,
+                                            )
+                                        } else {
+                                            stringResource(R.string.reader_page_turn)
+                                        }
+                                    ).withoutSoftHyphens(),
                             )
                         }
                     }
@@ -215,13 +217,15 @@ fun TextPresentationScreen(
                                 Icon(
                                     if (isAutoScrolling) Icons.Default.Pause else Icons.Default.PlayArrow,
                                     contentDescription =
-                                        if (isAutoScrolling) {
-                                            stringResource(
-                                                R.string.reader_pause,
-                                            )
-                                        } else {
-                                            stringResource(R.string.reader_play)
-                                        },
+                                        (
+                                            if (isAutoScrolling) {
+                                                stringResource(
+                                                    R.string.reader_pause,
+                                                )
+                                            } else {
+                                                stringResource(R.string.reader_play)
+                                            }
+                                        ).withoutSoftHyphens(),
                                 )
                             }
                             DropdownMenu(expanded = showSpeedMenu, onDismissRequest = { showSpeedMenu = false }) {

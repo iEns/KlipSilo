@@ -14,6 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -23,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.phaprodevelop.klipsilo.withoutInvisibleBreaks
 import kotlin.math.abs
 
 /**
@@ -110,6 +114,27 @@ internal fun scaledLabelStyle(
         }
     return style.copy(fontSize = size.sp, lineHeight = scaledLineHeight)
 }
+
+/**
+ * The string a fitted label exposes to accessibility (#64): the displayed
+ * text with every invisible break character stripped. The display keeps
+ * U+00AD (drawn as a hyphen at the break) and U+200B (display break at
+ * `_` `-` `.` `/` `+`); braille displays and other screen readers must not
+ * see either in the semantics.
+ */
+internal fun fitTextSemanticsText(displayText: String): String = displayText.withoutInvisibleBreaks()
+
+/**
+ * Semantics modifier for any label rendered through the fit-text rule
+ * (#64). Replaces the node's own text semantics (which carries the display
+ * string with its U+00AD/U+200B break characters) with the clean string;
+ * semantics of the surrounding nodes — role, click, heading — merge as
+ * before.
+ */
+internal fun Modifier.fitTextSemantics(displayText: String): Modifier =
+    clearAndSetSemantics {
+        text = AnnotatedString(fitTextSemanticsText(displayText))
+    }
 
 /**
  * Largest font size (stepping down from [base] to the [floorFraction] floor)
@@ -234,7 +259,7 @@ fun ButtonLabel(
     if (!baseSize.isSp || baseSize.value <= 0f) {
         Text(
             text = text,
-            modifier = modifier,
+            modifier = modifier.fitTextSemantics(text),
             color = color,
             style = style,
             maxLines = lines,
@@ -254,6 +279,7 @@ fun ButtonLabel(
         if (!bounded) {
             Text(
                 text = text,
+                modifier = Modifier.fitTextSemantics(text),
                 color = color,
                 style = style,
                 maxLines = lines,
@@ -286,6 +312,7 @@ fun ButtonLabel(
             }
         Text(
             text = decision.text,
+            modifier = Modifier.fitTextSemantics(decision.text),
             color = color,
             style = scaledLabelStyle(style, base * decision.scale, base),
             // Lines come from the policy, already broken on word boundaries.

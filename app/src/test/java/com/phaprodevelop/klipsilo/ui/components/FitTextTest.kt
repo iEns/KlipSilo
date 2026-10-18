@@ -178,4 +178,44 @@ class FitTextTest {
         assertEquals(7.sp, scaled.fontSize)
         assertFalse(scaled.lineHeight.isSp)
     }
+
+    @Test
+    fun fitTextSemanticsText_stripsTheInvisibleBreaksTheDisplayKeeps() {
+        // #64: the display string of a fitted label keeps its break
+        // characters — the soft hyphen draws as a hyphen at the break
+        // (#62), the zero-width space gives the wrap opportunity (#54) —
+        // while the semantics get the clean string.
+        val display = "Ein\u00ADstellungen Event_\u200BRegistration\u200B_Form"
+        assertTrue(display.contains('\u00AD'))
+        assertTrue(display.contains('\u200B'))
+        assertEquals(
+            "Einstellungen Event_Registration_Form",
+            fitTextSemanticsText(display),
+        )
+    }
+
+    @Test
+    fun fitTextSemanticsText_isCleanForEveryFittedDecision() {
+        // #64: whatever the fit-text rule decides to draw, the semantics
+        // string never carries U+00AD or U+200B.
+        val labels =
+            listOf(
+                "Datenschutz\u00ADerklärung",
+                "Event_\u200BRegistration\u200B_Form",
+                "1.2.0-\u200Bbeta.4-\u200Bdebug+\u200Bee33946",
+                "Ind\u00ADstillinger",
+            )
+        for (label in labels) {
+            val decision =
+                resolveFitText(
+                    label,
+                    1000f,
+                    FitTextPolicy(maxLines = 2),
+                    widthOf = { s, _ -> s.length * 10f },
+                )
+            val semantics = fitTextSemanticsText(decision.text)
+            assertFalse(semantics.contains('\u00AD'))
+            assertFalse(semantics.contains('\u200B'))
+        }
+    }
 }

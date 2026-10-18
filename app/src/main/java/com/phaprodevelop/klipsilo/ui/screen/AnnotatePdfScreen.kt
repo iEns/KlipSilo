@@ -124,6 +124,7 @@ import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -1693,6 +1694,7 @@ private fun MarkupToolBar(
                                         labelStyle.fontSize.value,
                                     ),
                                 color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fitTextSemantics(decision.text),
                                 textAlign = TextAlign.Center,
                                 softWrap = false,
                                 maxLines = decision.maxLines,

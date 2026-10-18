@@ -59,6 +59,7 @@ import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.LABEL_FONT_FLOOR_FRACTION
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
+import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -438,7 +439,11 @@ private fun FontFamilyCards(
                                             style.fontSize.value,
                                         ),
                                     color = fontCardLabelColor(selected == font),
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 10.dp)
+                                            .fitTextSemantics(decision.text),
                                     textAlign = TextAlign.Center,
                                     // Lines come from the policy, already
                                     // broken on word boundaries.
