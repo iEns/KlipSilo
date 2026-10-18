@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.DisplayText
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 
@@ -179,7 +180,9 @@ fun AboutScreen(
                     modifier = Modifier.size(22.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
+                // #64: the DE string carries a soft hyphen — TalkBack reads
+                // the clean source through DisplayText.
+                DisplayText(
                     text = context.getString(R.string.acknowledgements),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,

@@ -94,6 +94,7 @@ import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
+import com.phaprodevelop.klipsilo.ui.components.DisplayText
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -842,13 +843,16 @@ private fun ClipItemRow(
                 }
             } else {
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    // #64: the display title carries the zero-width spaces —
+                    // TalkBack reads the clean source via DisplayText (the
+                    // compact branch above gets the same through ButtonLabel).
+                    DisplayText(
                         text = title,
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodyMedium,
-                        softWrap = false,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        softWrap = false,
                     )
                     Text(
                         text = info,

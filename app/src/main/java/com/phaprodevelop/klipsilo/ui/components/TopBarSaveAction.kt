@@ -357,7 +357,7 @@ fun FitActionBar(
                 visible.forEach { action ->
                     TooltipBox(
                         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text(action.label) } },
+                        tooltip = { PlainTooltip { DisplayText(action.label) } },
                         state = rememberTooltipState(),
                     ) {
                         IconButton(onClick = action.onClick, enabled = action.enabled) {
@@ -380,7 +380,7 @@ fun FitActionBar(
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             overflowed.forEach { action ->
                                 DropdownMenuItem(
-                                    text = { Text(action.label) },
+                                    text = { DisplayText(action.label) },
                                     leadingIcon = { Icon(action.icon, contentDescription = null) },
                                     enabled = action.enabled,
                                     onClick = {

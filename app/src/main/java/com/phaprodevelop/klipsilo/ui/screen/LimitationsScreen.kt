@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.DisplayText
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
 private data class Limitation(val title: String, val body: String)
@@ -99,13 +100,13 @@ fun LimitationsScreen(onNavigateBack: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(
+                        DisplayText(
                             text = limitation.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Spacer(Modifier.size(4.dp))
-                        Text(
+                        DisplayText(
                             text = limitation.body,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -113,13 +114,13 @@ fun LimitationsScreen(onNavigateBack: () -> Unit) {
                     }
                 }
             }
-            Text(
+            DisplayText(
                 text = context.getString(R.string.limitations_summary_t),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
-            Text(
+            DisplayText(
                 text = context.getString(R.string.limitations_summary_b),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

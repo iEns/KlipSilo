@@ -316,7 +316,9 @@ private fun SheetRow(
     ) {
         Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(16.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        // #64: the DE/DA strings may carry a soft hyphen — TalkBack reads the
+        // clean source through DisplayText.
+        DisplayText(text = label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

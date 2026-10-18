@@ -13,13 +13,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.DisplayText
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
 private data class Tip(val title: String, val body: String)
@@ -126,7 +126,7 @@ fun TipsScreen(onNavigateBack: () -> Unit) {
                     .padding(horizontal = 16.dp),
         ) {
             categories.forEach { category ->
-                Text(
+                DisplayText(
                     text = category.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
@@ -138,13 +138,13 @@ fun TipsScreen(onNavigateBack: () -> Unit) {
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     ) {
                         Column(Modifier.padding(12.dp)) {
-                            Text(
+                            DisplayText(
                                 text = tip.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(Modifier.size(4.dp))
-                            Text(
+                            DisplayText(
                                 text = tip.body,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
