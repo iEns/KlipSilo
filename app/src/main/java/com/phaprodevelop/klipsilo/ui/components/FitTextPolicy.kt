@@ -6,7 +6,9 @@ import kotlin.math.abs
  * How a label gives up space (#45 #47 #50 #54 #62).
  *
  * 1. Draw at the style size on one line.
- * 2. Wrap at word boundaries only, up to [maxLines].
+ * 2. Wrap at word boundaries only, up to [maxLines]. A Korean label with
+ *    spaces breaks at the spaces first (keep-all, #64); a single word that
+ *    still does not fit wraps per character.
  * 3. Shrink, in [FIT_SCALE_STEP] steps, down to [minScale]. A uniform group
  *    uses one scale for every sibling.
  * 4. Hyphenate a single word that is still wider than the line at
@@ -99,6 +101,31 @@ internal fun isCjkChar(c: Char): Boolean {
         code in 0xAC00..0xD7A3 || // Hangul syllables
         code in 0xF900..0xFAFF || // CJK compatibility ideographs
         code in 0xFF00..0xFFA0 // fullwidth forms, halfwidth katakana
+}
+
+/**
+ * Korean text that contains spaces (#64). Hangul syllables (or jamo) and at
+ * least one whitespace: such a label breaks at the spaces first —
+ * word-boundary, "keep-all" style — because Korean words separate by
+ * spaces. A break inside a word is only the fallback for a single word that
+ * does not fit the width. Korean without spaces, and Japanese/Chinese,
+ * keep the per-character wrapping.
+ */
+internal fun isKoreanWithSpaces(text: String): Boolean {
+    var hasHangul = false
+    var hasWhitespace = false
+    for (c in text) {
+        val code = c.code
+        if (code in 0xAC00..0xD7A3 || // Hangul syllables
+            code in 0x1100..0x11FF || // Hangul jamo
+            code in 0x3130..0x318F // Hangul compatibility jamo
+        ) {
+            hasHangul = true
+        }
+        if (c.isWhitespace()) hasWhitespace = true
+        if (hasHangul && hasWhitespace) return true
+    }
+    return false
 }
 
 /**
@@ -418,6 +445,40 @@ internal fun wrapLines(
 ): List<String>? {
     if (text.isEmpty()) return emptyList()
     if (maxWidthPx <= 0f || maxLines <= 0) return null
+    // Korean with spaces breaks at the spaces first (#64): the greedy
+    // per-character wrap would fill the first line into the next word
+    // ("개인정보 처리방/침"). When the space wrap cannot fit a word, the
+    // general breaks — per-character between Hangul — wrap that word.
+    if (isKoreanWithSpaces(text)) {
+        wrapLinesAtBreaks(text, maxWidthPx, scale, maxLines, widthOf, ::spaceBreakEnds)?.let {
+            return it
+        }
+    }
+    return wrapLinesAtBreaks(text, maxWidthPx, scale, maxLines, widthOf, ::breakEnds)
+}
+
+/**
+ * Break ends at whitespace only (#64): the keep-all style for Korean labels
+ * with spaces. A word with no space inside has no break end, so a too-wide
+ * word ends the wrap and the caller falls back to [breakEnds].
+ */
+private fun spaceBreakEnds(text: String): List<Int> {
+    val ends = ArrayList<Int>()
+    for (i in text.indices) {
+        if (text[i].isWhitespace()) ends += i + 1
+    }
+    if (ends.lastOrNull() != text.length) ends += text.length
+    return ends
+}
+
+private fun wrapLinesAtBreaks(
+    text: String,
+    maxWidthPx: Float,
+    scale: Float,
+    maxLines: Int,
+    widthOf: (String, Float) -> Float,
+    endsOf: (String) -> List<Int>,
+): List<String>? {
     val lines = ArrayList<String>(maxLines)
     var remaining = text
     while (remaining.isNotEmpty()) {
@@ -428,7 +489,7 @@ internal fun wrapLines(
             lines += trimmed
             return lines
         }
-        val end = longestFittingEnd(trimmed, maxWidthPx, scale, widthOf)
+        val end = longestFittingEnd(trimmed, maxWidthPx, scale, widthOf, endsOf)
         if (end <= 0 || end >= trimmed.length) return null
         val piece = drawnLinePiece(trimmed, end)
         if (piece.isEmpty()) return null
@@ -443,9 +504,10 @@ private fun longestFittingEnd(
     maxWidthPx: Float,
     scale: Float,
     widthOf: (String, Float) -> Float,
+    endsOf: (String) -> List<Int> = ::breakEnds,
 ): Int {
     var best = 0
-    for (end in breakEnds(text)) {
+    for (end in endsOf(text)) {
         if (end >= text.length) continue
         // The drawn form is what must fit: a soft hyphen at the break
         // shows as a visible hyphen (#62).

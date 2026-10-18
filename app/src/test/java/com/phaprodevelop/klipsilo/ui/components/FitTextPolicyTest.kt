@@ -345,6 +345,107 @@ class FitTextPolicyTest {
     }
 
     @Test
+    fun koreanWithSpacesDetectsOnlyHangulWithWhitespace() {
+        // #64: the keep-all rule is for Korean labels that use spaces.
+        assertTrue(isKoreanWithSpaces("개인정보 처리방침"))
+        assertTrue(isKoreanWithSpaces("최대 출력 해상도"))
+        // Korean without spaces has no word boundary to prefer.
+        assertFalse(isKoreanWithSpaces("개인정보처리방침"))
+        // Japanese and Chinese are written without spaces — and even with
+        // one, they are not Korean (#64).
+        assertFalse(isKoreanWithSpaces("プライバシー ポリシー"))
+        assertFalse(isKoreanWithSpaces("隐私 政策"))
+        assertFalse(isKoreanWithSpaces("Datenschutzerklärung"))
+    }
+
+    @Test
+    fun koreanLabelBreaksAtTheSpacesBeforePerCharacterWrap() {
+        // #64: the greedy per-character wrap fills the first line into the
+        // next word ("개인정보 처리방/침"). The keep-all style breaks at the
+        // space instead.
+        val decision =
+            resolveFitText(
+                "개인정보 처리방침",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("개인정보\n처리방침", decision.text)
+    }
+
+    @Test
+    fun koreanLabelBreaksAtEverySpaceTheWidthAllows() {
+        // #64: "최대 출력 해상도" at 55px — "최대 출력" fits, the rest
+        // wraps whole ("최대 출력 / 해상도", never "해/상도").
+        val decision =
+            resolveFitText(
+                "최대 출력 해상도",
+                maxWidthPx = 55f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("최대 출력\n해상도", decision.text)
+    }
+
+    @Test
+    fun koreanSingleWordStillWrapsPerCharacter() {
+        // #64: a Korean word with no space has no word boundary —
+        // per-character wrapping stays the line breaking there.
+        val decision =
+            resolveFitText(
+                "개인정보처리방침",
+                maxWidthPx = 45f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("개인정보\n처리방침", decision.text)
+    }
+
+    @Test
+    fun koreanWordTooWideForTheLineFallsBackToPerCharacterWrap() {
+        // #64: "가 나다라마바사" in a 45px slot — the space wrap cannot fit
+        // "나다라마바사" (60px), so the label falls back to the general
+        // breaks and the too-wide word wraps per character.
+        val decision =
+            resolveFitText(
+                "가 나다라마바사",
+                maxWidthPx = 45f,
+                policy = FitTextPolicy(maxLines = 3, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("가 나다\n라마바사", decision.text)
+    }
+
+    @Test
+    fun japaneseAndChineseKeepPerCharacterBreaking() {
+        // #64: no Hangul — the keep-all rule never applies, per-character
+        // wrapping is unchanged.
+        assertFalse(isKoreanWithSpaces("プライバシー ポリシー"))
+        val ja =
+            resolveFitText(
+                "プライバシーポリシー",
+                maxWidthPx = 60f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(ja.ellipsized)
+        assertEquals("プライバシー\nポリシー", ja.text)
+        val zh =
+            resolveFitText(
+                "隐私政策",
+                maxWidthPx = 25f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 1f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(zh.ellipsized)
+        assertEquals("隐私\n政策", zh.text)
+    }
+
+    @Test
     fun aSoftHyphenIsABreakOpportunityThatShowsAHyphen() {
         // #62: Grok Build inserts U+00AD into long DE/DA strings. The rule
         // must wrap at it, draw a visible hyphen at the line end and never
