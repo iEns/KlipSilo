@@ -247,7 +247,7 @@ class FitTextLayoutTest {
     @Test
     fun privacyTitleFitsAtFontScaleTwoWhenThePlatformHyphenates() {
         // #62: at large font sizes the single-word title "Datenschutzerklärung"
-        // ellipsized as "Datutscherkläru…". With pattern-valid fragments the
+        // ellipsized as "Datenschutzerklä…". With pattern-valid fragments the
         // floor scale renders "Datenschutz-/erklärung" instead.
         val style = TextStyle(fontSize = 22.sp, lineHeight = 28.sp)
         val measurer = measurer(Density(density = 1f, fontScale = 2f))
