@@ -76,6 +76,34 @@ internal const val TOOL_LABEL_MIN_SCALE = 0.45f
 internal fun isFitBreakChar(c: Char): Boolean =
     c.isWhitespace() || c == '-' || c == '_' || c == '.' || c == '/' || c == '\u200B'
 
+/**
+ * Characters of scripts written without spaces — Japanese, Korean, Chinese
+ * and the other CJK scripts (#62). Between two of them a line may start:
+ * that is the normal line breaking for these scripts, and it must happen
+ * before an ellipsis ("プライバシーポリシ…" was cut instead of wrapped).
+ */
+internal fun isCjkChar(c: Char): Boolean {
+    val code = c.code
+    return code in 0x1100..0x11FF || // Hangul jamo
+        code in 0x3000..0x30FF || // CJK punctuation, Hiragana, Katakana
+        code in 0x3400..0x4DBF || // CJK ideographs, extension A
+        code in 0x4E00..0x9FFF || // CJK ideographs
+        code in 0xAC00..0xD7A3 || // Hangul syllables
+        code in 0xF900..0xFAFF || // CJK compatibility ideographs
+        code in 0xFF00..0xFFA0 // fullwidth forms, halfwidth katakana
+}
+
+/**
+ * CJK characters a wrapped line must not START with (kinsoku shori, #62):
+ * closing punctuation and the small kana and the prolonged sound mark that
+ * belong to the character before them.
+ */
+internal fun isCjkNoLineStartChar(c: Char): Boolean =
+    c in "、。，．：；！？〜・" ||
+        c in "〉》」』）］｝〉》」』）］｝" ||
+        c in "ぁぃぅぇぉっゃゅょゎゕゖゝゞ" ||
+        c in "ァィゥェォッャュョヮヵヶーヽヾ"
+
 /** Scales from 1 down to [minScale], inclusive, largest first. */
 internal fun fitScales(minScale: Float): List<Float> {
     val min = minScale.coerceIn(0.05f, 1f)
@@ -354,7 +382,7 @@ private fun widestPiece(
     }
     for (c in text) {
         piece.append(c)
-        if (isFitBreakChar(c)) consider()
+        if (isFitBreakChar(c) || isCjkChar(c)) consider()
     }
     consider()
     return widest
@@ -408,7 +436,14 @@ private fun longestFittingEnd(
 private fun breakEnds(text: String): List<Int> {
     val ends = ArrayList<Int>()
     for (i in text.indices) {
-        if (isFitBreakChar(text[i])) ends += i + 1
+        if (isFitBreakChar(text[i])) {
+            ends += i + 1
+        } else if (isCjkChar(text[i]) && (i + 1 == text.length || !isCjkNoLineStartChar(text[i + 1]))) {
+            // Between two CJK characters a line may start (#62): a script
+            // without spaces has no word boundaries, and per-character
+            // wrapping is the normal line breaking there.
+            ends += i + 1
+        }
     }
     if (ends.lastOrNull() != text.length) ends += text.length
     return ends

@@ -137,6 +137,21 @@ class FitTextTest {
     }
 
     @Test
+    fun isMidWordBreak_acceptsCJKPerCharacterBreaks() {
+        // #62: ja/ko/zh wrap per character — a line start between two CJK
+        // characters is the normal line breaking there, not a mid-word
+        // break.
+        val text = "プライバシーポリシー"
+        assertFalse(isMidWordBreak(text, 1))
+        assertFalse(isMidWordBreak(text, 6))
+        assertFalse(isMidWordBreak("おはよう。こんにちは", 5))
+        // A Latin word next to CJK characters still breaks only at its own
+        // boundaries.
+        assertTrue(isMidWordBreak("Bearbeiten", 4))
+        assertFalse(isMidWordBreak("テキストBearbeiten", 4))
+    }
+
+    @Test
     fun fittedFontSize_usesTheCustomFloorPercentage() {
         // Bottom navigation labels may shrink to ~60% of the base size (#45).
         val floor = 14f * NAV_LABEL_FONT_FLOOR_FRACTION

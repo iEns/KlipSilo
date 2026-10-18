@@ -78,6 +78,10 @@ internal fun fittedFontSize(
  * word (#45). A wrapped line must start after whitespace or a separator:
  * hyphen ("OCR-Seite" may wrap after "OCR-"), underscore, '.', '/' or the
  * zero-width space inserted for display (#54). See [isFitBreakChar].
+ *
+ * A line start between two CJK characters is not mid-word (#62):
+ * per-character wrapping is the normal line breaking for scripts without
+ * spaces, so the check does not apply there either.
  */
 internal fun isMidWordBreak(
     text: String,
@@ -86,7 +90,9 @@ internal fun isMidWordBreak(
     lineStart > 0 &&
         lineStart < text.length &&
         !isFitBreakChar(text[lineStart - 1]) &&
-        !isFitBreakChar(text[lineStart])
+        !isFitBreakChar(text[lineStart]) &&
+        !isCjkChar(text[lineStart - 1]) &&
+        !isCjkChar(text[lineStart])
 
 /** [style] with the font size set to [size]sp, keeping the line height ratio. */
 internal fun scaledLabelStyle(

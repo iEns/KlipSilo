@@ -289,6 +289,62 @@ class FitTextPolicyTest {
     }
 
     @Test
+    fun cjkTitleWrapsPerCharacterInsteadOfEllipsizing() {
+        // #62: ja/ko/zh are written without spaces, so a line may start
+        // between any two CJK characters. "プライバシーポリシー" used to
+        // fall to "プライバシーポリシ…" at large JA; it must wrap instead.
+        val decision =
+            resolveFitText(
+                "プライバシーポリシー",
+                maxWidthPx = 60f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertFalse(decision.text.contains(FIT_ELLIPSIS))
+        assertEquals("プライバシー\nポリシー", decision.text)
+        // The prolonged sound mark is pushed to the next line by the
+        // kinsoku rule, never left alone at a line start.
+        decision.text.split('\n').forEach { line -> assertFalse(line.startsWith("ー")) }
+    }
+
+    @Test
+    fun cjkWrapNeverStartsALineWithClosingPunctuation() {
+        // Kinsoku (#62): "おはよう。こんにちは" at 65px must not start a
+        // line with "。" — the break moves past it instead.
+        val decision =
+            resolveFitText(
+                "おはよう。こんにちは",
+                maxWidthPx = 65f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        decision.text.split('\n').forEach { line ->
+            assertFalse("line starts with closing punctuation: $line", line.startsWith("。"))
+        }
+        // No characters lost or reordered.
+        assertEquals("おはよう。こんにちは", decision.text.replace("\n", ""))
+    }
+
+    @Test
+    fun latinLettersNextToCjkAreNeverSplit() {
+        // The per-character rule is for CJK characters only (#62): a Latin
+        // run next to them never splits inside itself, while the CJK run
+        // wraps per character ("OCRガイド" at 40px wraps "OCRガ"/"イド",
+        // never "OC/R…").
+        val decision =
+            resolveFitText(
+                "OCRガイド",
+                maxWidthPx = 40f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("OCRガ\nイド", decision.text)
+    }
+
+    @Test
     fun hyphenatesALongWordAtTheFloorInsteadOfEllipsizing() {
         // "Ausgaberesolution" is 170px; in an 80px slot it is wider than the
         // line at every scale down to the 0.5 floor (#62). The platform
