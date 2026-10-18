@@ -24,6 +24,33 @@ internal fun looksLikeHtmlDocument(text: String?): Boolean {
 }
 
 /**
+ * The detail editor opens HTML clips as editable source again (v1.1.0
+ * behaviour, #69); the rendered view is reached only through the preview
+ * toggle.
+ */
+internal const val HTML_SOURCE_SHOWN_BY_DEFAULT = true
+
+/** The main pane the detail editor shows for a clip (#69). */
+internal enum class DetailEditorPane { TEXT_SOURCE, HTML_SOURCE, HTML_PREVIEW, TEXT_PREVIEW }
+
+/**
+ * Which main pane the detail editor shows (#69): the rendered HTML preview
+ * replaces the editable source only when the preview toggle says so, and a
+ * plain-text preview never hides an HTML source editor.
+ */
+internal fun detailEditorPane(
+    isHtmlDocument: Boolean,
+    htmlSourceShown: Boolean,
+    showPreview: Boolean,
+): DetailEditorPane =
+    when {
+        showPreview -> DetailEditorPane.TEXT_PREVIEW
+        isHtmlDocument && !htmlSourceShown -> DetailEditorPane.HTML_PREVIEW
+        isHtmlDocument -> DetailEditorPane.HTML_SOURCE
+        else -> DetailEditorPane.TEXT_SOURCE
+    }
+
+/**
  * Prepares an HTML clip for the reader WebView: injects the viewport meta and the
  * reader style (padding + readable body size) into the document's head, adding a
  * head when the clip is a fragment. The rendered result matches a fresh

@@ -113,8 +113,10 @@ import com.phaprodevelop.klipsilo.data.repository.textViewFileText
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.DetailEditorPane
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FitActionBar
+import com.phaprodevelop.klipsilo.ui.components.HTML_SOURCE_SHOWN_BY_DEFAULT
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
@@ -123,6 +125,7 @@ import com.phaprodevelop.klipsilo.ui.components.SheetRow
 import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
+import com.phaprodevelop.klipsilo.ui.components.detailEditorPane
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
@@ -218,7 +221,9 @@ fun DetailScreen(
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var fontSize by rememberSaveable { mutableStateOf(16) }
     var showPreview by remember { mutableStateOf(false) }
-    var htmlSourceShown by rememberSaveable(entryId) { mutableStateOf(false) }
+    // #69: HTML clips open as editable source again (v1.1.0 behaviour); the
+    // rendered view is reached only through the preview toggle.
+    var htmlSourceShown by rememberSaveable(entryId) { mutableStateOf(HTML_SOURCE_SHOWN_BY_DEFAULT) }
     // Key on the loaded body: list rows carry no textContent, so a first-only key
     // would leave HTML clips on the raw-source editor forever (#32).
     val isHtmlDocument = remember(entryId, entry.textContent) { looksLikeHtmlDocument(entry.textContent) }
@@ -938,46 +943,47 @@ fun DetailScreen(
                                 enabled = fontSize < 28,
                             ) { fontSize++ }
                         }
-                        if (showPreview) {
-                            TextPreviewPane(
-                                pages = previewPages,
-                                loading = previewLoading,
-                                onPageTap = { previewZoomPage = it },
-                                modifier = Modifier.weight(1f),
-                            )
-                        } else if (isHtmlDocument && !htmlSourceShown) {
-                            // Read in composition so a body that arrives after the first
-                            // frame (TEXT list rows store no textContent) still loads.
-                            HtmlClipPane(
-                                html = editedText.text,
-                                modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
-                            )
-                        } else {
-                            OutlinedTextField(
-                                value = editedText,
-                                onValueChange = { new ->
-                                    if (new.text != editedText.text) {
-                                        undoStack = (undoStack + editedText).takeLast(50)
-                                        redoStack = emptyList()
-                                        editedText = new
-                                    } else {
-                                        editedText = new
-                                    }
-                                },
-                                readOnly = entry.isLocked,
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth()
-                                        .imePadding()
-                                        .testTag("klips_editor_text_field"),
-                                textStyle =
-                                    MaterialTheme.typography.bodyLarge.copy(
-                                        fontSize = fontSize.sp,
-                                        lineHeight = (fontSize * pdfSettings.lineSpacing).sp,
-                                        fontFamily = FontFamily(typefaceForPdfFont(context, pdfSettings.pdfFont)),
-                                    ),
-                            )
+                        when (detailEditorPane(isHtmlDocument, htmlSourceShown, showPreview)) {
+                            DetailEditorPane.TEXT_PREVIEW ->
+                                TextPreviewPane(
+                                    pages = previewPages,
+                                    loading = previewLoading,
+                                    onPageTap = { previewZoomPage = it },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            DetailEditorPane.HTML_PREVIEW ->
+                                // Read in composition so a body that arrives after the first
+                                // frame (TEXT list rows store no textContent) still loads.
+                                HtmlClipPane(
+                                    html = editedText.text,
+                                    modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
+                                )
+                            DetailEditorPane.TEXT_SOURCE, DetailEditorPane.HTML_SOURCE ->
+                                OutlinedTextField(
+                                    value = editedText,
+                                    onValueChange = { new ->
+                                        if (new.text != editedText.text) {
+                                            undoStack = (undoStack + editedText).takeLast(50)
+                                            redoStack = emptyList()
+                                            editedText = new
+                                        } else {
+                                            editedText = new
+                                        }
+                                    },
+                                    readOnly = entry.isLocked,
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth()
+                                            .imePadding()
+                                            .testTag("klips_editor_text_field"),
+                                    textStyle =
+                                        MaterialTheme.typography.bodyLarge.copy(
+                                            fontSize = fontSize.sp,
+                                            lineHeight = (fontSize * pdfSettings.lineSpacing).sp,
+                                            fontFamily = FontFamily(typefaceForPdfFont(context, pdfSettings.pdfFont)),
+                                        ),
+                                )
                         }
                     }
                 }
