@@ -1694,7 +1694,9 @@ private fun MarkupToolBar(
                                         labelStyle.fontSize.value,
                                     ),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.fitTextSemantics(decision.text),
+                                // Semantics from the source label, not the
+                                // drawn lines (#64).
+                                modifier = Modifier.fitTextSemantics(label),
                                 textAlign = TextAlign.Center,
                                 softWrap = false,
                                 maxLines = decision.maxLines,

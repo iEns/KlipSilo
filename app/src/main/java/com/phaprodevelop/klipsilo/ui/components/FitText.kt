@@ -116,24 +116,28 @@ internal fun scaledLabelStyle(
 }
 
 /**
- * The string a fitted label exposes to accessibility (#64): the displayed
- * text with every invisible break character stripped. The display keeps
- * U+00AD (drawn as a hyphen at the break) and U+200B (display break at
- * `_` `-` `.` `/` `+`); braille displays and other screen readers must not
- * see either in the semantics.
+ * The string a fitted label exposes to accessibility (#64): the SOURCE
+ * label with every invisible break character stripped. The drawn form is
+ * never suitable for the semantics — its lines are joined with "\n" and a
+ * soft-hyphen break is drawn as a visible hyphen ([drawnLinePiece]), so a
+ * screen reader would read "Datenschutz-\nerklärung" — while U+00AD (drawn
+ * as a hyphen at the break) and U+200B (display break at `_` `-` `.` `/`
+ * `+`) exist only in the source to steer the display. Braille displays and
+ * other screen readers get the source, cleaned of both.
  */
-internal fun fitTextSemanticsText(displayText: String): String = displayText.withoutInvisibleBreaks()
+internal fun fitTextSemanticsText(sourceText: String): String = sourceText.withoutInvisibleBreaks()
 
 /**
  * Semantics modifier for any label rendered through the fit-text rule
- * (#64). Replaces the node's own text semantics (which carries the display
- * string with its U+00AD/U+200B break characters) with the clean string;
- * semantics of the surrounding nodes — role, click, heading — merge as
- * before.
+ * (#64). [sourceText] is the label before the fit-text rule reshaped it
+ * for display. Replaces the node's own text semantics (which carries the
+ * drawn string with its line breaks and inserted hyphens) with the clean
+ * string; semantics of the surrounding nodes — role, click, heading —
+ * merge as before.
  */
-internal fun Modifier.fitTextSemantics(displayText: String): Modifier =
+internal fun Modifier.fitTextSemantics(sourceText: String): Modifier =
     clearAndSetSemantics {
-        text = AnnotatedString(fitTextSemanticsText(displayText))
+        text = AnnotatedString(fitTextSemanticsText(sourceText))
     }
 
 /**
@@ -312,7 +316,10 @@ fun ButtonLabel(
             }
         Text(
             text = decision.text,
-            modifier = Modifier.fitTextSemantics(decision.text),
+            // The semantics read the source label, not the drawn form: the
+            // drawn form carries the "\n" line joins and the visible hyphen
+            // a soft-hyphen break draws (#64).
+            modifier = Modifier.fitTextSemantics(text),
             color = color,
             style = scaledLabelStyle(style, base * decision.scale, base),
             // Lines come from the policy, already broken on word boundaries.

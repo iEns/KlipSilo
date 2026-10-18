@@ -443,7 +443,9 @@ private fun FontFamilyCards(
                                         Modifier
                                             .fillMaxWidth()
                                             .padding(vertical = 10.dp)
-                                            .fitTextSemantics(decision.text),
+                                            // Semantics from the source label,
+                                            // not the drawn lines (#64).
+                                            .fitTextSemantics(label),
                                     textAlign = TextAlign.Center,
                                     // Lines come from the policy, already
                                     // broken on word boundaries.

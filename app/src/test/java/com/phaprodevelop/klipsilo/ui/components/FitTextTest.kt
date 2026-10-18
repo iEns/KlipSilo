@@ -195,9 +195,9 @@ class FitTextTest {
     }
 
     @Test
-    fun fitTextSemanticsText_isCleanForEveryFittedDecision() {
-        // #64: whatever the fit-text rule decides to draw, the semantics
-        // string never carries U+00AD or U+200B.
+    fun fitTextSemanticsText_isCleanForEverySourceLabel() {
+        // #64: whatever the fit-text rule decides to draw, the semantics —
+        // built from the source label — never carry U+00AD or U+200B.
         val labels =
             listOf(
                 "Datenschutz\u00ADerklärung",
@@ -206,16 +206,50 @@ class FitTextTest {
                 "Ind\u00ADstillinger",
             )
         for (label in labels) {
-            val decision =
-                resolveFitText(
-                    label,
-                    1000f,
-                    FitTextPolicy(maxLines = 2),
-                    widthOf = { s, _ -> s.length * 10f },
-                )
-            val semantics = fitTextSemanticsText(decision.text)
+            val semantics = fitTextSemanticsText(label)
             assertFalse(semantics.contains('\u00AD'))
             assertFalse(semantics.contains('\u200B'))
         }
+    }
+
+    @Test
+    fun fitTextSemanticsText_readsTheSourceLabelNotTheDrawnLines() {
+        // #64 follow-up: the drawn form joins its lines with "\n" — a
+        // per-character CJK wrap inserts them mid-word — and a soft-hyphen
+        // break draws as a visible hyphen (drawnLinePiece). Both leaked
+        // into the semantics ("Datenschutz-\nerklärung", "プライバシー\n
+        // ポリシー"): braille read the line break and the hyphen. The
+        // semantics string is the SOURCE label, stripped of the invisible
+        // breaks: no "\n", no inserted "-", no U+00AD/U+200B.
+        val de = "Datenschutz\u00ADerklärung"
+        val deDecision =
+            resolveFitText(
+                de,
+                125f,
+                FitTextPolicy(maxLines = 2),
+                widthOf = { s, _ -> s.length * 10f },
+            )
+        // The drawn form really is what must not reach the semantics.
+        assertTrue(deDecision.text.contains('-'))
+        assertTrue(deDecision.text.contains('\n'))
+        val deSemantics = fitTextSemanticsText(de)
+        assertEquals(de.replace("\u00AD", ""), deSemantics)
+        assertFalse(deSemantics.contains('\u00AD'))
+        assertFalse(deSemantics.contains('\n'))
+        assertFalse(deSemantics.contains('-'))
+
+        val ja = "プライバシーポリシー"
+        val jaDecision =
+            resolveFitText(
+                ja,
+                55f,
+                FitTextPolicy(maxLines = 2),
+                widthOf = { s, _ -> s.length * 10f },
+            )
+        assertTrue(jaDecision.text.contains('\n'))
+        val jaSemantics = fitTextSemanticsText(ja)
+        assertEquals(ja, jaSemantics)
+        assertFalse(jaSemantics.contains('\n'))
+        assertFalse(jaSemantics.contains('-'))
     }
 }
