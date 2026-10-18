@@ -36,7 +36,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
@@ -64,7 +63,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -95,7 +93,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -115,10 +112,12 @@ import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
+import com.phaprodevelop.klipsilo.ui.components.FitActionBar
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
 import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
+import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -602,175 +601,178 @@ fun DetailScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                title = {
+            // #62: the editor top bar. The growing row gives the title the
+            // same fit-text rule as the other top bars ("Bearbeiten"/
+            // "Rediger" used to break as "B/ea…" at font scale 2.0 and
+            // "Bearb/eiten" at 320dp), and the actions degrade labelled →
+            // icon-only → ⋮ overflow so they stop crowding the title.
+            FitActionBar(
+                title =
                     when (entry.contentType) {
-                        ContentType.TEXT, ContentType.URL -> Text(context.getString(R.string.text_editor))
-                        ContentType.PDF ->
-                            Text(
-                                text = pdfFileTitle(entry),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        else -> Unit
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (canAutoDelete && editedText.text.isBlank()) {
-                            viewModel.deleteClip(entry)
-                            viewModel.clearRecentNewClipId()
-                            onNavigateBack()
-                        } else if (hasChanges) {
-                            showDiscardDialog = true
-                        } else {
-                            onNavigateBack()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.back))
-                    }
-                },
-                actions = {
-                    val isEditableText =
-                        entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
-                    if (entry.contentType == ContentType.TEXT) {
-                        EditorToolButton(
-                            icon =
-                                if (isHtmlDocument && !htmlSourceShown) {
-                                    Icons.Filled.Visibility
-                                } else if (showPreview) {
-                                    Icons.Filled.VisibilityOff
-                                } else {
-                                    Icons.Filled.Visibility
-                                },
-                            contentDescription =
-                                if (isHtmlDocument) {
-                                    if (htmlSourceShown) {
-                                        context.getString(R.string.preview)
-                                    } else {
-                                        context.getString(R.string.source)
-                                    }
-                                } else {
-                                    context.getString(R.string.preview)
-                                },
-                            enabled = editedText.text.isNotBlank(),
-                        ) {
-                            if (isHtmlDocument) {
-                                htmlSourceShown = !htmlSourceShown
-                            } else {
-                                showPreview = !showPreview
-                            }
-                        }
-                        EditorToolButton(
-                            icon = Icons.Filled.PictureAsPdf,
-                            contentDescription = context.getString(R.string.text_to_pdf),
-                            enabled = editedText.text.isNotBlank(),
-                        ) {
-                            val txt = editedText.text
-                            if (txt.isNotBlank()) {
-                                committedText = txt
-                                savedFlash = true
-                                if (isNewEmpty) {
-                                    viewModel.clearRecentNewClipId()
-                                }
-                            }
-                            viewModel.convertTextToPdf(
-                                txt,
-                                entry,
-                                fontSizePt = fontSize.toFloat(),
-                                lineSpacing = pdfSettings.lineSpacing,
-                                navigateBack = false,
-                            )
-                        }
-                    }
-                    if (isEditableText) {
-                        val shareEnabled = editedText.text.isNotBlank()
-                        IconButton(onClick = {
-                            val textToShare = editedText.text
-                            if (textToShare.isBlank()) return@IconButton
-                            if (!entry.isLocked) {
-                                val updated =
-                                    if (isNewEmpty) {
-                                        val preview =
-                                            if (textToShare.isBlank()) {
-                                                ""
-                                            } else {
-                                                com.phaprodevelop.klipsilo.data.textClipTitle(textToShare)
-                                            }
-                                        entry.copy(
-                                            textContent = textToShare.ifBlank { null },
-                                            previewText = preview,
-                                        )
-                                    } else {
-                                        entry.copy(
-                                            textContent = textToShare.ifBlank { null },
-                                        )
-                                    }
-                                committedText = textToShare
-                                savedFlash = true
-                                ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                viewModel.updateClip(updated)
-                                if (isNewEmpty && textToShare.isNotBlank()) {
-                                    viewModel.clearRecentNewClipId()
-                                }
-                            }
-                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            viewModel.shareText(textToShare)
-                        }, enabled = shareEnabled) {
-                            Icon(
-                                Icons.Filled.Share,
-                                contentDescription = context.getString(R.string.share),
-                            )
-                        }
-                    }
-                    if (isEditableText && !entry.isLocked) {
-                        IconButton(onClick = {
-                            if (isNewEmpty && editedText.text.isBlank()) {
-                                viewModel.deleteClip(entry)
-                                viewModel.clearRecentNewClipId()
-                                onNavigateBack()
-                                return@IconButton
-                            }
-                            val txt = editedText.text
-                            val updated =
-                                if (isNewEmpty) {
-                                    val preview =
-                                        if (txt.isBlank()) {
-                                            ""
+                        ContentType.TEXT, ContentType.URL -> context.getString(R.string.text_editor)
+                        ContentType.PDF -> pdfFileTitle(entry)
+                        else -> ""
+                    },
+                actions =
+                    buildList {
+                        val isEditableText =
+                            entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
+                        if (entry.contentType == ContentType.TEXT) {
+                            add(
+                                TopBarIconAction(
+                                    icon =
+                                        if (isHtmlDocument && !htmlSourceShown) {
+                                            Icons.Filled.Visibility
+                                        } else if (showPreview) {
+                                            Icons.Filled.VisibilityOff
                                         } else {
-                                            com.phaprodevelop.klipsilo.data.textClipTitle(txt)
-                                        }
-                                    entry.copy(
-                                        textContent = txt.ifBlank { null },
-                                        previewText = preview,
-                                    )
-                                } else {
-                                    entry.copy(
-                                        textContent = txt.ifBlank { null },
-                                    )
-                                }
-                            committedText = txt
-                            savedFlash = true
-                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                            viewModel.updateClip(updated)
-                            if (isNewEmpty && editedText.text.isNotBlank()) {
-                                viewModel.clearRecentNewClipId()
-                            }
-                        }) {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = context.getString(R.string.save),
-                                tint =
-                                    if (savedFlash) {
-                                        MaterialTheme.colorScheme.primary
+                                            Icons.Filled.Visibility
+                                        },
+                                    label =
+                                        if (isHtmlDocument) {
+                                            if (htmlSourceShown) {
+                                                context.getString(R.string.preview)
+                                            } else {
+                                                context.getString(R.string.source)
+                                            }
+                                        } else {
+                                            context.getString(R.string.preview)
+                                        },
+                                    enabled = editedText.text.isNotBlank(),
+                                ) {
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    if (isHtmlDocument) {
+                                        htmlSourceShown = !htmlSourceShown
                                     } else {
-                                        LocalContentColor.current
-                                    },
+                                        showPreview = !showPreview
+                                    }
+                                },
+                            )
+                            add(
+                                TopBarIconAction(
+                                    icon = Icons.Filled.PictureAsPdf,
+                                    label = context.getString(R.string.text_to_pdf),
+                                    enabled = editedText.text.isNotBlank(),
+                                ) {
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    val txt = editedText.text
+                                    if (txt.isNotBlank()) {
+                                        committedText = txt
+                                        savedFlash = true
+                                        if (isNewEmpty) {
+                                            viewModel.clearRecentNewClipId()
+                                        }
+                                    }
+                                    viewModel.convertTextToPdf(
+                                        txt,
+                                        entry,
+                                        fontSizePt = fontSize.toFloat(),
+                                        lineSpacing = pdfSettings.lineSpacing,
+                                        navigateBack = false,
+                                    )
+                                },
                             )
                         }
+                        if (isEditableText) {
+                            add(
+                                TopBarIconAction(
+                                    icon = Icons.Filled.Share,
+                                    label = context.getString(R.string.share),
+                                    enabled = editedText.text.isNotBlank(),
+                                ) {
+                                    val textToShare = editedText.text
+                                    if (textToShare.isBlank()) return@TopBarIconAction
+                                    if (!entry.isLocked) {
+                                        val updated =
+                                            if (isNewEmpty) {
+                                                val preview =
+                                                    if (textToShare.isBlank()) {
+                                                        ""
+                                                    } else {
+                                                        com.phaprodevelop.klipsilo.data.textClipTitle(textToShare)
+                                                    }
+                                                entry.copy(
+                                                    textContent = textToShare.ifBlank { null },
+                                                    previewText = preview,
+                                                )
+                                            } else {
+                                                entry.copy(
+                                                    textContent = textToShare.ifBlank { null },
+                                                )
+                                            }
+                                        committedText = textToShare
+                                        savedFlash = true
+                                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                        viewModel.updateClip(updated)
+                                        if (isNewEmpty && textToShare.isNotBlank()) {
+                                            viewModel.clearRecentNewClipId()
+                                        }
+                                    }
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    viewModel.shareText(textToShare)
+                                },
+                            )
+                        }
+                        if (isEditableText && !entry.isLocked) {
+                            add(
+                                TopBarIconAction(
+                                    icon = Icons.Filled.Check,
+                                    label = context.getString(R.string.save),
+                                    tint =
+                                        if (savedFlash) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            LocalContentColor.current
+                                        },
+                                ) {
+                                    if (isNewEmpty && editedText.text.isBlank()) {
+                                        viewModel.deleteClip(entry)
+                                        viewModel.clearRecentNewClipId()
+                                        onNavigateBack()
+                                        return@TopBarIconAction
+                                    }
+                                    val txt = editedText.text
+                                    val updated =
+                                        if (isNewEmpty) {
+                                            val preview =
+                                                if (txt.isBlank()) {
+                                                    ""
+                                                } else {
+                                                    com.phaprodevelop.klipsilo.data.textClipTitle(txt)
+                                                }
+                                            entry.copy(
+                                                textContent = txt.ifBlank { null },
+                                                previewText = preview,
+                                            )
+                                        } else {
+                                            entry.copy(
+                                                textContent = txt.ifBlank { null },
+                                            )
+                                        }
+                                    committedText = txt
+                                    savedFlash = true
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    viewModel.updateClip(updated)
+                                    if (isNewEmpty && editedText.text.isNotBlank()) {
+                                        viewModel.clearRecentNewClipId()
+                                    }
+                                },
+                            )
+                        }
+                    },
+                onBack = {
+                    if (canAutoDelete && editedText.text.isBlank()) {
+                        viewModel.deleteClip(entry)
+                        viewModel.clearRecentNewClipId()
+                        onNavigateBack()
+                    } else if (hasChanges) {
+                        showDiscardDialog = true
+                    } else {
+                        onNavigateBack()
                     }
                 },
+                backContentDescription = context.getString(R.string.back),
+                moreContentDescription = context.getString(R.string.more_options),
             )
         },
     ) { padding ->

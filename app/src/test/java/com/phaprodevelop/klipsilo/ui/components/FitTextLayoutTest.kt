@@ -145,9 +145,10 @@ class FitTextLayoutTest {
                     label,
                     maxWidthPx = width,
                     policy = FitTextPolicy(maxLines = 2, minScale = 0.75f),
-                ) { text, scale ->
-                    textWidthPx(measurer, text, style, style.fontSize.value, scale)
-                }
+                    widthOf = { text, scale ->
+                        textWidthPx(measurer, text, style, style.fontSize.value, scale)
+                    },
+                )
             assertFalse("$label cut inside its own min width: ${decision.text}", decision.ellipsized)
             assertTrue(decision.maxLines <= 2)
         }
@@ -180,11 +181,11 @@ class FitTextLayoutTest {
                         style,
                         widthDp = labelWidth,
                         fontScale = 2f,
-                        policy = FitTextPolicy(maxLines = 3, minScale = 0.6f),
+                        policy = FitTextPolicy(maxLines = 4, minScale = 0.6f),
                     )
                 assertFalse("$label @ ${windowDp}dp was cut: ${decision.text}", decision.ellipsized)
                 assertFalse(decision.text.contains(FIT_ELLIPSIS))
-                assertTrue(decision.maxLines <= 3)
+                assertTrue(decision.maxLines <= 4)
                 // The policy never starts a wrapped line inside a word; the
                 // decision text is the label itself apart from added breaks.
                 decision.text.split('\n').forEach { line ->
@@ -243,6 +244,63 @@ class FitTextLayoutTest {
         }
     }
 
+    @Test
+    fun privacyTitleFitsAtFontScaleTwoWhenThePlatformHyphenates() {
+        // #62: at large font sizes the single-word title "Datenschutzerklärung"
+        // ellipsized as "Datutscherkläru…". With pattern-valid fragments the
+        // floor scale renders "Datenschutz-/erklärung" instead.
+        val style = TextStyle(fontSize = 22.sp, lineHeight = 28.sp)
+        val measurer = measurer(Density(density = 1f, fontScale = 2f))
+        val hyphenLinesOf: HyphenLinesOf = { word, _, _ ->
+            if (word == "Datenschutzerklärung") listOf("Datenschutz-", "erklärung") else null
+        }
+        val floor = TOP_BAR_TITLE_MIN_SCALE
+        val full = textWidthPx(measurer, "Datenschutzerklärung", style, style.fontSize.value, floor)
+        val widestFragment =
+            listOf("Datenschutz-", "erklärung").maxOf {
+                textWidthPx(measurer, it, style, style.fontSize.value, floor)
+            }
+        // A slot between the two: the whole word is too wide at the floor,
+        // the hyphenated fragments fit.
+        val titleWidth = (widestFragment + full) / 2f
+        val decision =
+            resolveFitText(
+                "Datenschutzerklärung",
+                maxWidthPx = titleWidth,
+                policy = FitTextPolicy(maxLines = 2, minScale = TOP_BAR_TITLE_MIN_SCALE),
+                widthOf = { sample, scale ->
+                    textWidthPx(measurer, sample, style, style.fontSize.value, scale)
+                },
+                hyphenLinesOf = hyphenLinesOf,
+            )
+        assertFalse("@${titleWidth}dp was cut: ${decision.text}", decision.ellipsized)
+        assertEquals("Datenschutz-\nerklärung", decision.text)
+        assertEquals(TOP_BAR_TITLE_MIN_SCALE, decision.scale)
+    }
+
+    @Test
+    fun editorTitleReservesTheHyphenatedFragmentWidth() {
+        // #62: the editor bar reserves the title slot from the hyphenated
+        // fragments, not from the whole word, so the actions can stay.
+        val style = TextStyle(fontSize = 22.sp, lineHeight = 28.sp)
+        val measurer = measurer(Density(density = 1f, fontScale = 2f))
+        val plain = titleFragmentFloorWidthPx(measurer, "Bearbeiten", style, null)
+        val hyphenated =
+            titleFragmentFloorWidthPx(
+                measurer,
+                "Bearbeiten",
+                style,
+            ) { word, _, maxWidthPx ->
+                if (word == "Bearbeiten" && maxWidthPx > 0f) {
+                    listOf("Bearb-", "eiten")
+                } else {
+                    null
+                }
+            }
+        assertTrue("plain width must be positive", plain > 0f)
+        assertTrue("hyphenated $hyphenated must be narrower than $plain", hyphenated < plain)
+    }
+
     private fun measure(
         text: String,
         style: TextStyle,
@@ -253,9 +311,9 @@ class FitTextLayoutTest {
         val density = Density(density = 1f, fontScale = fontScale)
         val measurer = measurer(density)
         val base = style.fontSize.value
-        return resolveFitText(text, widthDp, policy) { sample, scale ->
+        return resolveFitText(text, widthDp, policy, widthOf = { sample, scale ->
             textWidthPx(measurer, sample, style, base, scale)
-        }
+        })
     }
 
     private fun measureUniform(

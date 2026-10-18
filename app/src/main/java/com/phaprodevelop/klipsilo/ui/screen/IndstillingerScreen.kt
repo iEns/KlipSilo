@@ -331,8 +331,9 @@ fun IndstillingerScreen(
                         text = context.getString(R.string.about),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
-                        maxLines = 3,
+                        maxLines = 4,
                         floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                        hyphenate = true,
                     )
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
@@ -355,8 +356,9 @@ fun IndstillingerScreen(
                         text = context.getString(R.string.privacy_policy),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
-                        maxLines = 3,
+                        maxLines = 4,
                         floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                        hyphenate = true,
                     )
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
@@ -626,8 +628,13 @@ private fun PdfSettingSlider(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
-                maxLines = 3,
+                // Four lines (#62): "Maximale Ausgaberesolution" next to the
+                // value text ("3000 px") has the vertical room above the
+                // slider, and the long word hyphenates ("Ausgabe-/
+                // resolution") instead of showing "Ausgaberesoluti…".
+                maxLines = 4,
                 floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                hyphenate = true,
             )
             Text(
                 text = valueText,

@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
 @Composable
@@ -140,10 +141,16 @@ fun AboutScreen(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text(
+                    // The policy label (#62): a plain Text broke the single
+                    // word mid-word ("Datenschutzerkl/ärung"); the rule
+                    // wraps at word boundaries up to four lines and
+                    // hyphenates the long word instead.
+                    ButtonLabel(
                         text = context.getString(R.string.privacy_policy),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        hyphenate = true,
                     )
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }

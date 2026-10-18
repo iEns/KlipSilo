@@ -1,5 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -7,7 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,9 +27,14 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
@@ -116,8 +129,10 @@ fun TopBarSaveAction(
 
 /**
  * Top bar title (#47). Two lines at the style size, then a shrink down to
- * [TOP_BAR_TITLE_MIN_SCALE], then an ellipsis. The bar that hosts it must
- * grow with the text: a fixed 64dp row clips the second line.
+ * [TOP_BAR_TITLE_MIN_SCALE], then — for a single word still wider than the
+ * line — a pattern-valid hyphenation (#62, "Datenschutz-/erklärung"), then
+ * an ellipsis. The bar that hosts it must grow with the text: a fixed 64dp
+ * row clips the second line.
  */
 @Composable
 fun TopBarFitTitle(
@@ -130,6 +145,7 @@ fun TopBarFitTitle(
         style = MaterialTheme.typography.titleLarge,
         maxLines = 2,
         floorFraction = TOP_BAR_TITLE_MIN_SCALE,
+        hyphenate = true,
     )
 }
 
@@ -224,6 +240,156 @@ internal fun titleFloorWidthPx(
                 .toFloat()
         }
         ?: 0f
+}
+
+/**
+ * Narrowest slot the title needs at its floor size with hyphenation (#62):
+ * per word the widest fragment the platform hyphenation produces, or the
+ * whole word when the platform cannot break it. Used to reserve the title
+ * room before the action-bar degrade plans the icon buttons.
+ */
+internal fun titleFragmentFloorWidthPx(
+    measurer: TextMeasurer,
+    title: String,
+    style: TextStyle,
+    hyphenLinesOf: HyphenLinesOf?,
+): Float {
+    val base = style.fontSize.value
+    if (base <= 0f) return 0f
+    val floor = base * TOP_BAR_TITLE_MIN_SCALE
+
+    fun width(sample: String): Float =
+        measurer
+            .measure(
+                text = sample,
+                style = scaledLabelStyle(style, floor, base),
+                softWrap = false,
+                maxLines = 1,
+            ).size.width
+            .toFloat()
+    return title
+        .split(Regex("""\s+"""))
+        .filter { it.isNotEmpty() }
+        .maxOf { word ->
+            var best = width(word)
+            // The platform picks its break for the width it is given; a
+            // narrower layout splits earlier, so the smallest width that
+            // still yields fragments has the narrowest widest fragment.
+            if (hyphenLinesOf != null) {
+                for (fraction in listOf(0.75f, 0.6f, 0.5f, 0.4f, 0.3f)) {
+                    val fragments = hyphenLinesOf(word, TOP_BAR_TITLE_MIN_SCALE, best * fraction)
+                    if (fragments != null) {
+                        best = fragments.maxOf { width(it) }
+                    }
+                }
+            }
+            best
+        }
+}
+
+/** One icon-only top bar action; [label] is its content description. */
+data class TopBarIconAction(
+    val icon: ImageVector,
+    val label: String,
+    val enabled: Boolean = true,
+    val tint: Color = Color.Unspecified,
+    val onClick: () -> Unit,
+)
+
+/**
+ * Back bar with icon actions and a growing title (#62). The editor top bar
+ * used to cram "Bearbeiten"/"Rediger" into the slot left over between the
+ * back arrow and four fixed icons ("B/ea…" at font scale 2.0, "Bearb/eiten"
+ * at 320dp). This bar follows [FitBackBar]: the title goes through the
+ * [FitTextPolicy] (two lines, shrink, hyphenate). The actions go through
+ * the shared action-bar degrade (#45): as many icon buttons as the row
+ * fits once the title's floor slot is reserved, everything else moves into
+ * a ⋮ overflow menu that always stays on screen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FitActionBar(
+    title: String,
+    actions: List<TopBarIconAction>,
+    onBack: () -> Unit,
+    backContentDescription: String,
+    moreContentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+        BoxWithConstraints {
+            val density = LocalDensity.current
+            val measurer = rememberTextMeasurer()
+            val titleStyle = MaterialTheme.typography.titleLarge
+            val hyphenLinesOf = rememberHyphenLinesOf(style = titleStyle, maxLines = 2)
+            val barWidthPx = constraints.maxWidth.toFloat()
+            val backPx = with(density) { 48.dp.toPx() }
+            val iconPx = with(density) { 48.dp.toPx() }
+            val titleMinPx =
+                remember(title, titleStyle, density.fontScale, density.density, hyphenLinesOf) {
+                    titleFragmentFloorWidthPx(measurer, title, titleStyle, hyphenLinesOf)
+                }
+            val plan =
+                remember(barWidthPx, backPx, iconPx, titleMinPx, actions.size) {
+                    planActionBar(
+                        availablePx = (barWidthPx - backPx - titleMinPx).coerceAtLeast(0f),
+                        overflowPx = iconPx,
+                        pinnedPx = 0f,
+                        iconOnlyPx = List(actions.size) { iconPx },
+                        labelledPxAtScale = emptyList(),
+                    )
+                }
+            val overflowed = actions.filterIndexed { index, _ -> plan.modes[index] == BarItemMode.Overflow }
+            val visible = actions.filterIndexed { index, _ -> plan.modes[index] == BarItemMode.IconOnly }
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = backContentDescription,
+                    )
+                }
+                TopBarFitTitle(text = title, modifier = Modifier.weight(1f).padding(end = 4.dp))
+                visible.forEach { action ->
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text(action.label) } },
+                        state = rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = action.onClick, enabled = action.enabled) {
+                            Icon(action.icon, contentDescription = action.label, tint = action.tint)
+                        }
+                    }
+                }
+                if (overflowed.isNotEmpty()) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = moreContentDescription,
+                            )
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            overflowed.forEach { action ->
+                                DropdownMenuItem(
+                                    text = { Text(action.label) },
+                                    leadingIcon = { Icon(action.icon, contentDescription = null) },
+                                    enabled = action.enabled,
+                                    onClick = {
+                                        menuOpen = false
+                                        action.onClick()
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -354,6 +520,50 @@ private fun TopBarRow(
             title = title,
             enabled = true,
             onClick = {},
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Preview(fontScale = 2f, widthDp = 294, showBackground = true)
+@Preview(widthDp = 320, showBackground = true)
+@Composable
+private fun FitActionBarLargeScalePreview() {
+    // #62: the editor top bar. "Bearbeiten"/"Rediger" must keep its slot
+    // between ← and the actions, and the actions degrade into the ⋮ menu
+    // instead of crowding the title at large font sizes.
+    MaterialTheme {
+        FitActionBar(
+            title = "Bearbeiten",
+            actions =
+                listOf(
+                    TopBarIconAction(Icons.Filled.Visibility, "Forhåndsvisning") {},
+                    TopBarIconAction(Icons.Filled.PictureAsPdf, "Tekst til PDF") {},
+                    TopBarIconAction(Icons.Filled.Share, "Del") {},
+                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
+                ),
+            onBack = {},
+            backContentDescription = "Tilbage",
+            moreContentDescription = "Flere muligheder",
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 294, showBackground = true)
+@Composable
+private fun FitActionBarPrivacyTitlePreview() {
+    // #62: the single-word privacy title hyphenates at the floor scale
+    // instead of ellipsizing.
+    MaterialTheme {
+        FitActionBar(
+            title = "Datenschutzerklärung",
+            actions =
+                listOf(
+                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
+                ),
+            onBack = {},
+            backContentDescription = "Zurück",
+            moreContentDescription = "Weitere Optionen",
         )
     }
 }
