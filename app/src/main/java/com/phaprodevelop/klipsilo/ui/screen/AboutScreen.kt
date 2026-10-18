@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
@@ -48,6 +49,11 @@ fun AboutScreen(
                 "1.0"
             }
         }
+    // The version is one long token; the line used to wrap mid-token
+    // ("…debug+1 / 567c74", #62). Display-only zero-width spaces let it
+    // break after '+' and '-' like #54 does for filenames — the value in
+    // the string stays whole.
+    val displayVersion = version.insertDisplayBreaksAfterPlusAndMinus()
     val publisher = context.getString(R.string.publisher_name)
     val email = context.getString(R.string.publisher_email)
 
@@ -77,7 +83,7 @@ fun AboutScreen(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Text(
-                text = context.getString(R.string.about_version, version),
+                text = context.getString(R.string.about_version, displayVersion),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -182,5 +188,30 @@ fun AboutScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * [this] with a display-only zero-width space U+200B after every '+' and
+ * '-', so the version token can wrap there instead of mid-token (#62). Like
+ * the filename breaks of #54 the character is display-only: the string keeps
+ * its real value everywhere else.
+ */
+internal fun String.insertDisplayBreaksAfterPlusAndMinus(): String =
+    buildString(length + 2) {
+        for (c in this@insertDisplayBreaksAfterPlusAndMinus) {
+            append(c)
+            if (c == '+' || c == '-') append('\u200B')
+        }
+    }
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Preview(widthDp = 320, showBackground = true)
+@Composable
+private fun AboutScreenLargeScalePreview() {
+    // #62: the version line wraps after '+' and '-' at font scale 2.0,
+    // never mid-token.
+    MaterialTheme {
+        AboutScreen(onNavigateBack = {}, onNavigateToPrivacy = {})
     }
 }
