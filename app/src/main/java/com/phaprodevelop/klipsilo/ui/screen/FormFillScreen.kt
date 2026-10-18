@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
@@ -28,6 +29,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -78,6 +81,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -820,12 +824,27 @@ private fun FormFieldRow(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                field.options.forEachIndexed { index, option ->
-                    Row(
-                        modifier =
+                // One kid per radio option; selectableGroup makes the group exclusive for
+                // screen readers too (#67).
+                Column(modifier = Modifier.selectableGroup()) {
+                    field.options.forEachIndexed { index, option ->
+                        val selected = value == option
+                        val rowModifier =
                             Modifier
                                 .fillMaxWidth()
-                                .clickable { onValueChange(option) }
+                                // ≥ 48dp even for short option words, at any font scale (#67).
+                                .heightIn(min = 48.dp)
+                                .then(
+                                    if (field.type == FormFieldType.RADIO) {
+                                        Modifier.selectable(
+                                            selected = selected,
+                                            role = Role.RadioButton,
+                                            onClick = { onValueChange(option) },
+                                        )
+                                    } else {
+                                        Modifier.clickable { onValueChange(option) }
+                                    },
+                                )
                                 .then(
                                     if (index == 0) {
                                         Modifier
@@ -834,11 +853,15 @@ private fun FormFieldRow(
                                     } else {
                                         Modifier
                                     },
-                                ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = value == option, onClick = { onValueChange(option) })
-                        Text(option, style = MaterialTheme.typography.bodyMedium)
+                                )
+                        Row(
+                            modifier = rowModifier,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // The row is the click target; the radio button itself only shows state.
+                            RadioButton(selected = selected, onClick = null)
+                            Text(option, style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }
@@ -1082,6 +1105,36 @@ private fun FormFieldRowPasswordRevealedPreview() {
             bringIntoViewRequester = BringIntoViewRequester(),
             imeAction = ImeAction.Done,
             passwordRevealed = true,
+            onTogglePasswordRevealed = {},
+            onNextField = {},
+            onValueChange = {},
+            onFocused = {},
+        )
+    }
+}
+
+// A radio group: exclusive radio options with ≥48dp rows, whole words at font scale 2.0 (#67).
+@OptIn(ExperimentalFoundationApi::class)
+@Preview(fontScale = 2f, widthDp = 320, heightDp = 300, showBackground = true)
+@Composable
+private fun FormFieldRowRadioGroupPreview() {
+    MaterialTheme {
+        FormFieldRow(
+            field =
+                FormFieldInfo(
+                    name = "auth",
+                    fullyQualifiedName = "auth",
+                    type = FormFieldType.RADIO,
+                    currentValue = "citizen",
+                    options = listOf("citizen", "visa", "sponsor"),
+                    label = "Work authorization",
+                    valueKey = "auth",
+                ),
+            value = "citizen",
+            focusRequester = FocusRequester(),
+            bringIntoViewRequester = BringIntoViewRequester(),
+            imeAction = ImeAction.Done,
+            passwordRevealed = false,
             onTogglePasswordRevealed = {},
             onNextField = {},
             onValueChange = {},

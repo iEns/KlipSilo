@@ -2985,8 +2985,21 @@ class ClipboardRepository(
         }
         val field = acroForm.getField(key) ?: return false
         return try {
-            when (field) {
-                is PDCheckBox -> {
+            when {
+                // Radio group: /V on the parent gets the chosen export value and /AS on
+                // every kid gets the chosen one or /Off, exactly what PDButton.setValue
+                // (updateByValue / updateByOption) writes (#67).
+                isRadioGroupField(field) -> {
+                    if (value.isEmpty() || value == "false" || value.equals("Off", ignoreCase = true)) {
+                        // Untouched radio rows stay as they are; the fill screen never
+                        // clears a radio choice, so NoToggleToOff groups need no extra care.
+                        true
+                    } else {
+                        field.setValue(value)
+                        true
+                    }
+                }
+                field is PDCheckBox -> {
                     if (value == "true") field.check() else field.unCheck()
                 }
                 else -> field.setValue(value)
@@ -3007,6 +3020,35 @@ class ClipboardRepository(
             .filter { (it.fullyQualifiedName ?: it.partialName) == fqn }
     }
 
+    /**
+     * True when the field is a radio group: pdfbox maps a field with the /Ff Radio flag
+     * (bit 16) to [PDRadioButton], but forms from some producers leave the flag unset and
+     * only express radio-ness through the widget kids, each carrying its own /AP /N on-state
+     * (both testaroo test forms do this, #67). Such a field is one parent with several widget
+     * kids, so it must not fill as a single checkbox.
+     */
+    private fun isRadioGroupField(field: PDField): Boolean {
+        if (field !is PDButton || field.isPushButton) return false
+        if (field is PDRadioButton) return true
+        return field.widgets.size > 1 &&
+            field.widgets.mapNotNull { widgetOnValue(it) }.distinct().size > 1
+    }
+
+    /**
+     * The choices of a radio group in widget-kid order: the /Opt export values when the
+     * producer set them, otherwise each kid's /AP /N on-state name other than /Off (#67).
+     */
+    private fun radioExportValues(field: PDField): List<String> {
+        val exportValues =
+            try {
+                if (field is PDRadioButton) field.exportValues else emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+        if (exportValues.isNotEmpty() && exportValues.size == field.widgets.size) return exportValues
+        return field.widgets.mapNotNull { widgetOnValue(it) }
+    }
+
     private fun toFormFieldInfo(
         document: PDDocument,
         field: PDField,
@@ -3019,9 +3061,10 @@ class ClipboardRepository(
         if (field is PDButton && field.isPushButton) return null
         val partial = field.partialName ?: field.fullyQualifiedName ?: return null
         val fqn = field.fullyQualifiedName ?: partial
+        val isRadioGroup = isRadioGroupField(field)
         val type =
             when (field) {
-                is PDCheckBox -> FormFieldType.CHECKBOX
+                is PDCheckBox -> if (isRadioGroup) FormFieldType.RADIO else FormFieldType.CHECKBOX
                 is PDRadioButton -> FormFieldType.RADIO
                 is PDComboBox, is PDListBox -> FormFieldType.CHOICE
                 is PDTextField -> FormFieldType.TEXT
@@ -3030,10 +3073,20 @@ class ClipboardRepository(
         val options: List<String> =
             when (field) {
                 is PDComboBox, is PDListBox -> field.options
-                is PDRadioButton -> field.exportValues
+                is PDRadioButton -> radioExportValues(field)
+                is PDCheckBox -> if (isRadioGroup) radioExportValues(field) else emptyList()
                 else -> emptyList()
             }
-        val hits = fieldHits(document, field)
+        var hits = fieldHits(document, field)
+        // With /Opt export values the saved /V carries the export value while each kid's
+        // /AS keeps its appearance-state name; align the hits so the preview compares
+        // the stored value with the same names the save writes (#67).
+        if (type == FormFieldType.RADIO && options.size == hits.size) {
+            hits =
+                hits.mapIndexed { index, hit ->
+                    options.getOrNull(index)?.let { hit.copy(option = it) } ?: hit
+                }
+        }
         val nearby = nearbyLabel(field, document, runs)
         val tooltip = alternateName(field)
         // Checkbox and radio widgets draw their option text to the right, which is what makes
