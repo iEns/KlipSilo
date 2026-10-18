@@ -981,7 +981,7 @@ private fun decodeSampled(
         }
         val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
         val bmp = android.graphics.BitmapFactory.decodeFile(path, options) ?: return null
-        exifRotate(bmp, path)
+        com.phaprodevelop.klipsilo.ui.components.exifRotate(bmp, path)
     } catch (_: Exception) {
         null
     } catch (_: OutOfMemoryError) {
@@ -1023,60 +1023,6 @@ private fun rotateIfNeeded(bitmap: Bitmap): Bitmap {
     val matrix = android.graphics.Matrix()
     matrix.postRotate(90f)
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-}
-
-private fun exifRotate(
-    bitmap: Bitmap,
-    filePath: String,
-): Bitmap {
-    return try {
-        val exif = androidx.exifinterface.media.ExifInterface(filePath)
-        val orientation =
-            exif.getAttributeInt(
-                androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
-                androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL,
-            )
-        if (orientation == androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL) {
-            return bitmap
-        }
-        val matrix = android.graphics.Matrix()
-        when (orientation) {
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> {
-                matrix.setScale(-1f, 1f)
-                matrix.postTranslate(bitmap.width.toFloat(), 0f)
-            }
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> {
-                matrix.setScale(1f, -1f)
-                matrix.postTranslate(0f, bitmap.height.toFloat())
-            }
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_TRANSPOSE -> {
-                matrix.postRotate(90f)
-                matrix.postScale(-1f, 1f)
-                matrix.postTranslate(bitmap.height.toFloat(), 0f)
-            }
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_TRANSVERSE -> {
-                matrix.postRotate(270f)
-                matrix.postScale(1f, -1f)
-                matrix.postTranslate(0f, bitmap.width.toFloat())
-            }
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-            else -> return bitmap
-        }
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        if (rotated != bitmap) {
-            try {
-                bitmap.recycle()
-            } catch (_: Exception) {
-            }
-        }
-        rotated
-    } catch (_: Exception) {
-        bitmap
-    } catch (_: OutOfMemoryError) {
-        bitmap
-    }
 }
 
 @androidx.compose.ui.tooling.preview.Preview(fontScale = 2f, widthDp = 360, showBackground = true)
