@@ -11,8 +11,11 @@ import kotlin.math.abs
  *    uses one scale for every sibling.
  * 4. Hyphenate a single word that is still wider than the line at
  *    [minScale] (#62): the platform breaks it at a pattern-valid point and
- *    a visible hyphen ends the line ("Datenschutz-/erklärung"). See
- *    [hyphenatedFormOf] and the [HyphenLinesOf] contract.
+ *    a visible hyphen ends the line ("Datenschutz-/erklärung"). The
+ *    platform lays a word out with one break choice per width; when that
+ *    choice ends in a too-short fragment the width is retried narrower so
+ *    the platform breaks earlier (#62). See [hyphenatedFormOf] and the
+ *    [HyphenLinesOf] contract.
  * 5. Ellipsis at the end of the last line, only as the last resort. A line
  *    never starts mid-word without a hyphen; a single word that cannot fit
  *    or hyphenate is cut with an ellipsis, not broken.
@@ -143,6 +146,12 @@ private fun hyphenateAtFloor(
  * the hyphen, so the wrap only breaks where a hyphen is drawn). Null when
  * one of those words cannot be hyphenated or a fragment has fewer than
  * three letters on either side of a break (#62).
+ *
+ * The platform lays a word out with one break choice per width. When that
+ * choice ends in a too-short fragment ("Ausgaberesoluti-/on" — German
+ * patterns allow the ti/on break and the layout greedily fills the line,
+ * #62) the same layout at a narrower width breaks earlier
+ * ("Ausgabe-/resolution"), so the widths are retried, narrowest last.
  */
 internal fun hyphenatedFormOf(
     text: String,
@@ -166,8 +175,7 @@ internal fun hyphenatedFormOf(
         if (fitsWidth(widthOf(word, scale), maxWidthPx)) {
             pieces += word
         } else {
-            val fragments = hyphenLinesOf(word, scale, maxWidthPx) ?: return null
-            if (fragments.any { fragment -> fragment.count { it.isLetter() } < 3 }) return null
+            val fragments = hyphenFragments(word, scale, maxWidthPx, hyphenLinesOf) ?: return null
             // The fragments already carry the hyphen; the joins between them
             // are exactly the line breaks the platform chose.
             pieces += fragments.joinToString(separator = "")
@@ -177,6 +185,29 @@ internal fun hyphenatedFormOf(
     }
     return if (changed) pieces.joinToString(separator = "") else null
 }
+
+/**
+ * [hyphenLinesOf] for one word at [maxWidthPx], then at narrower widths:
+ * the platform's one break choice per width can end in a fragment with
+ * fewer than three letters ("…resoluti-/on", #62) — a narrower layout
+ * breaks earlier ("Ausgabe-/resolution"). Null when no width yields
+ * fragments that all pass the three-letter rule.
+ */
+private fun hyphenFragments(
+    word: String,
+    scale: Float,
+    maxWidthPx: Float,
+    hyphenLinesOf: HyphenLinesOf,
+): List<String>? =
+    (listOf(maxWidthPx) + HYPHEN_RETRY_FRACTIONS.map { maxWidthPx * it })
+        .firstNotNullOfOrNull { width ->
+            hyphenLinesOf(word, scale, width)?.takeIf(::fragmentsHaveThreeLetters)
+        }
+
+private val HYPHEN_RETRY_FRACTIONS = listOf(0.9f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f)
+
+private fun fragmentsHaveThreeLetters(fragments: List<String>): Boolean =
+    fragments.all { fragment -> fragment.count { it.isLetter() } >= 3 }
 
 /**
  * One scale for every text (#50). The largest scale at which all of them fit

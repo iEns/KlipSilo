@@ -366,7 +366,8 @@ class FitTextPolicyTest {
     @Test
     fun hyphenationIsOnlyConsultedAtTheFloorScale() {
         // Steps a–c run untouched: the hyphenation is asked for the word at
-        // the floor only (#62).
+        // the floor only (#62). The earlier-break retries (#62) re-ask at the
+        // same floor scale, never at a higher one.
         val askedScales = mutableListOf<Float>()
         val decision =
             resolveFitText(
@@ -380,7 +381,56 @@ class FitTextPolicyTest {
                 },
             )
         assertFalse(decision.ellipsized)
-        assertEquals(listOf(0.5f), askedScales)
+        assertEquals(listOf(0.5f), askedScales.distinct())
+    }
+
+    @Test
+    fun aTooShortPlatformFragmentRetriesAtANarrowerWidth() {
+        // The platform lays a word out with one break choice per width. When
+        // that choice ends in a fragment with fewer than three letters
+        // ("…resoluti-/on"), the rule used to give up and the row fell back
+        // to the ellipsis at large DE (#62). It must instead break earlier,
+        // the way a narrower layout does ("Ausgabe-/resolution").
+        val widths = mutableListOf<Float>()
+        val decision =
+            resolveFitText(
+                "Maximale Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { word, _, maxWidthPx ->
+                    widths += maxWidthPx
+                    // The platform's choice for the full width: the greedy
+                    // ti/on break with its two-letter tail.
+                    if (word == "Ausgaberesolution" && maxWidthPx >= 79f) {
+                        listOf("Ausgaberesoluti-", "on")
+                    } else if (word == "Ausgaberesolution") {
+                        listOf("Ausgabe-", "resolution")
+                    } else {
+                        null
+                    }
+                },
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("Maximale\nAusgabe-\nresolution", decision.text)
+        // The first ask is at the row width; at least one retry is narrower.
+        assertTrue(widths.size > 1)
+        assertTrue(widths.last() < widths.first())
+    }
+
+    @Test
+    fun aTooShortPlatformFragmentThatNeverImprovesKeepsTheEllipsis() {
+        // When no width yields valid fragments the fallback stays step e (#62).
+        val decision =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, _, _ -> listOf("Ausgaberesoluti-", "on") },
+            )
+        assertTrue(decision.ellipsized)
+        assertTrue(decision.text.endsWith(FIT_ELLIPSIS))
     }
 
     @Test

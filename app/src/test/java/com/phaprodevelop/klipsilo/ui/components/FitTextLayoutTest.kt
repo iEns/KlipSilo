@@ -5,6 +5,7 @@ package com.phaprodevelop.klipsilo.ui.components
 import android.content.Context
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
@@ -16,6 +17,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Real text measurement at the sizes Marcus retested. Density cancels out of
@@ -299,6 +301,49 @@ class FitTextLayoutTest {
             }
         assertTrue("plain width must be positive", plain > 0f)
         assertTrue("hyphenated $hyphenated must be narrower than $plain", hyphenated < plain)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun settingsRowHyphenatesWhenThePlatformsFirstBreakIsTooShort() {
+        // #62: "Maximale Ausgaberesolution" at large DE. The row's slot next
+        // to the value text is about 0.9x the floor width of the long word
+        // (514px vs 588px at density 588), and the platform lays a word out
+        // with ONE break choice per width: for that slot the greedy choice
+        // ends in the two-letter tail "…resoluti-/on", the three-letter rule
+        // rejected it, and the row fell back to "Ausgaberesoluti…". The rule
+        // must break earlier instead — what a narrower layout chooses
+        // ("Ausgabe-/resolution").
+        val style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+        val density = Density(density = 1f, fontScale = 2f)
+        val measurer = measurer(density)
+        val base = style.fontSize.value
+        val hyphenLinesOf: HyphenLinesOf = { word, scale, maxWidthPx ->
+            hyphenatedWordLines(
+                measurer = measurer,
+                word = word,
+                style = scaledLabelStyle(style, base * scale, base),
+                localeList = LocaleList("de"),
+                maxLines = 4,
+                maxWidthPx = maxWidthPx,
+            )
+        }
+        val wordAtFloor = textWidthPx(measurer, "Ausgaberesolution", style, base, 0.6f)
+        val slot = wordAtFloor * 0.9f
+        val decision =
+            resolveFitText(
+                "Maximale Ausgaberesolution",
+                maxWidthPx = slot,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.6f),
+                widthOf = { sample, scale ->
+                    textWidthPx(measurer, sample, style, base, scale)
+                },
+                hyphenLinesOf = hyphenLinesOf,
+            )
+        assertFalse("cut: ${decision.text}", decision.ellipsized)
+        assertFalse(decision.text.contains(FIT_ELLIPSIS))
+        assertTrue(decision.text, decision.text.contains("-\n"))
+        assertTrue(decision.maxLines <= 4)
     }
 
     private fun measure(
