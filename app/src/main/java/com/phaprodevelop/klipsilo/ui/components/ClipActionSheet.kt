@@ -299,7 +299,7 @@ fun ClipActionSheet(
 }
 
 @Composable
-private fun SheetRow(
+internal fun SheetRow(
     icon: ImageVector,
     label: String,
     enabled: Boolean = true,
@@ -321,6 +321,26 @@ private fun SheetRow(
         DisplayText(text = label, style = MaterialTheme.typography.bodyLarge)
     }
 }
+
+/** Lowercased file extension of [filePath], or "" (no path or extension). */
+internal fun fileExtensionOf(filePath: String?): String = filePath?.substringAfterLast('.', "")?.lowercase() ?: ""
+
+/**
+ * The "Convert to PDF" action for a file clip by its extension — the same
+ * mapping the action sheet shows, reused by the viewer's file info card
+ * (#66) so the conversion logic is not duplicated.
+ */
+internal fun fileConvertToPdfAction(
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
+): (() -> Unit)? =
+    when (fileExtensionOf(entry.filePath)) {
+        "txt" -> ({ viewModel.convertFileToPdf(entry) })
+        "rtf" -> ({ viewModel.convertRtfFileToPdf(entry) })
+        "docx" -> ({ viewModel.convertDocxFileToPdf(entry) })
+        "xlsx" -> ({ viewModel.convertXlsxFileToPdf(entry) })
+        else -> null
+    }
 
 private fun conversionRows(
     entry: ClipboardEntry,

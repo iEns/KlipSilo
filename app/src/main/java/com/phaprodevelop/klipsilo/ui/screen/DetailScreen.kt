@@ -3,7 +3,6 @@ package com.phaprodevelop.klipsilo.ui.screen
 import android.app.Activity
 import android.content.ContextWrapper
 import android.graphics.Bitmap
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,6 +13,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -40,6 +40,8 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -61,6 +63,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -93,6 +96,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -101,23 +105,26 @@ import androidx.core.view.ViewCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import coil.compose.AsyncImage
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
-import com.phaprodevelop.klipsilo.data.repository.extractDocxText
-import com.phaprodevelop.klipsilo.data.repository.extractRtfText
-import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
-import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
+import com.phaprodevelop.klipsilo.data.repository.textViewFileText
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
+import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FitActionBar
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
 import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
+import com.phaprodevelop.klipsilo.ui.components.SheetRow
 import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
+import com.phaprodevelop.klipsilo.ui.components.clipInfo
+import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
+import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
+import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
@@ -612,7 +619,9 @@ fun DetailScreen(
                     when (entry.contentType) {
                         ContentType.TEXT, ContentType.URL -> context.getString(R.string.text_editor)
                         ContentType.PDF -> pdfFileTitle(entry)
-                        else -> ""
+                        // #66: image and file clips show their file name.
+                        // An empty title used to crash [FitActionBar] here.
+                        else -> clipListTitle(entry.contentType, entry.previewText)
                     },
                 actions =
                     buildList {
@@ -977,7 +986,8 @@ fun DetailScreen(
                         when (entry.contentType) {
                             ContentType.IMAGE ->
                                 ImageViewer(
-                                    filePath = entry.filePath,
+                                    entry = entry,
+                                    viewModel = viewModel,
                                     onScanQr = {
                                         showQrDialog = true
                                         viewModel.scanImageQr(entry)
@@ -1001,16 +1011,12 @@ fun DetailScreen(
                                     },
                                 )
                             ContentType.FILE ->
+                                // #66: files the viewer cannot show (binary
+                                // files, failed extraction) open the file info
+                                // card instead of a toast + bounce back.
                                 FileViewer(
-                                    filePath = entry.filePath,
-                                    onUnsupported = {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.file_cannot_open),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                        onNavigateBack()
-                                    },
+                                    entry = entry,
+                                    viewModel = viewModel,
                                 )
                             ContentType.LOCATION -> {
                                 Text(
@@ -1169,52 +1175,126 @@ private fun MarkdownOption(
 
 @Composable
 private fun ImageViewer(
-    filePath: String?,
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
     onScanQr: () -> Unit = {},
 ) {
+    val filePath = entry.filePath
     if (filePath == null) {
         MissingFilePane()
         return
     }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-    Box(Modifier.fillMaxSize().clipToBounds()) {
-        AsyncImage(
-            model = File(filePath),
-            contentDescription = null,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offsetX,
-                        translationY = offsetY,
-                    )
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            scale = (scale * zoom).coerceIn(1f, 5f)
-                            offsetX += pan.x
-                            offsetY += pan.y
-                        }
+    val context = LocalContext.current
+    val displayed = rememberDisplayedBitmap()
+    // #66: the decode runs in the load step (off the main thread, catching
+    // Throwable incl. OutOfMemoryError) — composition cannot catch a decode
+    // failure, so the fallback card is entered through state here.
+    var loadFailed by remember(filePath) { mutableStateOf(false) }
+    var loaded by remember(filePath) { mutableStateOf(false) }
+    val pageGate = remember { AtomicInteger(0) }
+    LaunchedEffect(filePath) {
+        val metrics = context.resources.displayMetrics
+        val decoded =
+            produceLatest(
+                pageGate,
+                produce = {
+                    withContext(Dispatchers.IO) {
+                        decodeImageBitmap(filePath, metrics.widthPixels, metrics.heightPixels)
+                    }
+                },
+                discard = { bitmap -> bitmap?.recycle() },
+            ) ?: return@LaunchedEffect
+        loaded = true
+        if (decoded.value == null) {
+            displayed.update(null)
+            loadFailed = true
+        } else {
+            displayed.update(decoded.value)
+        }
+    }
+    val bitmap = displayed.bitmap
+    when {
+        !loaded -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        loadFailed || bitmap == null -> {
+            // #66: an image the viewer cannot decode (corrupt file, too
+            // large) still shares, saves and converts.
+            FileInfoCard(
+                entry = entry,
+                infoLine = remember(entry.filePath) { clipInfo(context, entry) },
+                actions =
+                    buildList {
+                        add(
+                            FileInfoAction(
+                                Icons.Filled.Share,
+                                context.getString(R.string.share),
+                            ) { viewModel.shareClip(entry) },
+                        )
+                        add(
+                            FileInfoAction(
+                                Icons.Filled.Download,
+                                context.getString(R.string.save_to_downloads),
+                            ) { viewModel.saveFileToDownloads(entry) },
+                        )
+                        add(
+                            FileInfoAction(
+                                Icons.Filled.PictureAsPdf,
+                                context.getString(R.string.image_to_pdf),
+                            ) { viewModel.convertImageToPdf(entry) },
+                        )
                     },
-            contentScale = ContentScale.Fit,
-        )
-        IconButton(
-            onClick = onScanQr,
-            modifier =
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(40.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape),
-        ) {
-            Icon(
-                Icons.Filled.QrCodeScanner,
-                contentDescription = LocalContext.current.getString(R.string.scan_content).withoutSoftHyphens(),
-                tint = Color.White,
             )
+        }
+        else -> {
+            var scale by remember { mutableFloatStateOf(1f) }
+            var offsetX by remember { mutableFloatStateOf(0f) }
+            var offsetY by remember { mutableFloatStateOf(0f) }
+            Box(Modifier.fillMaxSize().clipToBounds()) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offsetX,
+                                translationY = offsetY,
+                            )
+                            .pointerInput(Unit) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    scale = (scale * zoom).coerceIn(1f, 5f)
+                                    if (scale > 1f) {
+                                        offsetX += pan.x
+                                        offsetY += pan.y
+                                    } else {
+                                        offsetX = 0f
+                                        offsetY = 0f
+                                    }
+                                }
+                            },
+                    contentScale = ContentScale.Fit,
+                )
+                IconButton(
+                    onClick = onScanQr,
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(40.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                ) {
+                    Icon(
+                        Icons.Filled.QrCodeScanner,
+                        contentDescription = LocalContext.current.getString(R.string.scan_content).withoutSoftHyphens(),
+                        tint = Color.White,
+                    )
+                }
+            }
         }
     }
 }
@@ -1388,34 +1468,205 @@ private fun pdfFileTitle(entry: ClipboardEntry): String {
     return entry.previewText
 }
 
+private sealed interface FileViewerState {
+    data object Loading : FileViewerState
+
+    data object Missing : FileViewerState
+
+    data object Info : FileViewerState
+
+    data class Loaded(val text: String) : FileViewerState
+}
+
+/**
+ * Loads the viewer text for a file clip in the load step (#66): null text
+ * (binary, too large, extraction failure) means the file info card, a
+ * missing file means the "clip no longer exists" pane — never a crash and
+ * never the old toast + bounce back.
+ */
+private fun loadFileViewerState(filePath: String): FileViewerState {
+    return try {
+        if (!File(filePath).exists()) return FileViewerState.Missing
+        val text = textViewFileText(filePath)
+        if (text == null) FileViewerState.Info else FileViewerState.Loaded(text)
+    } catch (_: Throwable) {
+        FileViewerState.Info
+    }
+}
+
 @Composable
 private fun FileViewer(
-    filePath: String?,
-    onUnsupported: () -> Unit,
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
 ) {
-    var textContent by remember(filePath) { mutableStateOf<String?>(null) }
+    val filePath = entry.filePath
+    if (filePath == null) {
+        MissingFilePane()
+        return
+    }
+    val context = LocalContext.current
+    var state by remember(filePath) { mutableStateOf<FileViewerState>(FileViewerState.Loading) }
     LaunchedEffect(filePath) {
-        if (filePath == null) {
-            onUnsupported()
-            return@LaunchedEffect
+        state =
+            withContext(Dispatchers.IO) {
+                loadFileViewerState(filePath)
+            }
+    }
+    when (val current = state) {
+        FileViewerState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
-        val text = withContext(Dispatchers.IO) { readFileText(filePath) }
-        if (text == null) {
-            onUnsupported()
-        } else {
-            textContent = text
+        FileViewerState.Missing -> MissingFilePane()
+        FileViewerState.Info -> {
+            val fileExt = fileExtensionOf(entry.filePath)
+            FileInfoCard(
+                entry = entry,
+                infoLine = remember(entry.filePath) { clipInfo(context, entry) },
+                actions =
+                    buildList {
+                        add(
+                            FileInfoAction(
+                                Icons.Filled.Share,
+                                context.getString(R.string.share),
+                            ) { viewModel.shareClip(entry) },
+                        )
+                        add(
+                            FileInfoAction(
+                                Icons.Filled.Download,
+                                context.getString(R.string.save_to_downloads),
+                            ) { viewModel.saveFileToDownloads(entry) },
+                        )
+                        fileConvertToPdfAction(entry, viewModel)?.let { convert ->
+                            add(
+                                FileInfoAction(
+                                    Icons.Filled.PictureAsPdf,
+                                    context.getString(R.string.convert_to_pdf),
+                                    convert,
+                                ),
+                            )
+                        }
+                        // The same rule as the action sheet: the extractable
+                        // types have their own conversions, everything else
+                        // can be tried as text.
+                        if (fileExt !in setOf("txt", "rtf", "docx", "xlsx")) {
+                            add(
+                                FileInfoAction(
+                                    Icons.Filled.TextFields,
+                                    context.getString(R.string.try_as_text),
+                                ) { viewModel.convertFileToText(entry) },
+                            )
+                        }
+                    },
+            )
+        }
+        is FileViewerState.Loaded -> {
+            Text(
+                text = current.text,
+                fontSize = 14.sp,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+            )
         }
     }
-    val text = textContent
-    if (text != null) {
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+}
+
+/** One action row of the [FileInfoCard]; a reused action-sheet row. */
+internal data class FileInfoAction(
+    val icon: ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+)
+
+/**
+ * File info card fallback (#66): what a clip's file is (name, type, size)
+ * and what can still be done with it, for anything the viewer cannot (or
+ * fails to) display. The actions reuse the action sheet's ViewModel calls.
+ */
+@Composable
+private fun FileInfoCard(
+    entry: ClipboardEntry,
+    infoLine: String,
+    actions: List<FileInfoAction>,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                Icon(
+                    Icons.Filled.InsertDriveFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp),
+                )
+                Spacer(Modifier.size(12.dp))
+                // The clip's file name, through the same fit-text rule as
+                // the clip-row titles: no mid-word break at font scale 2.0.
+                ButtonLabel(
+                    text = clipListTitle(entry.contentType, entry.previewText),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    floorFraction = CLIP_TITLE_MIN_SCALE,
+                )
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    text = infoLine,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = context.getString(R.string.file_cannot_open),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        Spacer(Modifier.size(8.dp))
+        actions.forEach { action ->
+            SheetRow(icon = action.icon, label = action.label, onClick = action.onClick)
+        }
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Composable
+private fun FileInfoCardLargeScalePreview() {
+    // #66: the info card at font scale 2.0 / 320dp — the name and the action
+    // rows wrap without breaking inside a word and every row stays tappable.
+    MaterialTheme {
+        FileInfoCard(
+            entry =
+                ClipboardEntry(
+                    id = 1L,
+                    contentType = ContentType.FILE,
+                    filePath = "/storage/document.docx",
+                    previewText = "Vertragsunterlagen Q4",
+                    timestamp = 0L,
+                ),
+            infoLine = "DOCX • 1.2 MB",
+            actions =
+                listOf(
+                    FileInfoAction(Icons.Filled.Share, "Share") {},
+                    FileInfoAction(Icons.Filled.Download, "Save to Downloads") {},
+                    FileInfoAction(Icons.Filled.PictureAsPdf, "Convert to PDF") {},
+                    FileInfoAction(Icons.Filled.TextFields, "Try as text") {},
+                ),
         )
     }
 }
@@ -1429,29 +1680,6 @@ private fun MissingFilePane(messageRes: Int = R.string.clip_not_found) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-private fun readFileText(filePath: String): String? {
-    return when (filePath.substringAfterLast('.', "").lowercase()) {
-        "docx" -> extractDocxText(filePath)
-        "xlsx" -> extractXlsxText(filePath)
-        "rtf" -> extractRtfText(filePath) ?: readTextFileSafely(filePath)
-        else -> readTextFileSafely(filePath)
-    }
-}
-
-private const val MAX_TEXT_VIEW_BYTES = 8L * 1024L * 1024L
-
-private fun readTextFileSafely(filePath: String): String? {
-    return try {
-        val file = File(filePath)
-        if (!file.exists()) return null
-        if (file.length() > MAX_TEXT_VIEW_BYTES) return null
-        if (isProbablyBinary(file)) return null
-        file.readText()
-    } catch (_: Exception) {
-        null
     }
 }
 

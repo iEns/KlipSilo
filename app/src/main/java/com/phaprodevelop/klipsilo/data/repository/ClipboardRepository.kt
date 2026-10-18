@@ -4444,7 +4444,7 @@ private fun scaleDownIfNeeded(
 }
 
 private const val A4_WIDTH_PT = 595
-private const val MAX_TEXT_VIEW_BYTES = 8L * 1024L * 1024L
+internal const val MAX_TEXT_VIEW_BYTES = 8L * 1024L * 1024L
 private const val A4_HEIGHT_PT = 842
 private const val EMU_PER_PT = 12700.0
 private const val OCR_RENDER_DIM = 2400

@@ -98,6 +98,8 @@ import com.phaprodevelop.klipsilo.ui.components.DisplayText
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
+import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
+import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.formatTimestamp
 import com.phaprodevelop.klipsilo.ui.components.hapticClickable
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -188,7 +190,7 @@ fun KlipScreen(
     }
 
     sheetEntry?.let { entry ->
-        val fileExt = entry.filePath?.substringAfterLast('.', "")?.lowercase() ?: ""
+        val fileExt = fileExtensionOf(entry.filePath)
         ClipActionSheet(
             entry = entry,
             viewModel = viewModel,
@@ -225,13 +227,10 @@ fun KlipScreen(
                     null
                 },
             onConvertToPdf =
-                when {
-                    entry.contentType != ContentType.FILE -> null
-                    fileExt == "txt" -> ({ viewModel.convertFileToPdf(entry) })
-                    fileExt == "rtf" -> ({ viewModel.convertRtfFileToPdf(entry) })
-                    fileExt == "docx" -> ({ viewModel.convertDocxFileToPdf(entry) })
-                    fileExt == "xlsx" -> ({ viewModel.convertXlsxFileToPdf(entry) })
-                    else -> null
+                if (entry.contentType == ContentType.FILE) {
+                    fileConvertToPdfAction(entry, viewModel)
+                } else {
+                    null
                 },
             onConvertToHtml =
                 if (entry.contentType == ContentType.PDF) {
