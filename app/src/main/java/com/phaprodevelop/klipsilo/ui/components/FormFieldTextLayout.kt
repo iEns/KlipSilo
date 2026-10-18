@@ -18,6 +18,14 @@ internal data class FormFieldTextLayout(
 const val FORM_FIELD_FONT_FILL = 0.7f
 
 /**
+ * maxLines for the live preview's value layout: single-line values get one line,
+ * multiline values wrap without a cap. Compose rejects maxLines = 0 ("maxLines
+ * should be greater than 0") — that rejection was the crash on the first character
+ * typed in a multi-line field (#68), so the rule never returns 0.
+ */
+internal fun formOverlayMaxLines(multiline: Boolean): Int = if (multiline) Int.MAX_VALUE else 1
+
+/**
  * Turns a field rect (screen px) plus the value font's metrics into the font
  * size, baseline and left padding for drawing the value in the live preview.
  *

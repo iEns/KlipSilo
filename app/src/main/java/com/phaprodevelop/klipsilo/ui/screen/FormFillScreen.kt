@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -118,6 +119,7 @@ import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.formFieldTextLayout
+import com.phaprodevelop.klipsilo.ui.components.formOverlayMaxLines
 import com.phaprodevelop.klipsilo.ui.components.passwordBadgeLayout
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.previewPointToPageLocal
@@ -392,9 +394,16 @@ fun FormFillScreen(
                                     bringIntoViewRequesters.getOrPut(name) { BringIntoViewRequester() },
                                 imeAction = if (index == lastTextFieldIndex) ImeAction.Done else ImeAction.Next,
                                 onNextField = { nextTextFieldKey[name]?.let { nextName -> focusField(nextName) } },
-                                onValueChange = {
-                                    values = values + (name to it)
-                                    dirty = true
+                                onValueChange = { typed ->
+                                    // Defensive guard (#68): a bad field must never crash
+                                    // the fill screen — on any failure log it and keep
+                                    // the old value in the field.
+                                    runCatching {
+                                        values = values + (name to typed)
+                                        dirty = true
+                                    }.onFailure { throwable ->
+                                        Log.w("KlipSilo", "Form value not applied: ${throwable.message}")
+                                    }
                                 },
                                 passwordRevealed = name in revealedPasswords,
                                 onTogglePasswordRevealed = {
@@ -678,7 +687,11 @@ private fun FormValueOverlay(
                     ) = textMeasurer.measure(
                         AnnotatedString(text),
                         TextStyle(fontSize = size.toSp()),
-                        maxLines = if (wrap) 0 else 1,
+                        // Multiline values wrap without a line cap; Compose rejects
+                        // maxLines = 0 ("maxLines should be greater than 0"), which
+                        // crashed the screen on the first character typed in a
+                        // multi-line field (#68).
+                        maxLines = formOverlayMaxLines(multiline = wrap),
                         softWrap = wrap,
                         constraints =
                             if (wrap) {
@@ -687,66 +700,76 @@ private fun FormValueOverlay(
                                 Constraints()
                             },
                     )
-                    val probe = measureAt(fontPx, wrap = false)
-                    val layout =
-                        formFieldTextLayout(
-                            rectWidthPx = rectWidthPx,
-                            rectHeightPx = rectHeightPx,
-                            multiline = multiline,
-                            ascentPerEmPx = probe.firstBaseline / fontPx,
-                            descentPerEmPx = (probe.size.height - probe.firstBaseline) / fontPx,
-                            // Multiline values wrap instead of shrinking to fit.
-                            textWidthPerEmPx =
-                                if (multiline || probe.size.width <= 0) {
-                                    0f
-                                } else {
-                                    probe.size.width / fontPx
-                                },
-                            leftPaddingPx = pad,
-                        )
-                    val drawn =
-                        when {
-                            multiline -> measureAt(layout.fontSizePx, wrap = true)
-                            layout.fontSizePx != fontPx -> measureAt(layout.fontSizePx, wrap = false)
-                            else -> probe
-                        }
-                    // The hidden-password pill: the same pure field-rect math
-                    // places it at the trailing edge beside the dots, inside the
-                    // rect, and drops it when nothing readable fits (#61).
-                    val badge =
-                        savedBadgeText?.takeIf { it.isNotEmpty() }?.let { badgeText ->
-                            val badgeRefFontPx =
-                                (rectHeightPx * PASSWORD_BADGE_HEIGHT_FILL * PASSWORD_BADGE_FONT_FILL)
-                                    .coerceAtLeast(1f)
-                            val badgeProbe =
-                                textMeasurer.measure(
-                                    AnnotatedString(badgeText),
-                                    TextStyle(fontSize = badgeRefFontPx.toSp()),
-                                    maxLines = 1,
-                                    softWrap = false,
+                    // Defensive guard (#68): a field that fails to measure must never
+                    // crash the whole fill screen — skip this overlay's preview and
+                    // keep the field editable with its old value.
+                    val prepared =
+                        runCatching {
+                            val probe = measureAt(fontPx, wrap = false)
+                            val layout =
+                                formFieldTextLayout(
+                                    rectWidthPx = rectWidthPx,
+                                    rectHeightPx = rectHeightPx,
+                                    multiline = multiline,
+                                    ascentPerEmPx = probe.firstBaseline / fontPx,
+                                    descentPerEmPx = (probe.size.height - probe.firstBaseline) / fontPx,
+                                    // Multiline values wrap instead of shrinking to fit.
+                                    textWidthPerEmPx =
+                                        if (multiline || probe.size.width <= 0) {
+                                            0f
+                                        } else {
+                                            probe.size.width / fontPx
+                                        },
+                                    leftPaddingPx = pad,
                                 )
-                            val perEm = badgeRefFontPx.coerceAtLeast(1f)
-                            passwordBadgeLayout(
-                                fieldWidthPx = rectWidthPx,
-                                fieldHeightPx = rectHeightPx,
-                                dotsWidthPx = drawn.size.width.toFloat(),
-                                badgeTextWidthPerEmPx = badgeProbe.size.width / perEm,
-                                badgeFontAscentPerEm = badgeProbe.firstBaseline / perEm,
-                                badgeFontDescentPerEm =
-                                    (badgeProbe.size.height - badgeProbe.firstBaseline) / perEm,
-                                edgePaddingPx = pad,
-                                minFontPx = minBadgeFontPx,
-                            )?.let { badgeLayout ->
-                                badgeLayout to
-                                    textMeasurer.measure(
-                                        AnnotatedString(badgeText),
-                                        TextStyle(fontSize = badgeLayout.fontSizePx.toSp()),
-                                        maxLines = 1,
-                                        softWrap = false,
-                                    )
-                            }
-                        }
+                            val drawn =
+                                when {
+                                    multiline -> measureAt(layout.fontSizePx, wrap = true)
+                                    layout.fontSizePx != fontPx -> measureAt(layout.fontSizePx, wrap = false)
+                                    else -> probe
+                                }
+                            // The hidden-password pill: the same pure field-rect math
+                            // places it at the trailing edge beside the dots, inside the
+                            // rect, and drops it when nothing readable fits (#61).
+                            val badge =
+                                savedBadgeText?.takeIf { it.isNotEmpty() }?.let { badgeText ->
+                                    val badgeRefFontPx =
+                                        (rectHeightPx * PASSWORD_BADGE_HEIGHT_FILL * PASSWORD_BADGE_FONT_FILL)
+                                            .coerceAtLeast(1f)
+                                    val badgeProbe =
+                                        textMeasurer.measure(
+                                            AnnotatedString(badgeText),
+                                            TextStyle(fontSize = badgeRefFontPx.toSp()),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
+                                    val perEm = badgeRefFontPx.coerceAtLeast(1f)
+                                    passwordBadgeLayout(
+                                        fieldWidthPx = rectWidthPx,
+                                        fieldHeightPx = rectHeightPx,
+                                        dotsWidthPx = drawn.size.width.toFloat(),
+                                        badgeTextWidthPerEmPx = badgeProbe.size.width / perEm,
+                                        badgeFontAscentPerEm = badgeProbe.firstBaseline / perEm,
+                                        badgeFontDescentPerEm =
+                                            (badgeProbe.size.height - badgeProbe.firstBaseline) / perEm,
+                                        edgePaddingPx = pad,
+                                        minFontPx = minBadgeFontPx,
+                                    )?.let { badgeLayout ->
+                                        badgeLayout to
+                                            textMeasurer.measure(
+                                                AnnotatedString(badgeText),
+                                                TextStyle(fontSize = badgeLayout.fontSizePx.toSp()),
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                    }
+                                }
+                            Triple(layout, drawn, badge)
+                        }.onFailure { throwable ->
+                            Log.w("KlipSilo", "Form value preview skipped: ${throwable.message}")
+                        }.getOrNull()
                     onDrawBehind {
+                        val (layout, drawn, badge) = prepared ?: return@onDrawBehind
                         drawText(
                             drawn,
                             color = Color.Black,
