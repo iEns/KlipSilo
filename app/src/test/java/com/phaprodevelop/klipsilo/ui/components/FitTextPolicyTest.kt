@@ -288,6 +288,135 @@ class FitTextPolicyTest {
         assertEquals(1f, daPlan.labelScale)
     }
 
+    @Test
+    fun hyphenatesALongWordAtTheFloorInsteadOfEllipsizing() {
+        // "Ausgaberesolution" is 170px; in an 80px slot it is wider than the
+        // line at every scale down to the 0.5 floor (#62). The platform
+        // hyphenation breaks it at a pattern-valid point, so step d renders
+        // "Ausgabe-/resolution" instead of "Ausgaberesoluti…".
+        val decision =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { word, _, _ ->
+                    if (word == "Ausgaberesolution") listOf("Ausgabe-", "resolution") else null
+                },
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("Ausgabe-\nresolution", decision.text)
+        assertEquals(0.5f, decision.scale)
+        // The break is the pattern-valid one: in the rebuilt word the hyphen
+        // is drawn at the line end, so the mid-word check accepts it.
+        assertFalse(isMidWordBreak("Ausgabe-resolution", 8))
+    }
+
+    @Test
+    fun aRawBreakWithoutAHyphenIsStillRejected() {
+        // Without a hyphen at the line end the same split is a raw break the
+        // rule must never draw (#62).
+        assertTrue(isMidWordBreak("Ausgaberesolution", 8))
+        assertFalse(isMidWordBreak("Ausgabe-resolution", 8))
+    }
+
+    @Test
+    fun withoutPatternLocaleTheLongWordStillEllipsizes() {
+        // No platform hyphenation available (no patterns): step e applies
+        // and the word is cut with an ellipsis, never broken (#62).
+        val decision =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, _, _ -> null },
+            )
+        assertTrue(decision.ellipsized)
+        assertTrue(decision.text.endsWith(FIT_ELLIPSIS))
+        assertFalse(decision.text.contains("\n"))
+    }
+
+    @Test
+    fun fragmentsShorterThanThreeLettersAreRejected() {
+        // "Au-" would leave only two letters before the hyphen (#62).
+        val rejected =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, _, _ -> listOf("Au-", "sgaberesolution") },
+            )
+        assertTrue(rejected.ellipsized)
+        assertFalse(rejected.text.contains("-\n"))
+        // Three letters before the hyphen are accepted.
+        val accepted =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, _, _ -> listOf("Aus-", "gaberesolution") },
+            )
+        assertFalse(accepted.ellipsized)
+        assertEquals("Aus-\ngaberesolution", accepted.text)
+    }
+
+    @Test
+    fun hyphenationIsOnlyConsultedAtTheFloorScale() {
+        // Steps a–c run untouched: the hyphenation is asked for the word at
+        // the floor only (#62).
+        val askedScales = mutableListOf<Float>()
+        val decision =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, scale, _ ->
+                    askedScales += scale
+                    listOf("Ausgabe-", "resolution")
+                },
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals(listOf(0.5f), askedScales)
+    }
+
+    @Test
+    fun onlyTheTooWideWordIsHyphenatedInTheRestOfTheTitle() {
+        // "Maximale Ausgaberesolution": "Maximale" wraps, the long word
+        // hyphenates, the other text is untouched (#62).
+        val decision =
+            resolveFitText(
+                "Maximale Ausgaberesolution",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 4, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { word, _, _ ->
+                    if (word == "Ausgaberesolution") listOf("Ausgabe-", "resolution") else null
+                },
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("Maximale\nAusgabe-\nresolution", decision.text)
+        assertEquals(3, decision.maxLines)
+    }
+
+    @Test
+    fun hyphenatedWordThatStillDoesNotFitKeepsTheEllipsis() {
+        // Fragments that do not fit the line either way fall back to step e.
+        val decision =
+            resolveFitText(
+                "Ausgaberesolution",
+                maxWidthPx = 40f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.5f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { _, _, _ -> listOf("Ausgabe-", "resolution") },
+            )
+        assertTrue(decision.ellipsized)
+        assertTrue(decision.text.endsWith(FIT_ELLIPSIS))
+    }
+
     private fun assertNoInteriorBreak(
         original: String,
         shown: String,

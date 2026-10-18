@@ -202,8 +202,10 @@ fun rememberCommonRowLabelSize(
 /**
  * Label used inside buttons, chips and other text controls (#45). Layout
  * follows [FitTextPolicy]: one line at the style size, then a word-boundary
- * wrap up to [maxLines], then a shrink down to [floorFraction], then an
- * ellipsis at the end of the last line. A word is never broken.
+ * wrap up to [maxLines], then a shrink down to [floorFraction], then — for
+ * a single word still wider than the line — a pattern-valid hyphenation
+ * when [hyphenate] is set (#62), and an ellipsis at the end of the last
+ * line only as the last resort. A word is never broken without a hyphen.
  */
 @Composable
 fun ButtonLabel(
@@ -215,6 +217,7 @@ fun ButtonLabel(
     textAlign: TextAlign? = null,
     floorFraction: Float = LABEL_FONT_FLOOR_FRACTION,
     wrapFallbackLines: Int = 0,
+    hyphenate: Boolean = false,
 ) {
     val baseSize = style.fontSize
     // Positive [wrapFallbackLines] is ignored. The fixed 64dp top bar used to
@@ -252,6 +255,7 @@ fun ButtonLabel(
             )
             return@BoxWithConstraints
         }
+        val hyphenLinesOf = if (hyphenate) rememberHyphenLinesOf(style = style, maxLines = lines) else null
         val decision =
             remember(
                 text,
@@ -261,14 +265,17 @@ fun ButtonLabel(
                 density.fontScale,
                 density.density,
                 floorFraction,
+                hyphenLinesOf,
             ) {
                 resolveFitText(
                     text = text,
                     maxWidthPx = constraints.maxWidth.toFloat(),
                     policy = FitTextPolicy(maxLines = lines, minScale = floorFraction),
-                ) { sample, scale ->
-                    textWidthPx(measurer, sample, style, base, scale)
-                }
+                    widthOf = { sample, scale ->
+                        textWidthPx(measurer, sample, style, base, scale)
+                    },
+                    hyphenLinesOf = hyphenLinesOf,
+                )
             }
         Text(
             text = decision.text,
@@ -287,8 +294,9 @@ fun ButtonLabel(
 /**
  * Dialog title (#62). The title slot of an [androidx.compose.material3.AlertDialog]
  * is a narrow slot where a long word breaks mid-word in a plain Text
- * ("Texte zusammenfüg/en"). The [FitTextPolicy] instead: wrap at spaces,
- * shrink down to [TOP_BAR_TITLE_MIN_SCALE], ellipsis last.
+ * ("Texte zusammenfüg/en"). The [FitTextPolicy] instead: wrap at spaces up
+ * to four lines — a dialog has the vertical room (#62) — shrink down to
+ * [TOP_BAR_TITLE_MIN_SCALE], hyphenate a long word, ellipsis last.
  */
 @Composable
 fun DialogTitleLabel(
@@ -299,8 +307,9 @@ fun DialogTitleLabel(
         text = text,
         modifier = modifier,
         style = MaterialTheme.typography.titleLarge,
-        maxLines = 2,
+        maxLines = 4,
         floorFraction = TOP_BAR_TITLE_MIN_SCALE,
+        hyphenate = true,
     )
 }
 
@@ -322,6 +331,16 @@ internal fun textWidthPx(
             overflow = TextOverflow.Clip,
         ).size.width
         .toFloat()
+}
+
+@Preview(fontScale = 2f, widthDp = 320, showBackground = true)
+@Composable
+private fun DialogTitleLabelLargeScalePreview() {
+    // #62: the leave-dialog title must fit in up to four lines at font
+    // scale 2.0 ("Änderungen als / neues PDF / speichern?"), not ellipsize.
+    MaterialTheme {
+        DialogTitleLabel("Änderungen als neues PDF speichern?")
+    }
 }
 
 @Preview(fontScale = 2f, widthDp = 320, showBackground = true)

@@ -3,14 +3,19 @@ package com.phaprodevelop.klipsilo.ui.components
 import kotlin.math.abs
 
 /**
- * How a label gives up space (#45 #47 #50 #54).
+ * How a label gives up space (#45 #47 #50 #54 #62).
  *
  * 1. Draw at the style size on one line.
  * 2. Wrap at word boundaries only, up to [maxLines].
  * 3. Shrink, in [FIT_SCALE_STEP] steps, down to [minScale]. A uniform group
  *    uses one scale for every sibling.
- * 4. Ellipsis at the end of the last line. A line never starts mid-word.
- *    A single word that cannot fit is cut with an ellipsis, not broken.
+ * 4. Hyphenate a single word that is still wider than the line at
+ *    [minScale] (#62): the platform breaks it at a pattern-valid point and
+ *    a visible hyphen ends the line ("Datenschutz-/erklärung"). See
+ *    [hyphenatedFormOf] and the [HyphenLinesOf] contract.
+ * 5. Ellipsis at the end of the last line, only as the last resort. A line
+ *    never starts mid-word without a hyphen; a single word that cannot fit
+ *    or hyphenate is cut with an ellipsis, not broken.
  *
  * [minScale] is a fraction of the style size (1 keeps the style size).
  */
@@ -18,6 +23,19 @@ internal data class FitTextPolicy(
     val maxLines: Int = 2,
     val minScale: Float = LABEL_FONT_FLOOR_FRACTION,
 )
+
+/**
+ * Hyphenation fragments of one long word at [FitTextPolicy.minScale] (#62).
+ * Given `(word, scale, maxWidthPx)` the platform hyphenation returns the
+ * word split at pattern-valid points, every fragment but the last ending
+ * with the visible hyphen ("Ausgabe-", "resolution"), or null when the
+ * platform does not break the word into lines that all fit [maxWidthPx].
+ * Fragments are only accepted when a hyphen is really drawn at the line
+ * end, or — where that cannot be detected — the locale carries hyphenation
+ * patterns and every fragment has at least three letters (see
+ * [hyphenatedWordLines]).
+ */
+internal typealias HyphenLinesOf = (word: String, scale: Float, maxWidthPx: Float) -> List<String>?
 
 /** Scale of the style size, the text to draw, and whether it was cut. */
 internal data class FitTextDecision(
@@ -70,13 +88,16 @@ internal fun fitScales(minScale: Float): List<Float> {
 
 /**
  * Largest scale in the policy at which [text] fits [maxWidthPx] without an
- * ellipsis, otherwise [FitTextPolicy.minScale] with an end ellipsis.
+ * ellipsis, otherwise [FitTextPolicy.minScale] with an end ellipsis. At the
+ * floor, a single word that is still wider than the line is hyphenated
+ * first when [hyphenLinesOf] can break it (#62).
  */
 internal fun resolveFitText(
     text: String,
     maxWidthPx: Float,
     policy: FitTextPolicy,
     widthOf: (String, Float) -> Float,
+    hyphenLinesOf: HyphenLinesOf? = null,
 ): FitTextDecision {
     val maxLines = policy.maxLines.coerceAtLeast(1)
     val minScale = policy.minScale.coerceIn(0.05f, 1f)
@@ -85,9 +106,76 @@ internal fun resolveFitText(
     }
     for (scale in fitScales(minScale)) {
         val candidate = resolveAtScale(text, maxWidthPx, scale, maxLines, widthOf)
-        if (!candidate.ellipsized || abs(scale - minScale) < 0.001f) return candidate
+        if (!candidate.ellipsized) return candidate
+        if (abs(scale - minScale) < 0.001f) {
+            val hyphenated = hyphenateAtFloor(text, maxWidthPx, scale, maxLines, widthOf, hyphenLinesOf)
+            return hyphenated ?: candidate
+        }
     }
     return resolveAtScale(text, maxWidthPx, minScale, maxLines, widthOf)
+}
+
+/**
+ * Step d of the policy (#62): at the floor scale, replace every word that
+ * is still wider than the line with its pattern-valid hyphenation
+ * fragments, then wrap the rebuilt text at those points. Returns null when
+ * nothing needs hyphenating, the platform cannot break a too-wide word, a
+ * fragment has fewer than three letters, or the rebuilt text still needs an
+ * ellipsis — the caller then keeps its plain ellipsized decision.
+ */
+private fun hyphenateAtFloor(
+    text: String,
+    maxWidthPx: Float,
+    scale: Float,
+    maxLines: Int,
+    widthOf: (String, Float) -> Float,
+    hyphenLinesOf: HyphenLinesOf?,
+): FitTextDecision? {
+    if (hyphenLinesOf == null) return null
+    val rebuilt = hyphenatedFormOf(text, scale, maxWidthPx, widthOf, hyphenLinesOf) ?: return null
+    val decision = resolveAtScale(rebuilt, maxWidthPx, scale, maxLines, widthOf)
+    return if (!decision.ellipsized) decision else null
+}
+
+/**
+ * [text] with every word wider than [maxWidthPx] at [scale] replaced by its
+ * hyphenation fragments joined back together ("Ausgabe-/resolution" keeps
+ * the hyphen, so the wrap only breaks where a hyphen is drawn). Null when
+ * one of those words cannot be hyphenated or a fragment has fewer than
+ * three letters on either side of a break (#62).
+ */
+internal fun hyphenatedFormOf(
+    text: String,
+    scale: Float,
+    maxWidthPx: Float,
+    widthOf: (String, Float) -> Float,
+    hyphenLinesOf: HyphenLinesOf,
+): String? {
+    val pieces = ArrayList<String>()
+    var changed = false
+    var index = 0
+    while (index < text.length) {
+        if (isFitBreakChar(text[index])) {
+            pieces += text[index].toString()
+            index += 1
+            continue
+        }
+        var end = index
+        while (end < text.length && !isFitBreakChar(text[end])) end += 1
+        val word = text.substring(index, end)
+        if (fitsWidth(widthOf(word, scale), maxWidthPx)) {
+            pieces += word
+        } else {
+            val fragments = hyphenLinesOf(word, scale, maxWidthPx) ?: return null
+            if (fragments.any { fragment -> fragment.count { it.isLetter() } < 3 }) return null
+            // The fragments already carry the hyphen; the joins between them
+            // are exactly the line breaks the platform chose.
+            pieces += fragments.joinToString(separator = "")
+            changed = true
+        }
+        index = end
+    }
+    return if (changed) pieces.joinToString(separator = "") else null
 }
 
 /**
