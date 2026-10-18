@@ -43,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 
 internal data class PdfBarActionSpec(
     val icon: ImageVector,
@@ -251,7 +252,7 @@ private fun LabelledPdfAction(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = action.onClick)
-                .clearAndSetSemantics { contentDescription = action.label }
+                .clearAndSetSemantics { contentDescription = action.label.withoutSoftHyphens() }
                 .padding(horizontal = 6.dp, vertical = 4.dp),
     ) {
         Icon(
@@ -282,7 +283,7 @@ private fun IconPdfAction(action: PdfBarActionSpec) {
         CompactIconButton(onClick = action.onClick) {
             Icon(
                 action.icon,
-                contentDescription = action.label,
+                contentDescription = action.label.withoutSoftHyphens(),
                 modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -300,7 +301,7 @@ private fun OverflowMenuButton(
 ) {
     Box {
         CompactIconButton(onClick = { onExpanded(true) }) {
-            Icon(Icons.Filled.MoreVert, contentDescription = moreLabel)
+            Icon(Icons.Filled.MoreVert, contentDescription = moreLabel.withoutSoftHyphens())
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { onExpanded(false) }) {
             entries.forEach { entry ->

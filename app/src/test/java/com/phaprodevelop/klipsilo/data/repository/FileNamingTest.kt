@@ -52,6 +52,13 @@ class FileNamingTest {
     }
 
     @Test
+    fun sanitizeFileName_and_buildFileName_stripSoftHyphens() {
+        // #62: soft hyphens (U+00AD) must never leak into a file name.
+        assertEquals("Ausgaberesolution.pdf", sanitizeFileName("Aus\u00ADgabe\u00ADreso\u00ADlution.pdf"))
+        assertEquals("Ausgaberesolution.jpg", buildFileName("Aus\u00ADgabe\u00ADreso\u00ADlution.jpg", "img_", null))
+    }
+
+    @Test
     fun buildFileName_stripsPathAndCapsBaseAt30() {
         // Arrange
         val originalName = "very-long-name-that-exceeds-thirty-chars.png"

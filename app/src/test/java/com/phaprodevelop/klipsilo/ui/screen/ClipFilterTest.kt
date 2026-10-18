@@ -131,6 +131,30 @@ class ClipFilterTest {
         assertEquals(listOf(1L, 2L), textFilter.map { it.id })
     }
 
+    @Test
+    fun query_withSoftHyphenStillMatchesAndSoftHyphenPreviewStillMatches() {
+        // #62: soft hyphens (U+00AD) must never break matching — not in the
+        // query and not in the preview text.
+        val softPreview = entry(id = 1, contentType = ContentType.TEXT, previewText = "Aus\u00ADgabe\u00ADresolution")
+        assertEquals(
+            listOf(1L),
+            filterClips(listOf(softPreview), query = "ausgabe", filter = ClipFilter.ALL).map { it.id },
+        )
+        assertEquals(
+            listOf(
+                1L,
+            ),
+            filterClips(listOf(softPreview), query = "resolu\u00ADtion", filter = ClipFilter.ALL).map {
+                it.id
+            },
+        )
+        val plain = entry(id = 2, contentType = ContentType.TEXT, previewText = "Ausgaberesolution")
+        assertEquals(
+            listOf(2L),
+            filterClips(listOf(plain), query = "reso\u00ADlution", filter = ClipFilter.ALL).map { it.id },
+        )
+    }
+
     private fun allContentTypes(): List<ClipboardEntry> =
         listOf(
             entry(id = 1, contentType = ContentType.TEXT, previewText = "text"),

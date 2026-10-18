@@ -76,8 +76,9 @@ internal fun fittedFontSize(
 /**
  * True when a new line of [text] starts at [lineStart] in the middle of a
  * word (#45). A wrapped line must start after whitespace or a separator:
- * hyphen ("OCR-Seite" may wrap after "OCR-"), underscore, '.', '/' or the
- * zero-width space inserted for display (#54). See [isFitBreakChar].
+ * hyphen ("OCR-Seite" may wrap after "OCR-"), underscore, '.', '/', the
+ * zero-width space inserted for display (#54) or the soft hyphen (#62).
+ * See [isFitBreakChar].
  *
  * A line start between two CJK characters is not mid-word (#62):
  * per-character wrapping is the normal line breaking for scripts without

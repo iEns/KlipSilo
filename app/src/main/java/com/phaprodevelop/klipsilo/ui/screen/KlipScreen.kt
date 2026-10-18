@@ -100,6 +100,7 @@ import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.formatTimestamp
 import com.phaprodevelop.klipsilo.ui.components.hapticClickable
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import java.io.File
 
 @Composable
@@ -419,7 +420,7 @@ fun KlipScreen(
         ) {
             Icon(
                 Icons.Filled.Add,
-                contentDescription = context.getString(R.string.new_text_clip),
+                contentDescription = context.getString(R.string.new_text_clip).withoutSoftHyphens(),
             )
         }
     }
@@ -485,7 +486,7 @@ private fun CompactSearchField(
                     ) {
                         Icon(
                             Icons.Filled.Clear,
-                            contentDescription = LocalContext.current.getString(R.string.clear),
+                            contentDescription = LocalContext.current.getString(R.string.clear).withoutSoftHyphens(),
                             Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -803,7 +804,10 @@ private fun ClipItemRow(
                                 ) {
                                     Icon(
                                         Icons.Filled.PushPin,
-                                        contentDescription = context.getString(R.string.pin_or_unpin),
+                                        contentDescription =
+                                            context.getString(
+                                                R.string.pin_or_unpin,
+                                            ).withoutSoftHyphens(),
                                         tint = Color(0xFF4CAF50),
                                     )
                                 }
@@ -812,7 +816,10 @@ private fun ClipItemRow(
                                 Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Filled.Lock,
-                                        contentDescription = context.getString(R.string.lock_or_unlock),
+                                        contentDescription =
+                                            context.getString(
+                                                R.string.lock_or_unlock,
+                                            ).withoutSoftHyphens(),
                                         modifier = Modifier.size(22.dp),
                                         tint = MaterialTheme.colorScheme.onSurface,
                                     )
@@ -829,7 +836,7 @@ private fun ClipItemRow(
                     ) {
                         Icon(
                             Icons.Filled.MoreVert,
-                            contentDescription = context.getString(R.string.clip_more_actions),
+                            contentDescription = context.getString(R.string.clip_more_actions).withoutSoftHyphens(),
                         )
                     }
                 }
@@ -866,7 +873,7 @@ private fun ClipItemRow(
                             ) {
                                 Icon(
                                     Icons.Filled.PushPin,
-                                    contentDescription = context.getString(R.string.pin_or_unpin),
+                                    contentDescription = context.getString(R.string.pin_or_unpin).withoutSoftHyphens(),
                                     tint = Color(0xFF4CAF50),
                                 )
                             }
@@ -875,7 +882,10 @@ private fun ClipItemRow(
                             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                                 Icon(
                                     Icons.Filled.Lock,
-                                    contentDescription = context.getString(R.string.lock_or_unlock),
+                                    contentDescription =
+                                        context.getString(
+                                            R.string.lock_or_unlock,
+                                        ).withoutSoftHyphens(),
                                     modifier = Modifier.size(22.dp),
                                     tint = MaterialTheme.colorScheme.onSurface,
                                 )
@@ -890,7 +900,7 @@ private fun ClipItemRow(
                         ) {
                             Icon(
                                 Icons.Filled.MoreVert,
-                                contentDescription = context.getString(R.string.clip_more_actions),
+                                contentDescription = context.getString(R.string.clip_more_actions).withoutSoftHyphens(),
                             )
                         }
                     }

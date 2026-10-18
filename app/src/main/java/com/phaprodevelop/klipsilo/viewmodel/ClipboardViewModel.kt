@@ -33,6 +33,7 @@ import com.phaprodevelop.klipsilo.data.textTitleLooksAutomatic
 import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.obtainCurrentLocation
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -286,7 +287,10 @@ class ClipboardViewModel(
     }
 
     fun copyText(text: String) {
-        clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("snip", text))
+        // Soft hyphens must not leak into other apps through the clipboard (#62).
+        clipboardManager.setPrimaryClip(
+            android.content.ClipData.newPlainText("snip", text.withoutSoftHyphens()),
+        )
         toast(localizedString(com.phaprodevelop.klipsilo.R.string.copied_to_clipboard))
     }
 

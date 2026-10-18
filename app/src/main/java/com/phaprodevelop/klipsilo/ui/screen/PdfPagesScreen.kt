@@ -69,6 +69,7 @@ import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
@@ -361,13 +362,19 @@ private fun PageRow(
             ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
             onMoveUp()
         }, enabled = canMoveUp) {
-            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = context.getString(R.string.move_up))
+            Icon(
+                Icons.Filled.KeyboardArrowUp,
+                contentDescription = context.getString(R.string.move_up).withoutSoftHyphens(),
+            )
         }
         IconButton(onClick = {
             ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
             onMoveDown()
         }, enabled = canMoveDown) {
-            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = context.getString(R.string.move_down))
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = context.getString(R.string.move_down).withoutSoftHyphens(),
+            )
         }
         IconButton(onClick = {
             ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
@@ -375,7 +382,7 @@ private fun PageRow(
         }) {
             Icon(
                 Icons.Filled.Delete,
-                contentDescription = context.getString(R.string.delete_page),
+                contentDescription = context.getString(R.string.delete_page).withoutSoftHyphens(),
                 tint = MaterialTheme.colorScheme.error,
             )
         }
@@ -418,7 +425,7 @@ private fun PagePreviewDialog(
             if (bmp != null) {
                 Image(
                     bitmap = bmp.asImageBitmap(),
-                    contentDescription = context.getString(R.string.page_label, originalIndex + 1),
+                    contentDescription = context.getString(R.string.page_label, originalIndex + 1).withoutSoftHyphens(),
                     modifier =
                         Modifier
                             .fillMaxSize()
@@ -456,7 +463,11 @@ private fun PagePreviewDialog(
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.5f)),
             ) {
-                Icon(Icons.Filled.Close, contentDescription = context.getString(R.string.cancel), tint = Color.White)
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
+                    tint = Color.White,
+                )
             }
             Text(
                 text = context.getString(R.string.page_label, originalIndex + 1),

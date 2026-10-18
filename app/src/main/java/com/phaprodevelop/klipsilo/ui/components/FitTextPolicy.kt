@@ -72,9 +72,17 @@ internal const val CLIP_TITLE_MIN_SCALE = 1f
  */
 internal const val TOOL_LABEL_MIN_SCALE = 0.45f
 
-/** '_' '-' '.' '/' whitespace and U+200B are break opportunities (#45 #54). */
+/**
+ * '_' '-' '.' '/' whitespace, the zero-width space U+200B and the soft
+ * hyphen U+00AD are break opportunities (#45 #54 #62). A soft hyphen is a
+ * word boundary for the mid-word check too, and it is preferred over the
+ * pattern hyphenation: the word splitting in [hyphenatedFormOf] stops at it,
+ * so the platform hyphenation is only asked for the pieces between the soft
+ * hyphens.
+ */
 internal fun isFitBreakChar(c: Char): Boolean =
-    c.isWhitespace() || c == '-' || c == '_' || c == '.' || c == '/' || c == '\u200B'
+    c.isWhitespace() || c == '-' || c == '_' || c == '.' || c == '/' ||
+        c == '\u200B' || c == '\u00AD'
 
 /**
  * Characters of scripts written without spaces — Japanese, Korean, Chinese
@@ -388,6 +396,19 @@ private fun widestPiece(
     return widest
 }
 
+/**
+ * The line [text][0, end) as it is drawn when the break lands at [end]
+ * (#62): a soft hyphen at the break shows as a visible hyphen and is not
+ * carried to the next line.
+ */
+internal fun drawnLinePiece(
+    text: String,
+    end: Int,
+): String {
+    val trimmed = text.substring(0, end).trimEnd()
+    return if (trimmed.endsWith('\u00AD')) trimmed.dropLast(1) + "-" else trimmed
+}
+
 internal fun wrapLines(
     text: String,
     maxWidthPx: Float,
@@ -409,7 +430,7 @@ internal fun wrapLines(
         }
         val end = longestFittingEnd(trimmed, maxWidthPx, scale, widthOf)
         if (end <= 0 || end >= trimmed.length) return null
-        val piece = trimmed.substring(0, end).trimEnd()
+        val piece = drawnLinePiece(trimmed, end)
         if (piece.isEmpty()) return null
         lines += piece
         remaining = trimmed.substring(end)
@@ -426,7 +447,9 @@ private fun longestFittingEnd(
     var best = 0
     for (end in breakEnds(text)) {
         if (end >= text.length) continue
-        val piece = text.substring(0, end).trimEnd()
+        // The drawn form is what must fit: a soft hyphen at the break
+        // shows as a visible hyphen (#62).
+        val piece = drawnLinePiece(text, end)
         if (piece.isEmpty()) continue
         if (fitsWidth(widthOf(piece, scale), maxWidthPx)) best = end else break
     }
@@ -463,7 +486,7 @@ private fun ellipsizeLines(
         val trimmed = if (lines.isEmpty()) remaining else remaining.trimStart()
         val end = longestFittingEnd(trimmed, maxWidthPx, scale, widthOf)
         if (end <= 0 || end >= trimmed.length) break
-        val piece = trimmed.substring(0, end).trimEnd()
+        val piece = drawnLinePiece(trimmed, end)
         if (piece.isEmpty()) break
         lines += piece
         remaining = trimmed.substring(end).trimStart()
@@ -484,11 +507,11 @@ private fun ellipsizeToWidth(
     var bestEnd = 0
     for (end in breakEnds(text)) {
         if (end >= text.length) continue
-        val piece = text.substring(0, end).trimEnd()
+        val piece = drawnLinePiece(text, end)
         if (piece.isEmpty()) continue
         if (fitsWidth(widthOf(piece + FIT_ELLIPSIS, scale), maxWidthPx)) bestEnd = end else break
     }
-    if (bestEnd > 0) return text.substring(0, bestEnd).trimEnd() + FIT_ELLIPSIS
+    if (bestEnd > 0) return drawnLinePiece(text, bestEnd) + FIT_ELLIPSIS
     val wordEnd = text.indexOfFirst { isFitBreakChar(it) }.let { if (it < 0) text.length else it }
     var count = 0
     while (count < wordEnd) {

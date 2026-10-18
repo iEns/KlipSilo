@@ -43,6 +43,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 
 /**
  * Font scale from which a top bar text action collapses to an icon-only
@@ -117,7 +118,7 @@ fun TopBarSaveAction(
             state = rememberTooltipState(),
         ) {
             IconButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-                Icon(Icons.Filled.Check, contentDescription = label)
+                Icon(Icons.Filled.Check, contentDescription = label.withoutSoftHyphens())
             }
         }
     } else {
@@ -173,7 +174,7 @@ fun FitTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = backContentDescription,
+                    contentDescription = backContentDescription.withoutSoftHyphens(),
                 )
             }
             TopBarFitTitle(text = title, modifier = Modifier.weight(1f))
@@ -210,7 +211,7 @@ fun FitBackBar(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = backContentDescription,
+                    contentDescription = backContentDescription.withoutSoftHyphens(),
                 )
             }
             TopBarFitTitle(text = title, modifier = Modifier.weight(1f).padding(end = 4.dp))
@@ -349,7 +350,7 @@ fun FitActionBar(
                 IconButton(onClick = onBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = backContentDescription,
+                        contentDescription = backContentDescription.withoutSoftHyphens(),
                     )
                 }
                 TopBarFitTitle(text = title, modifier = Modifier.weight(1f).padding(end = 4.dp))
@@ -360,7 +361,11 @@ fun FitActionBar(
                         state = rememberTooltipState(),
                     ) {
                         IconButton(onClick = action.onClick, enabled = action.enabled) {
-                            Icon(action.icon, contentDescription = action.label, tint = action.tint)
+                            Icon(
+                                action.icon,
+                                contentDescription = action.label.withoutSoftHyphens(),
+                                tint = action.tint,
+                            )
                         }
                     }
                 }
@@ -369,7 +374,7 @@ fun FitActionBar(
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(
                                 Icons.Filled.MoreVert,
-                                contentDescription = moreContentDescription,
+                                contentDescription = moreContentDescription.withoutSoftHyphens(),
                             )
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

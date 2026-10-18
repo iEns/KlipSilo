@@ -2,6 +2,7 @@ package com.phaprodevelop.klipsilo.ui.screen
 
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 
 internal enum class ClipFilter {
     ALL,
@@ -33,5 +34,13 @@ internal fun filterClips(
 ): List<ClipboardEntry> =
     clips.filter { entry ->
         filter.matches(entry) &&
-            (query.isBlank() || entry.previewText.contains(query, ignoreCase = true))
+            (
+                query.isBlank() ||
+                    // Soft hyphens must not break matching (#62): text that
+                    // carries U+00AD still matches a query without it.
+                    entry.previewText.withoutSoftHyphens().contains(
+                        query.withoutSoftHyphens(),
+                        ignoreCase = true,
+                    )
+            )
     }

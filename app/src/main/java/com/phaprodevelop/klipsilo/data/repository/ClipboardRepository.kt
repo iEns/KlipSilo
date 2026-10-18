@@ -57,6 +57,7 @@ import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.data.widgetVisualFractions
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
@@ -1115,6 +1116,8 @@ class ClipboardRepository(
         font: PDFont,
         text: String,
     ): String {
+        // A soft hyphen must not leak into the PDF as a stray glyph (#62).
+        val text = text.withoutSoftHyphens()
         val safe = StringBuilder(text.length)
         text.forEach { char ->
             val glyph = if (char == '\n' || char == '\r') " " else char.toString()
@@ -1669,6 +1672,8 @@ class ClipboardRepository(
         lineSpacing: Float?,
         forPreview: Boolean = false,
     ): ByteArray {
+        // A soft hyphen must not leak into the PDF output (#62).
+        val text = text.withoutSoftHyphens()
         val baseLayout = pdfLayout()
         val layout =
             when {
@@ -2169,7 +2174,8 @@ class ClipboardRepository(
         html: String,
         layout: PdfLayout,
     ): ByteArray {
-        val lines = parseHtmlLines(html, layout)
+        // A soft hyphen must not leak into the PDF output (#62).
+        val lines = parseHtmlLines(html.withoutSoftHyphens(), layout)
         if (lines.isEmpty()) return ByteArray(0)
         val document = PdfDocument()
         try {
@@ -3448,7 +3454,7 @@ class ClipboardRepository(
         return startShareChooser(
             Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
+                putExtra(Intent.EXTRA_TEXT, text.withoutSoftHyphens())
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             },
         )
@@ -3462,7 +3468,7 @@ class ClipboardRepository(
                 ContentType.TEXT, ContentType.URL -> {
                     val body = textBodyBlocking(entry) ?: return false
                     intent.type = "text/plain"
-                    intent.putExtra(Intent.EXTRA_TEXT, body)
+                    intent.putExtra(Intent.EXTRA_TEXT, body.withoutSoftHyphens())
                 }
                 ContentType.IMAGE -> {
                     val imageFile = entry.filePath?.let { File(it) }
@@ -3489,7 +3495,7 @@ class ClipboardRepository(
                 }
                 ContentType.LOCATION -> {
                     intent.type = "text/plain"
-                    intent.putExtra(Intent.EXTRA_TEXT, locationShareText(entry))
+                    intent.putExtra(Intent.EXTRA_TEXT, locationShareText(entry).withoutSoftHyphens())
                 }
             }
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -3512,14 +3518,14 @@ class ClipboardRepository(
                     if (parts.isEmpty()) return false
                     intent.action = Intent.ACTION_SEND
                     intent.type = "text/plain"
-                    intent.putExtra(Intent.EXTRA_TEXT, parts.joinToString("\n\n"))
+                    intent.putExtra(Intent.EXTRA_TEXT, parts.joinToString("\n\n").withoutSoftHyphens())
                 }
                 ContentType.LOCATION -> {
                     val combined = entries.joinToString("\n\n") { locationShareText(it) }
                     if (combined.isBlank()) return false
                     intent.action = Intent.ACTION_SEND
                     intent.type = "text/plain"
-                    intent.putExtra(Intent.EXTRA_TEXT, combined)
+                    intent.putExtra(Intent.EXTRA_TEXT, combined.withoutSoftHyphens())
                 }
                 ContentType.IMAGE, ContentType.PDF, ContentType.FILE -> {
                     val uris = fileProviderUris(entries)
@@ -3546,7 +3552,7 @@ class ClipboardRepository(
         return when (entry.contentType) {
             ContentType.TEXT, ContentType.URL -> {
                 val body = textBodyBlocking(entry) ?: return null
-                ClipData.newPlainText("snip", body)
+                ClipData.newPlainText("snip", body.withoutSoftHyphens())
             }
             ContentType.IMAGE -> {
                 val imageFile = existingClipFile(entry) ?: return null
@@ -3560,7 +3566,7 @@ class ClipboardRepository(
                 val file = existingClipFile(entry) ?: return null
                 ClipData.newUri(context.contentResolver, "snip_file", fileProviderUri(file))
             }
-            ContentType.LOCATION -> ClipData.newPlainText("snip", locationShareText(entry))
+            ContentType.LOCATION -> ClipData.newPlainText("snip", locationShareText(entry).withoutSoftHyphens())
         }
     }
 
@@ -4651,6 +4657,8 @@ private fun wrapAnnotationText(
     maxWidthPx: Int,
 ): List<String> {
     // Explicit line breaks (#59) always break the annotation; each segment then word-wraps.
+    // Soft hyphens never reach the PDF output (#62).
+    val text = text.withoutSoftHyphens()
     return if (maxWidthPx <= 0) {
         text.split('\n')
     } else {
@@ -5537,6 +5545,7 @@ internal fun buildFileName(
     prefix: String,
     ext: String?,
 ): String {
+    val originalName = originalName.withoutSoftHyphens()
     if (originalName.isBlank()) {
         return "$prefix$ext"
     }
@@ -5628,7 +5637,8 @@ internal fun buildPdfName(originalName: String): String {
 }
 
 internal fun sanitizeFileName(name: String): String {
-    return name.trim()
+    return name.withoutSoftHyphens()
+        .trim()
         .replace(Regex("[\\\\/:*?\"<>|]"), "_")
         .take(100)
 }

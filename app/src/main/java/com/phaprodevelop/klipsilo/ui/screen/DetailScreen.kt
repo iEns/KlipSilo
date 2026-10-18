@@ -126,6 +126,7 @@ import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.typefaceForPdfFont
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -802,12 +803,12 @@ fun DetailScreen(
                         ) {
                             EditorToolButton(
                                 icon = Icons.AutoMirrored.Filled.Undo,
-                                contentDescription = context.getString(R.string.undo),
+                                contentDescription = context.getString(R.string.undo).withoutSoftHyphens(),
                                 enabled = undoStack.isNotEmpty(),
                             ) { doUndo() }
                             EditorToolButton(
                                 icon = Icons.AutoMirrored.Filled.Redo,
-                                contentDescription = context.getString(R.string.redo),
+                                contentDescription = context.getString(R.string.redo).withoutSoftHyphens(),
                                 enabled = redoStack.isNotEmpty(),
                             ) { doRedo() }
                             if (entry.contentType == ContentType.TEXT && !entry.isLocked) {
@@ -819,7 +820,8 @@ fun DetailScreen(
                                     },
                                     modifier =
                                         Modifier.clearAndSetSemantics {
-                                            contentDescription = context.getString(R.string.md_title)
+                                            contentDescription =
+                                                context.getString(R.string.md_title).withoutSoftHyphens()
                                         },
                                     enabled = !showPreview,
                                 ) {
@@ -867,7 +869,10 @@ fun DetailScreen(
                                     ) {
                                         Icon(
                                             Icons.Filled.SelectAll,
-                                            contentDescription = context.getString(R.string.select_cycle),
+                                            contentDescription =
+                                                context.getString(
+                                                    R.string.select_cycle,
+                                                ).withoutSoftHyphens(),
                                             tint =
                                                 if (selectEnabled) {
                                                     LocalContentColor.current
@@ -909,12 +914,18 @@ fun DetailScreen(
                             }
                             EditorToolButton(
                                 icon = Icons.Filled.TextDecrease,
-                                contentDescription = context.getString(R.string.decrease_text_size),
+                                contentDescription =
+                                    context.getString(
+                                        R.string.decrease_text_size,
+                                    ).withoutSoftHyphens(),
                                 enabled = fontSize > 10,
                             ) { fontSize-- }
                             EditorToolButton(
                                 icon = Icons.Filled.TextIncrease,
-                                contentDescription = context.getString(R.string.increase_text_size),
+                                contentDescription =
+                                    context.getString(
+                                        R.string.increase_text_size,
+                                    ).withoutSoftHyphens(),
                                 enabled = fontSize < 28,
                             ) { fontSize++ }
                         }
@@ -1047,7 +1058,7 @@ private fun MdToolButton(
         },
         modifier =
             Modifier.clearAndSetSemantics {
-                contentDescription = context.getString(R.string.md_title)
+                contentDescription = context.getString(R.string.md_title).withoutSoftHyphens()
             },
         enabled = enabled,
     ) {
@@ -1201,7 +1212,7 @@ private fun ImageViewer(
         ) {
             Icon(
                 Icons.Filled.QrCodeScanner,
-                contentDescription = LocalContext.current.getString(R.string.scan_content),
+                contentDescription = LocalContext.current.getString(R.string.scan_content).withoutSoftHyphens(),
                 tint = Color.White,
             )
         }
@@ -1260,7 +1271,7 @@ private fun PdfViewer(
             displayed.bitmap?.let { bmp ->
                 Image(
                     bitmap = bmp.asImageBitmap(),
-                    contentDescription = context.getString(R.string.pdf),
+                    contentDescription = context.getString(R.string.pdf).withoutSoftHyphens(),
                     modifier =
                         Modifier
                             .fillMaxSize()
@@ -1632,7 +1643,11 @@ private fun PreviewPageItem(
     ) {
         Image(
             bitmap = bitmap.asImageBitmap(),
-            contentDescription = LocalContext.current.getString(R.string.page_label, pageIndex + 1),
+            contentDescription =
+                LocalContext.current.getString(
+                    R.string.page_label,
+                    pageIndex + 1,
+                ).withoutSoftHyphens(),
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -1670,7 +1685,7 @@ private fun ZoomPreviewDialog(
         ) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = context.getString(R.string.page_label, pageNumber),
+                contentDescription = context.getString(R.string.page_label, pageNumber).withoutSoftHyphens(),
                 modifier =
                     Modifier
                         .fillMaxSize()
@@ -1703,7 +1718,11 @@ private fun ZoomPreviewDialog(
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.5f)),
             ) {
-                Icon(Icons.Filled.Close, contentDescription = context.getString(R.string.cancel), tint = Color.White)
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
+                    tint = Color.White,
+                )
             }
             Text(
                 text = context.getString(R.string.page_label, pageNumber),

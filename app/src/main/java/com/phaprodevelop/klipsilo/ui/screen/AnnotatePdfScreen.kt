@@ -132,6 +132,7 @@ import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
@@ -1453,7 +1454,7 @@ fun AnnotatePdfScreen(
                             IconButton(onClick = { deleteSelection() }) {
                                 Icon(
                                     Icons.Filled.Close,
-                                    contentDescription = context.getString(R.string.delete),
+                                    contentDescription = context.getString(R.string.delete).withoutSoftHyphens(),
                                     tint = MaterialTheme.colorScheme.error,
                                 )
                             }
@@ -1624,7 +1625,7 @@ private fun MarkupHistoryButton(
         IconButton(onClick = onClick, enabled = enabled) {
             Icon(
                 icon,
-                contentDescription = label,
+                contentDescription = label.withoutSoftHyphens(),
                 tint =
                     if (enabled) {
                         MaterialTheme.colorScheme.onSurface
@@ -1680,7 +1681,7 @@ private fun MarkupToolBar(
                     CompactIconButton(
                         onClick = { onTool(mode) },
                         icon = icon,
-                        contentDescription = label,
+                        contentDescription = label.withoutSoftHyphens(),
                         active = tool == mode,
                         label = {
                             Text(
@@ -1754,7 +1755,7 @@ private fun MarkupChoices(
                     modifier =
                         Modifier
                             .size(28.dp)
-                            .semantics { contentDescription = description }
+                            .semantics { contentDescription = description.withoutSoftHyphens() }
                             .clip(CircleShape)
                             .background(Color(argb))
                             .border(
@@ -1795,7 +1796,7 @@ private fun MarkupSizeStepper(
         IconButton(onClick = onStepDown, enabled = canStepDown) {
             Icon(
                 Icons.Filled.Remove,
-                contentDescription = stepDownDescription,
+                contentDescription = stepDownDescription.withoutSoftHyphens(),
                 tint =
                     if (canStepDown) {
                         MaterialTheme.colorScheme.onSurface
@@ -1814,7 +1815,7 @@ private fun MarkupSizeStepper(
         IconButton(onClick = onStepUp, enabled = canStepUp) {
             Icon(
                 Icons.Filled.Add,
-                contentDescription = stepUpDescription,
+                contentDescription = stepUpDescription.withoutSoftHyphens(),
                 tint =
                     if (canStepUp) {
                         MaterialTheme.colorScheme.onSurface
@@ -1972,6 +1973,8 @@ private fun wrapAnnotationText(
     maxWidthPx: Int,
 ): List<String> {
     // Explicit line breaks (#59) always break the annotation; each segment then word-wraps.
+    // Soft hyphens never reach the drawn annotation text (#62).
+    val text = text.withoutSoftHyphens()
     return if (maxWidthPx <= 0) {
         text.split('\n')
     } else {

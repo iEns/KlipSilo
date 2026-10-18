@@ -103,6 +103,7 @@ import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -356,7 +357,7 @@ fun CameraScanScreen(
                 ) {
                     Image(
                         bitmap = rotated.asImageBitmap(),
-                        contentDescription = stringResource(R.string.captured),
+                        contentDescription = stringResource(R.string.captured).withoutSoftHyphens(),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                     )
@@ -633,7 +634,7 @@ fun CameraScanScreen(
                                         .padding(24.dp),
                             ) {
                                 CameraShutterButton(
-                                    contentDescription = stringResource(R.string.take_photo),
+                                    contentDescription = stringResource(R.string.take_photo).withoutSoftHyphens(),
                                     enabled = !capturing && !scanned,
                                     onClick = {
                                         capturing = true
@@ -812,7 +813,7 @@ fun CameraScanScreen(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.back),
+                contentDescription = stringResource(R.string.back).withoutSoftHyphens(),
                 tint = Color.White,
             )
         }
@@ -952,7 +953,7 @@ private fun CameraShutterButton(
                     role = Role.Button,
                     onClick = onClick,
                 )
-                .semantics { this.contentDescription = contentDescription }
+                .semantics { this.contentDescription = contentDescription.withoutSoftHyphens() }
                 .border(4.dp, Color.White, CircleShape)
                 .padding(6.dp),
         contentAlignment = Alignment.Center,

@@ -345,6 +345,62 @@ class FitTextPolicyTest {
     }
 
     @Test
+    fun aSoftHyphenIsABreakOpportunityThatShowsAHyphen() {
+        // #62: Grok Build inserts U+00AD into long DE/DA strings. The rule
+        // must wrap at it, draw a visible hyphen at the line end and never
+        // carry the character itself to the next line.
+        val decision =
+            resolveFitText(
+                "Datenschutz\u00ADerklärung",
+                maxWidthPx = 80f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("Datenschutz-\nerklärung", decision.text)
+        // The break is a word boundary for the mid-word check.
+        assertFalse(isMidWordBreak(decision.text, 12))
+    }
+
+    @Test
+    fun aSoftHyphenBreakIsPreferredOverPatternHyphenation() {
+        // #62: when the string carries a soft hyphen the platform
+        // hyphenation is not consulted at all — the U+00AD split happens
+        // first.
+        val askedWords = mutableListOf<String>()
+        val decision =
+            resolveFitText(
+                "Ausgabe\u00ADresolution",
+                maxWidthPx = 60f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+                hyphenLinesOf = { word, _, _ ->
+                    askedWords += word
+                    listOf("Aus-", "gabe-resolution")
+                },
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("Ausgabe-\nresolution", decision.text)
+        assertTrue("platform hyphenation must not be asked: $askedWords", askedWords.isEmpty())
+    }
+
+    @Test
+    fun softHyphensStayInvisibleWhenTheLineDoesNotBreakThere() {
+        // #62: a soft hyphen that is not used as a break stays in the drawn
+        // text (the platform renders it invisibly); the pieces around it
+        // wrap normally.
+        val decision =
+            resolveFitText(
+                "OCR-Seite speichern",
+                maxWidthPx = 100f,
+                policy = FitTextPolicy(maxLines = 2, minScale = 0.6f),
+                widthOf = ::widthOf,
+            )
+        assertFalse(decision.ellipsized)
+        assertEquals("OCR-Seite\nspeichern", decision.text)
+    }
+
+    @Test
     fun hyphenatesALongWordAtTheFloorInsteadOfEllipsizing() {
         // "Ausgaberesolution" is 170px; in an 80px slot it is wider than the
         // line at every scale down to the 0.5 floor (#62). The platform

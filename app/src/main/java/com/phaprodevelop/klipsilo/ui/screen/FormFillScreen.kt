@@ -123,6 +123,7 @@ import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.transformPreviewZoom
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -584,7 +585,7 @@ private fun FormPdfPreview(
                 ) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = context.getString(R.string.pdf),
+                        contentDescription = context.getString(R.string.pdf).withoutSoftHyphens(),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds,
                     )

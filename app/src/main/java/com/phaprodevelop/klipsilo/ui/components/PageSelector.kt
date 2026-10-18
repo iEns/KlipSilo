@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 
 /**
  * Parses and validates a page number typed into the "go to page" dialog.
@@ -97,7 +98,7 @@ fun PageSelector(
         IconButton(onClick = onPrev, enabled = pageIndex > 0) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = stringResource(R.string.markup_prev_page),
+                contentDescription = stringResource(R.string.markup_prev_page).withoutSoftHyphens(),
             )
         }
         TextButton(
@@ -110,14 +111,14 @@ fun PageSelector(
                 maxLines = 1,
                 modifier =
                     Modifier.semantics {
-                        contentDescription = indicatorDescription
+                        contentDescription = indicatorDescription.withoutSoftHyphens()
                     },
             )
         }
         IconButton(onClick = onNext, enabled = pageCount > 1 && pageIndex < pageCount - 1) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.markup_next_page),
+                contentDescription = stringResource(R.string.markup_next_page).withoutSoftHyphens(),
             )
         }
     }

@@ -65,6 +65,7 @@ import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,7 +154,7 @@ fun TextPresentationScreen(
                                         isDarkReader -> Icons.Default.DarkMode
                                         else -> Icons.Default.LightMode
                                     },
-                                    contentDescription = stringResource(R.string.reader_theme),
+                                    contentDescription = stringResource(R.string.reader_theme).withoutSoftHyphens(),
                                 )
                             }
                             DropdownMenu(expanded = showThemeMenu, onDismissRequest = { showThemeMenu = false }) {
