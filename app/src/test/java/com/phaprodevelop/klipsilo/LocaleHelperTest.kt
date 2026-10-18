@@ -176,7 +176,8 @@ class LocaleHelperTest {
     @Test
     fun resources_followSelectedLanguage() {
         assertEquals("Ajustes", stringFor("es", R.string.settings))
-        assertEquals("Einstellungen", stringFor("de", R.string.settings))
+        // Soft hyphen U+00AD at the compound boundary (#62).
+        assertEquals("Ein\u00ADstellungen", stringFor("de", R.string.settings))
         assertEquals("Configurações", stringFor("pt-BR", R.string.settings))
         assertEquals("Setelan", stringFor("id", R.string.settings))
         assertEquals("设置", stringFor("zh-Hans", R.string.settings))
