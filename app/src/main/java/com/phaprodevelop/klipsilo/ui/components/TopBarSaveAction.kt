@@ -268,24 +268,10 @@ internal fun titleFragmentFloorWidthPx(
                 maxLines = 1,
             ).size.width
             .toFloat()
-    return title
-        .split(Regex("""\s+"""))
-        .filter { it.isNotEmpty() }
-        .maxOf { word ->
-            var best = width(word)
-            // The platform picks its break for the width it is given; a
-            // narrower layout splits earlier, so the smallest width that
-            // still yields fragments has the narrowest widest fragment.
-            if (hyphenLinesOf != null) {
-                for (fraction in listOf(0.75f, 0.6f, 0.5f, 0.4f, 0.3f)) {
-                    val fragments = hyphenLinesOf(word, TOP_BAR_TITLE_MIN_SCALE, best * fraction)
-                    if (fragments != null) {
-                        best = fragments.maxOf { width(it) }
-                    }
-                }
-            }
-            best
-        }
+    val words = title.split(Regex("""\s+""")).filter { it.isNotEmpty() }
+    // #66: an empty title (image/file clips) reserves nothing instead of
+    // crashing the detail screen.
+    return widestTitleFragmentWidthPx(words, TOP_BAR_TITLE_MIN_SCALE, ::width, hyphenLinesOf)
 }
 
 /** One icon-only top bar action; [label] is its content description. */

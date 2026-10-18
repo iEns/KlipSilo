@@ -18,6 +18,9 @@ class FitTextPolicyTest {
         scale: Float,
     ): Float = text.count { it != '\u200B' } * 10f * scale
 
+    /** One-arg floor variant for the title-fragment helper (#66). */
+    private fun widthOfAtFloor(text: String): Float = widthOf(text, 0.6f)
+
     private fun resolve(
         text: String,
         width: Float,
@@ -32,6 +35,45 @@ class FitTextPolicyTest {
         assertEquals("Anmerken", decision.text)
         assertEquals(1, decision.maxLines)
         assertFalse(decision.ellipsized)
+    }
+
+    @Test
+    fun emptyTitleFragmentReservesNothing() {
+        // #66: image and file clips carry no title text. The widest-word
+        // reduce threw NoSuchElementException on the empty word list and
+        // crashed every tap into those clips; it must return 0.
+        assertEquals(0f, widestTitleFragmentWidthPx(emptyList(), 0.6f, ::widthOfAtFloor))
+    }
+
+    @Test
+    fun titleFragmentWidthIsTheWidestWord() {
+        val words = listOf("Bearbeiten", "formular")
+        // 10px per character at the floor size.
+        val width = widestTitleFragmentWidthPx(words, 0.6f, { it.length * 10f })
+        assertEquals(100f, width)
+    }
+
+    @Test
+    fun titleFragmentWidthAsksTheHyphenationForTooWideWords() {
+        // "Datenschutzerklärung" is 200px at the floor. Hyphenation fragments
+        // must be measured — a fragment can be narrower than the whole word.
+        val hyphenLinesOf: HyphenLinesOf = { word, _, maxWidthPx ->
+            if (word == "Datenschutzerklärung" && maxWidthPx >= 80f) {
+                listOf("Datenschutz-", "erklärung")
+            } else {
+                null
+            }
+        }
+        val width =
+            widestTitleFragmentWidthPx(
+                listOf("Datenschutzerklärung"),
+                0.6f,
+                { it.length * 10f },
+                hyphenLinesOf,
+            )
+        // 120px at the first retry width; narrower retries break earlier but
+        // the platform only needs one accepted break choice here.
+        assertEquals(120f, width)
     }
 
     @Test

@@ -534,6 +534,41 @@ private fun breakEnds(text: String): List<Int> {
     return ends
 }
 
+/**
+ * Retried widths for the floor hyphenation of a top-bar title fragment
+ * (#62): a narrower layout makes the platform break earlier, so the widest
+ * fragment shrinks.
+ */
+internal val TITLE_FRAGMENT_HYPHEN_RETRY_FRACTIONS = listOf(0.75f, 0.6f, 0.5f, 0.4f, 0.3f)
+
+/**
+ * The width [FitActionBar] reserves for one title: the widest word (or its
+ * pattern-hyphenation fragments, #62) at [scale]. An empty or blank title —
+ * image and file clips carry no title text (#66) — reserves nothing: the
+ * old reduce threw NoSuchElementException on the empty word list and
+ * crashed the app on every tap into those clips.
+ */
+internal fun widestTitleFragmentWidthPx(
+    words: List<String>,
+    scale: Float,
+    widthOf: (String) -> Float,
+    hyphenLinesOf: HyphenLinesOf? = null,
+): Float {
+    if (words.isEmpty()) return 0f
+    return words.maxOf { word ->
+        var best = widthOf(word)
+        if (hyphenLinesOf != null) {
+            for (fraction in TITLE_FRAGMENT_HYPHEN_RETRY_FRACTIONS) {
+                val fragments = hyphenLinesOf(word, scale, best * fraction)
+                if (fragments != null) {
+                    best = fragments.maxOfOrNull { widthOf(it) } ?: best
+                }
+            }
+        }
+        best
+    }
+}
+
 private fun ellipsizeLines(
     text: String,
     maxWidthPx: Float,
