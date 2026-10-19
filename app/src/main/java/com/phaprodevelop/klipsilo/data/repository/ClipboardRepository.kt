@@ -3010,6 +3010,74 @@ class ClipboardRepository(
         }
     }
 
+    /**
+     * The fill-form preview page (#80): renders [pageIndex] of a temporary, filled
+     * copy of the PDF at [pdfPath] whose field appearance streams were regenerated,
+     * so the bitmap shows exactly what the widgets will paint — no leftover of the
+     * PDF's own stale appearance, and no Compose overlay needed on top.
+     *
+     * The original file is never modified; the filled copy lives in the cache dir
+     * and is deleted after rendering. [values] must already be preview-safe: hidden
+     * passwords arrive masked as bullets so the regenerated appearance never
+     * contains the secret. Saving keeps going through [fillPdfForm], whose flatten
+     * path is unchanged.
+     */
+    suspend fun renderFilledFormPage(
+        pdfPath: String,
+        values: Map<String, String>,
+        pageIndex: Int,
+        maxDimension: Int,
+    ): Bitmap? {
+        return try {
+            val temp = File.createTempFile("klipsilo_form_preview_", ".pdf", context.cacheDir)
+            try {
+                if (!fillFormCopy(pdfPath, values, temp)) return null
+                renderPdfPage(temp.absolutePath, maxDimension, pageIndex)
+            } finally {
+                temp.delete()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Writes a copy of the PDF at [pdfPath] with [values] filled in and every
+     * field's appearance stream regenerated to [outFile]. Returns false when the
+     * source is missing, unreadable or has no AcroForm. setValue already rebuilds
+     * the changed field's appearance; the refresh pass afterwards regenerates the
+     * rest, one field at a time so a field that cannot rebuild its appearance
+     * never blocks the others (no flattening — this is the preview path, #80).
+     */
+    internal fun fillFormCopy(
+        pdfPath: String,
+        values: Map<String, String>,
+        outFile: File,
+    ): Boolean {
+        return try {
+            val file = File(pdfPath)
+            if (!file.exists()) return false
+            PDDocument.load(file).use { document ->
+                val acroForm = document.documentCatalog.acroForm ?: return false
+                values.forEach { (key, value) ->
+                    applyFillValue(acroForm, key, value)
+                }
+                acroForm.fields
+                    .flatMap { field -> terminalFields(field) }
+                    .forEach { field ->
+                        try {
+                            acroForm.refreshAppearances(listOf(field))
+                        } catch (_: Exception) {
+                        }
+                    }
+                FileOutputStream(outFile).use { document.save(it) }
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun checkboxFieldsNamed(
         acroForm: PDAcroForm,
         fqn: String,

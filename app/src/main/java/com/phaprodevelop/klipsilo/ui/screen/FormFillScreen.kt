@@ -69,9 +69,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -94,7 +92,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -108,7 +105,6 @@ import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.FormFieldType
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
-import com.phaprodevelop.klipsilo.ui.components.FORM_FIELD_FONT_FILL
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_FONT_FILL
 import com.phaprodevelop.klipsilo.ui.components.PASSWORD_BADGE_HEIGHT_FILL
@@ -119,15 +115,12 @@ import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
 import com.phaprodevelop.klipsilo.ui.components.clampPreviewZoom
 import com.phaprodevelop.klipsilo.ui.components.doubleTapPreviewZoom
-import com.phaprodevelop.klipsilo.ui.components.formFieldTextLayout
-import com.phaprodevelop.klipsilo.ui.components.formOverlayMaxLines
 import com.phaprodevelop.klipsilo.ui.components.passwordBadgeLayout
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.previewPointToPageLocal
 import com.phaprodevelop.klipsilo.ui.components.previewRenderDim
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
-import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.transformPreviewZoom
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
@@ -135,13 +128,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.roundToInt
 
 /** Preview height while the keyboard is open, so the field list keeps the screen space. */
 private val CollapsedPreviewHeight = 88.dp
 
 /** How long the preview zoom must be still before re-rendering sharper. */
 private const val RESHARPEN_SETTLE_MILLIS = 250L
+
+/** How long typing must be idle before the preview re-renders from the filled form (#80). */
+private const val FORM_PREVIEW_DEBOUNCE_MILLIS = 300L
 
 @OptIn(
     ExperimentalFoundationApi::class,
@@ -261,13 +256,50 @@ fun FormFillScreen(
     LaunchedEffect(filePath, pageIndex) {
         if (renderDim != PREVIEW_BASE_RENDER_DIM) renderDim = PREVIEW_BASE_RENDER_DIM
     }
-    LaunchedEffect(filePath, pageIndex, renderDim) {
+    // The preview renders from a filled, appearance-regenerated copy of the PDF
+    // (#80): the widgets paint the live values themselves, so the raw original
+    // is never shown and no overlay is drawn on top. Hidden passwords arrive
+    // masked — the regenerated appearance must never contain the secret (#61).
+    val previewValues =
+        remember(formFields, values, revealedPasswords) {
+            val byKey = formFields.orEmpty().associateBy { it.valueKey }
+            values.mapValues { (key, value) ->
+                val field = byKey[key] ?: return@mapValues value
+                passwordPreviewText(field.isPassword, key in revealedPasswords, value)
+            }
+        }
+    // Typing re-renders after a short debounce; page and zoom changes render
+    // immediately (the page gate cancels in-flight work like before).
+    var previewValuesRevision by remember { mutableIntStateOf(0) }
+    // Hidden, filled password fields get the "saved as readable text" pill (#61).
+    val badgeFields =
+        remember(formFields, values, revealedPasswords) {
+            formFields.orEmpty()
+                .filter { field ->
+                    showPasswordSavedBadge(
+                        field.isPassword,
+                        field.valueKey in revealedPasswords,
+                        values[field.valueKey].orEmpty(),
+                    )
+                }.map { it.valueKey }.toSet()
+        }
+    LaunchedEffect(previewValues) {
+        if (previewValues.isEmpty()) return@LaunchedEffect
+        delay(FORM_PREVIEW_DEBOUNCE_MILLIS)
+        previewValuesRevision++
+    }
+    LaunchedEffect(filePath, pageIndex, renderDim, previewValuesRevision) {
         val path = filePath ?: return@LaunchedEffect
         val dim = renderDim
+        val filled = previewValues
         val loaded =
             produceLatest(
                 pageGate,
-                produce = { withContext(Dispatchers.IO) { renderPdfPage(path, dim, pageIndex) } },
+                produce = {
+                    withContext(Dispatchers.IO) {
+                        viewModel.renderFilledFormPage(path, filled, pageIndex, dim)
+                    }
+                },
                 discard = { bitmap -> bitmap?.recycle() },
             ) ?: return@LaunchedEffect
         displayed.update(loaded.value)
@@ -322,8 +354,7 @@ fun FormFillScreen(
                     bitmap = bmp,
                     pageIndex = pageIndex,
                     fields = formFields.orEmpty(),
-                    values = values,
-                    revealedPasswords = revealedPasswords,
+                    badgeFields = badgeFields,
                     imeVisible = imeVisible,
                     onFieldTap = { name -> focusField(name) },
                     onZoomSettled = { scale ->
@@ -468,8 +499,7 @@ private fun FormPdfPreview(
     bitmap: Bitmap,
     pageIndex: Int,
     fields: List<FormFieldInfo>,
-    values: Map<String, String>,
-    revealedPasswords: Set<String>,
+    badgeFields: Set<String>,
     imeVisible: Boolean,
     onFieldTap: (String) -> Unit,
     onZoomSettled: (Float) -> Unit,
@@ -597,42 +627,25 @@ private fun FormPdfPreview(
                                 translationY = zoom.offsetY
                             },
                 ) {
+                    // The page bitmap already paints every widget's regenerated
+                    // appearance with the live values (#80), so only the image is
+                    // drawn here; the field hit rects above still route taps.
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = context.getString(R.string.pdf).withoutSoftHyphens(),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds,
                     )
+                    // Hidden passwords draw as bullets from the regenerated appearance;
+                    // the "saved as readable text" pill is the only overlay left (#61).
                     fields.forEach { field ->
-                        val value = values[field.valueKey].orEmpty()
+                        if (field.valueKey !in badgeFields) return@forEach
                         field.hits.filter { it.pageIndex == pageIndex }.forEach { hit ->
-                            val revealed = field.valueKey in revealedPasswords
-                            // Hidden passwords draw as bullets; a revealed one shows the text (#61).
-                            val masked = passwordPreviewText(field.isPassword, revealed, value)
-                            val shown = formOverlayText(field, hit, masked)
-                            // TEXT and CHOICE widgets carry their own painted value in the
-                            // page bitmap, so the overlay must hide it before drawing the
-                            // live value — otherwise e.g. "Student" rides on "General"
-                            // drawn by the PDF's own appearance stream (#80). An empty
-                            // value just draws the cover: the field shows empty.
-                            val covers = coversAppearance(field.type)
-                            if (shown.isEmpty() && !covers) return@forEach
-                            // Hidden password: the "saved as readable text" pill is
-                            // drawn beside the dots, sized to stay in the rect (#61).
-                            val badge =
-                                if (showPasswordSavedBadge(field.isPassword, revealed, value)) {
-                                    context.getString(R.string.form_password_saved_badge)
-                                } else {
-                                    null
-                                }
-                            FormValueOverlay(
+                            FormPasswordBadgeOverlay(
                                 hit = hit,
-                                text = shown,
-                                multiline = field.multiline,
                                 imageWidth = pageWidth.toDp(density),
                                 imageHeight = pageHeight.toDp(density),
-                                savedBadgeText = badge,
-                                coverColor = if (covers) sampleFieldBackground(bitmap, hit) else null,
+                                badgeText = context.getString(R.string.form_password_saved_badge),
                             )
                         }
                     }
@@ -652,29 +665,29 @@ private class PreviewLayout {
 
 private fun Float.toDp(density: Density): Dp = with(density) { toDp() }
 
+/**
+ * The hidden-password pill over the preview (#61): the dots themselves are
+ * painted by the PDF's own regenerated appearance (the masked value arrives as
+ * bullets, #80), so the overlay only draws the "saved as readable text" badge
+ * beside them, sized to stay inside the field rect. No value text is drawn —
+ * the preview shows the page bitmap alone.
+ */
 @Composable
-private fun FormValueOverlay(
+private fun FormPasswordBadgeOverlay(
     hit: FormFieldHit,
-    text: String,
-    multiline: Boolean,
     imageWidth: Dp,
     imageHeight: Dp,
-    savedBadgeText: String? = null,
-    coverColor: Color? = null,
+    badgeText: String,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    // Pill colours resolved at composition; the pill itself is drawn inside
-    // the same drawWithCache as the value (#61).
+    // Pill colours resolved at composition; the pill itself is drawn inside drawWithCache (#61).
     val badgeBackground = MaterialTheme.colorScheme.secondaryContainer
     val badgeForeground = MaterialTheme.colorScheme.onSecondaryContainer
     // Readability floor for the tiny pill, independent of the user's font scale (#61).
     val minBadgeFontPx = with(Density(density.density)) { PASSWORD_BADGE_MIN_FONT_SP.sp.toPx() }
     val width = imageWidth * (hit.right - hit.left).coerceAtLeast(0f)
     val height = imageHeight * (hit.bottom - hit.top).coerceAtLeast(0f)
-    // The overlay is transparent; only the value is drawn, with the exact
-    // baseline from formFieldTextLayout so it never rides on inherited
-    // composable styles (the inherited line height made text ride too low).
     Box(
         modifier =
             Modifier
@@ -686,141 +699,61 @@ private fun FormValueOverlay(
                     val rectWidthPx = size.width
                     val rectHeightPx = size.height
                     val pad = 2.dp.toPx()
-                    // Measure the default font's real metrics at the height-fit
-                    // size; nothing here inherits composable styles.
-                    val fontPx = (rectHeightPx * FORM_FIELD_FONT_FILL).coerceAtLeast(1f)
-
-                    fun measureAt(
-                        size: Float,
-                        wrap: Boolean,
-                    ) = textMeasurer.measure(
-                        AnnotatedString(text),
-                        TextStyle(fontSize = size.toSp()),
-                        // Multiline values wrap without a line cap; Compose rejects
-                        // maxLines = 0 ("maxLines should be greater than 0"), which
-                        // crashed the screen on the first character typed in a
-                        // multi-line field (#68).
-                        maxLines = formOverlayMaxLines(multiline = wrap),
-                        softWrap = wrap,
-                        constraints =
-                            if (wrap) {
-                                Constraints(maxWidth = (rectWidthPx - 2f * pad).roundToInt())
-                            } else {
-                                Constraints()
-                            },
-                    )
-                    // Defensive guard (#68): a field that fails to measure must never
-                    // crash the whole fill screen — skip this overlay's preview and
-                    // keep the field editable with its old value.
-                    val prepared =
+                    // The pill: the pure field-rect math places it at the trailing
+                    // edge, inside the rect, and drops it when nothing readable
+                    // fits (#61).
+                    val badge =
                         runCatching {
-                            val probe = measureAt(fontPx, wrap = false)
-                            val layout =
-                                formFieldTextLayout(
-                                    rectWidthPx = rectWidthPx,
-                                    rectHeightPx = rectHeightPx,
-                                    multiline = multiline,
-                                    ascentPerEmPx = probe.firstBaseline / fontPx,
-                                    descentPerEmPx = (probe.size.height - probe.firstBaseline) / fontPx,
-                                    // Multiline values wrap instead of shrinking to fit.
-                                    textWidthPerEmPx =
-                                        if (multiline || probe.size.width <= 0) {
-                                            0f
-                                        } else {
-                                            probe.size.width / fontPx
-                                        },
-                                    leftPaddingPx = pad,
+                            val refFontPx =
+                                (rectHeightPx * PASSWORD_BADGE_HEIGHT_FILL * PASSWORD_BADGE_FONT_FILL)
+                                    .coerceAtLeast(1f)
+                            val probe =
+                                textMeasurer.measure(
+                                    AnnotatedString(badgeText),
+                                    TextStyle(fontSize = refFontPx.toSp()),
+                                    maxLines = 1,
+                                    softWrap = false,
                                 )
-                            val drawn =
-                                when {
-                                    multiline -> measureAt(layout.fontSizePx, wrap = true)
-                                    layout.fontSizePx != fontPx -> measureAt(layout.fontSizePx, wrap = false)
-                                    else -> probe
-                                }
-                            // The hidden-password pill: the same pure field-rect math
-                            // places it at the trailing edge beside the dots, inside the
-                            // rect, and drops it when nothing readable fits (#61).
-                            val badge =
-                                savedBadgeText?.takeIf { it.isNotEmpty() }?.let { badgeText ->
-                                    val badgeRefFontPx =
-                                        (rectHeightPx * PASSWORD_BADGE_HEIGHT_FILL * PASSWORD_BADGE_FONT_FILL)
-                                            .coerceAtLeast(1f)
-                                    val badgeProbe =
-                                        textMeasurer.measure(
-                                            AnnotatedString(badgeText),
-                                            TextStyle(fontSize = badgeRefFontPx.toSp()),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                        )
-                                    val perEm = badgeRefFontPx.coerceAtLeast(1f)
-                                    passwordBadgeLayout(
-                                        fieldWidthPx = rectWidthPx,
-                                        fieldHeightPx = rectHeightPx,
-                                        dotsWidthPx = drawn.size.width.toFloat(),
-                                        badgeTextWidthPerEmPx = badgeProbe.size.width / perEm,
-                                        badgeFontAscentPerEm = badgeProbe.firstBaseline / perEm,
-                                        badgeFontDescentPerEm =
-                                            (badgeProbe.size.height - badgeProbe.firstBaseline) / perEm,
-                                        edgePaddingPx = pad,
-                                        minFontPx = minBadgeFontPx,
-                                    )?.let { badgeLayout ->
-                                        badgeLayout to
-                                            textMeasurer.measure(
-                                                AnnotatedString(badgeText),
-                                                TextStyle(fontSize = badgeLayout.fontSizePx.toSp()),
-                                                maxLines = 1,
-                                                softWrap = false,
-                                            )
-                                    }
-                                }
-                            Triple(layout, drawn, badge)
+                            val perEm = refFontPx.coerceAtLeast(1f)
+                            passwordBadgeLayout(
+                                fieldWidthPx = rectWidthPx,
+                                fieldHeightPx = rectHeightPx,
+                                dotsWidthPx = 0f,
+                                badgeTextWidthPerEmPx = probe.size.width / perEm,
+                                badgeFontAscentPerEm = probe.firstBaseline / perEm,
+                                badgeFontDescentPerEm =
+                                    (probe.size.height - probe.firstBaseline) / perEm,
+                                edgePaddingPx = pad,
+                                minFontPx = minBadgeFontPx,
+                            )?.let { layout ->
+                                layout to
+                                    textMeasurer.measure(
+                                        AnnotatedString(badgeText),
+                                        TextStyle(fontSize = layout.fontSizePx.toSp()),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                            }
                         }.onFailure { throwable ->
-                            Log.w("KlipSilo", "Form value preview skipped: ${throwable.message}")
+                            Log.w("KlipSilo", "Password badge preview skipped: ${throwable.message}")
                         }.getOrNull()
-                    // The appearance cover (#80): the PDF's own painted value inside the
-                    // widget is hidden under an opaque patch of the sampled background
-                    // colour before the live value is drawn on top. The inset keeps the
-                    // field's border visible; the cover is drawn even when the live
-                    // value is empty, so an emptied field shows empty.
-                    val cover =
-                        coverColor?.let { color ->
-                            color to appearanceCoverRect(rectWidthPx, rectHeightPx, pad)
-                        }
                     onDrawBehind {
-                        cover?.let { (color, rect) ->
-                            drawRect(
-                                color = color,
-                                topLeft = Offset(rect.left, rect.top),
-                                size = Size(rect.width, rect.height),
-                            )
-                        }
-                        val (layout, drawn, badge) = prepared ?: return@onDrawBehind
+                        val (pos, badgeDrawn) = badge ?: return@onDrawBehind
+                        drawRoundRect(
+                            color = badgeBackground,
+                            topLeft = Offset(pos.leftPx, pos.topPx),
+                            size = Size(pos.widthPx, pos.heightPx),
+                            cornerRadius = CornerRadius(pos.heightPx / 2f),
+                        )
                         drawText(
-                            drawn,
-                            color = Color.Black,
+                            badgeDrawn,
+                            color = badgeForeground,
                             topLeft =
                                 Offset(
-                                    layout.leftPaddingPx,
-                                    layout.baselinePx - drawn.firstBaseline,
+                                    pos.textLeftPx,
+                                    pos.textBaselinePx - badgeDrawn.firstBaseline,
                                 ),
                         )
-                        badge?.let { (pos, badgeDrawn) ->
-                            drawRoundRect(
-                                color = badgeBackground,
-                                topLeft = Offset(pos.leftPx, pos.topPx),
-                                size = Size(pos.widthPx, pos.heightPx),
-                                cornerRadius = CornerRadius(pos.heightPx / 2f),
-                            )
-                            drawText(
-                                badgeDrawn,
-                                color = badgeForeground,
-                                topLeft =
-                                    Offset(
-                                        pos.textLeftPx,
-                                        pos.textBaselinePx - badgeDrawn.firstBaseline,
-                                    ),
-                            )
-                        }
                     }
                 },
     )
@@ -875,6 +808,30 @@ private fun FormFieldRow(
                 // One kid per radio option; selectableGroup makes the group exclusive for
                 // screen readers too (#67).
                 Column(modifier = Modifier.selectableGroup()) {
+                    // A CHOICE can be emptied again: the first row clears the value, so a
+                    // cleared choice shows empty in the preview and the saved PDF (#80).
+                    if (field.type == FormFieldType.CHOICE) {
+                        val cleared = value.isEmpty()
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .selectable(
+                                        selected = cleared,
+                                        role = Role.RadioButton,
+                                        onClick = { onValueChange("") },
+                                    ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // The row is the click target; the radio button itself only shows state.
+                            RadioButton(selected = cleared, onClick = null)
+                            Text(
+                                text = stringResource(R.string.clear),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                     field.options.forEachIndexed { index, option ->
                         val selected = value == option
                         val rowModifier =
@@ -1010,87 +967,6 @@ private fun FormFieldRow(
     }
 }
 
-private fun formOverlayText(
-    field: FormFieldInfo,
-    hit: FormFieldHit,
-    value: String,
-): String {
-    return when (field.type) {
-        FormFieldType.CHECKBOX -> if (value == "true") "✓" else ""
-        FormFieldType.RADIO -> if (!hit.option.isNullOrEmpty() && value == hit.option) "●" else ""
-        else -> value
-    }
-}
-
-/**
- * True for the field types whose widget paints its own value text into the page
- * (a text field's /V, a choice field's /AP), which the PdfRenderer preview shows
- * even before the overlay draws the live value (#80). Checkbox and radio marks
- * are toggled by the widget itself and need no cover.
- */
-internal fun coversAppearance(type: FormFieldType): Boolean = type == FormFieldType.TEXT || type == FormFieldType.CHOICE
-
-/**
- * The inner widget rect for the appearance cover (#80): [insetPx] on every side
- * (clamped to a quarter of each dimension, so a hairline-thin widget is still
- * covered completely) keeps the PDF's own field border visible around it.
- */
-internal fun appearanceCoverRect(
-    rectWidthPx: Float,
-    rectHeightPx: Float,
-    insetPx: Float,
-): Rect {
-    val insetX = insetPx.coerceIn(0f, rectWidthPx / 4f)
-    val insetY = insetPx.coerceIn(0f, rectHeightPx / 4f)
-    return Rect(
-        left = insetX,
-        top = insetY,
-        right = (rectWidthPx - insetX).coerceAtLeast(insetX),
-        bottom = (rectHeightPx - insetY).coerceAtLeast(insetY),
-    )
-}
-
-/** Sample grid for the field background: columns x rows over the inner part of the widget. */
-private const val FIELD_BACKGROUND_SAMPLE_COLUMNS = 9
-private const val FIELD_BACKGROUND_SAMPLE_ROWS = 5
-
-/** The grid spans the middle of the widget, clear of its border stroke. */
-private const val FIELD_BACKGROUND_SAMPLE_MARGIN = 0.2f
-
-/**
- * The widget's background colour for the appearance cover (#80): the most common
- * colour on a small grid over the inner part of the widget on the rendered page.
- * The grid stays clear of the border stroke, and the field fill outnumbers the
- * anti-aliased pixels of the PDF's own value text, so the most common sample is
- * the fill. Falls back to white off the page or on failure, and forces the
- * result opaque so the covered text cannot ghost through.
- */
-internal fun sampleFieldBackground(
-    bitmap: Bitmap,
-    hit: FormFieldHit,
-): Color {
-    val width = hit.right - hit.left
-    val height = hit.bottom - hit.top
-    if (width <= 0f || height <= 0f || bitmap.width <= 0 || bitmap.height <= 0) return Color.White
-    return try {
-        val counts = HashMap<Int, Int>()
-        val span = 1f - 2 * FIELD_BACKGROUND_SAMPLE_MARGIN
-        for (column in 0 until FIELD_BACKGROUND_SAMPLE_COLUMNS) {
-            val fx = FIELD_BACKGROUND_SAMPLE_MARGIN + span * column / (FIELD_BACKGROUND_SAMPLE_COLUMNS - 1)
-            val x = ((hit.left + width * fx) * bitmap.width).roundToInt().coerceIn(0, bitmap.width - 1)
-            for (row in 0 until FIELD_BACKGROUND_SAMPLE_ROWS) {
-                val fy = FIELD_BACKGROUND_SAMPLE_MARGIN + span * row / (FIELD_BACKGROUND_SAMPLE_ROWS - 1)
-                val y = ((hit.top + height * fy) * bitmap.height).roundToInt().coerceIn(0, bitmap.height - 1)
-                val pixel = bitmap.getPixel(x, y).or(0xFF000000.toInt())
-                counts[pixel] = (counts[pixel] ?: 0) + 1
-            }
-        }
-        counts.maxByOrNull { it.value }?.let { Color(it.key) } ?: Color.White
-    } catch (_: Exception) {
-        Color.White
-    }
-}
-
 private fun hitField(
     fields: List<FormFieldInfo>,
     pageIndex: Int,
@@ -1128,8 +1004,7 @@ private fun FormPdfPreviewPreview() {
             bitmap = Bitmap.createBitmap(80, 104, Bitmap.Config.ARGB_8888),
             pageIndex = 0,
             fields = emptyList(),
-            values = emptyMap(),
-            revealedPasswords = emptySet(),
+            badgeFields = emptySet(),
             imeVisible = false,
             onFieldTap = {},
             onZoomSettled = {},
@@ -1261,19 +1136,18 @@ private fun FormFieldRowRadioGroupPreview() {
 }
 
 // Hidden password preview: the dots with the readable-text pill beside them,
-// sized to stay inside the field rect (#61).
+// sized to stay inside the field rect (#61). The dots themselves come from the
+// PDF's own regenerated appearance; the overlay only draws the pill (#80).
 @Preview(fontScale = 2f, widthDp = 320, heightDp = 180, showBackground = true)
 @Composable
-private fun FormValueOverlayPasswordBadgePreview() {
+private fun FormPasswordBadgeOverlayPreview() {
     MaterialTheme {
         Box(Modifier.fillMaxWidth().height(72.dp)) {
-            FormValueOverlay(
+            FormPasswordBadgeOverlay(
                 hit = FormFieldHit(pageIndex = 0, left = 0.1f, top = 0.1f, right = 0.8f, bottom = 0.9f),
-                text = "•••••••",
-                multiline = false,
                 imageWidth = 320.dp,
                 imageHeight = 64.dp,
-                savedBadgeText = stringResource(R.string.form_password_saved_badge),
+                badgeText = stringResource(R.string.form_password_saved_badge),
             )
         }
     }

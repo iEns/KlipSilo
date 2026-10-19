@@ -908,6 +908,18 @@ class ClipboardViewModel(
         _formFieldsLoading.value = false
     }
 
+    /**
+     * The fill-form preview bitmap (#80): one page of a temporary, filled copy of
+     * the PDF whose field appearances were regenerated — no Compose value overlay
+     * is drawn on top. Returns null when the file is unreadable or has no form.
+     */
+    suspend fun renderFilledFormPage(
+        pdfPath: String,
+        values: Map<String, String>,
+        pageIndex: Int,
+        maxDimension: Int,
+    ): Bitmap? = repository.renderFilledFormPage(pdfPath, values, pageIndex, maxDimension)
+
     fun fillForm(
         entry: ClipboardEntry,
         values: Map<String, String>,
