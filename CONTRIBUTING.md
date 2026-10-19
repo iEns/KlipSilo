@@ -4,6 +4,7 @@ Issues and pull requests are welcome.
 
 - Branch from `main` and open the pull request against `main`.
 - Keep the change focused on one problem.
+- A change that adds, removes or changes a user-facing feature updates `FEATURES.md` and `docs/regression-checklist.md` in the same change.
 - Run `./gradlew test` before asking for review. For UI or resource changes, also run `./gradlew :app:assembleDebug`.
 - Do not commit `local.properties`, keystores, API keys, or built APKs and AABs.
 - Follow the style of the file you edit. `.editorconfig` sets whitespace.
