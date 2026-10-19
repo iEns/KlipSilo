@@ -69,6 +69,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -609,7 +610,13 @@ private fun FormPdfPreview(
                             // Hidden passwords draw as bullets; a revealed one shows the text (#61).
                             val masked = passwordPreviewText(field.isPassword, revealed, value)
                             val shown = formOverlayText(field, hit, masked)
-                            if (shown.isEmpty()) return@forEach
+                            // TEXT and CHOICE widgets carry their own painted value in the
+                            // page bitmap, so the overlay must hide it before drawing the
+                            // live value — otherwise e.g. "Student" rides on "General"
+                            // drawn by the PDF's own appearance stream (#80). An empty
+                            // value just draws the cover: the field shows empty.
+                            val covers = coversAppearance(field.type)
+                            if (shown.isEmpty() && !covers) return@forEach
                             // Hidden password: the "saved as readable text" pill is
                             // drawn beside the dots, sized to stay in the rect (#61).
                             val badge =
@@ -625,6 +632,7 @@ private fun FormPdfPreview(
                                 imageWidth = pageWidth.toDp(density),
                                 imageHeight = pageHeight.toDp(density),
                                 savedBadgeText = badge,
+                                coverColor = if (covers) sampleFieldBackground(bitmap, hit) else null,
                             )
                         }
                     }
@@ -652,6 +660,7 @@ private fun FormValueOverlay(
     imageWidth: Dp,
     imageHeight: Dp,
     savedBadgeText: String? = null,
+    coverColor: Color? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -768,7 +777,23 @@ private fun FormValueOverlay(
                         }.onFailure { throwable ->
                             Log.w("KlipSilo", "Form value preview skipped: ${throwable.message}")
                         }.getOrNull()
+                    // The appearance cover (#80): the PDF's own painted value inside the
+                    // widget is hidden under an opaque patch of the sampled background
+                    // colour before the live value is drawn on top. The inset keeps the
+                    // field's border visible; the cover is drawn even when the live
+                    // value is empty, so an emptied field shows empty.
+                    val cover =
+                        coverColor?.let { color ->
+                            color to appearanceCoverRect(rectWidthPx, rectHeightPx, pad)
+                        }
                     onDrawBehind {
+                        cover?.let { (color, rect) ->
+                            drawRect(
+                                color = color,
+                                topLeft = Offset(rect.left, rect.top),
+                                size = Size(rect.width, rect.height),
+                            )
+                        }
                         val (layout, drawn, badge) = prepared ?: return@onDrawBehind
                         drawText(
                             drawn,
@@ -994,6 +1019,75 @@ private fun formOverlayText(
         FormFieldType.CHECKBOX -> if (value == "true") "✓" else ""
         FormFieldType.RADIO -> if (!hit.option.isNullOrEmpty() && value == hit.option) "●" else ""
         else -> value
+    }
+}
+
+/**
+ * True for the field types whose widget paints its own value text into the page
+ * (a text field's /V, a choice field's /AP), which the PdfRenderer preview shows
+ * even before the overlay draws the live value (#80). Checkbox and radio marks
+ * are toggled by the widget itself and need no cover.
+ */
+internal fun coversAppearance(type: FormFieldType): Boolean = type == FormFieldType.TEXT || type == FormFieldType.CHOICE
+
+/**
+ * The inner widget rect for the appearance cover (#80): [insetPx] on every side
+ * (clamped to a quarter of each dimension, so a hairline-thin widget is still
+ * covered completely) keeps the PDF's own field border visible around it.
+ */
+internal fun appearanceCoverRect(
+    rectWidthPx: Float,
+    rectHeightPx: Float,
+    insetPx: Float,
+): Rect {
+    val insetX = insetPx.coerceIn(0f, rectWidthPx / 4f)
+    val insetY = insetPx.coerceIn(0f, rectHeightPx / 4f)
+    return Rect(
+        left = insetX,
+        top = insetY,
+        right = (rectWidthPx - insetX).coerceAtLeast(insetX),
+        bottom = (rectHeightPx - insetY).coerceAtLeast(insetY),
+    )
+}
+
+/** Sample grid for the field background: columns x rows over the inner part of the widget. */
+private const val FIELD_BACKGROUND_SAMPLE_COLUMNS = 9
+private const val FIELD_BACKGROUND_SAMPLE_ROWS = 5
+
+/** The grid spans the middle of the widget, clear of its border stroke. */
+private const val FIELD_BACKGROUND_SAMPLE_MARGIN = 0.2f
+
+/**
+ * The widget's background colour for the appearance cover (#80): the most common
+ * colour on a small grid over the inner part of the widget on the rendered page.
+ * The grid stays clear of the border stroke, and the field fill outnumbers the
+ * anti-aliased pixels of the PDF's own value text, so the most common sample is
+ * the fill. Falls back to white off the page or on failure, and forces the
+ * result opaque so the covered text cannot ghost through.
+ */
+internal fun sampleFieldBackground(
+    bitmap: Bitmap,
+    hit: FormFieldHit,
+): Color {
+    val width = hit.right - hit.left
+    val height = hit.bottom - hit.top
+    if (width <= 0f || height <= 0f || bitmap.width <= 0 || bitmap.height <= 0) return Color.White
+    return try {
+        val counts = HashMap<Int, Int>()
+        val span = 1f - 2 * FIELD_BACKGROUND_SAMPLE_MARGIN
+        for (column in 0 until FIELD_BACKGROUND_SAMPLE_COLUMNS) {
+            val fx = FIELD_BACKGROUND_SAMPLE_MARGIN + span * column / (FIELD_BACKGROUND_SAMPLE_COLUMNS - 1)
+            val x = ((hit.left + width * fx) * bitmap.width).roundToInt().coerceIn(0, bitmap.width - 1)
+            for (row in 0 until FIELD_BACKGROUND_SAMPLE_ROWS) {
+                val fy = FIELD_BACKGROUND_SAMPLE_MARGIN + span * row / (FIELD_BACKGROUND_SAMPLE_ROWS - 1)
+                val y = ((hit.top + height * fy) * bitmap.height).roundToInt().coerceIn(0, bitmap.height - 1)
+                val pixel = bitmap.getPixel(x, y).or(0xFF000000.toInt())
+                counts[pixel] = (counts[pixel] ?: 0) + 1
+            }
+        }
+        counts.maxByOrNull { it.value }?.let { Color(it.key) } ?: Color.White
+    } catch (_: Exception) {
+        Color.White
     }
 }
 

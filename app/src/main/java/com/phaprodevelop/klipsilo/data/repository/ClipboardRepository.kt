@@ -3147,7 +3147,12 @@ class ClipboardRepository(
             name = partial,
             fullyQualifiedName = field.fullyQualifiedName ?: partial,
             type = type,
-            currentValue = field.valueAsString,
+            currentValue =
+                if (type == FormFieldType.CHOICE) {
+                    choiceValueAsString(field)
+                } else {
+                    field.valueAsString
+                },
             options = options,
             label = label,
             hits = hits,
@@ -3163,6 +3168,23 @@ class ClipboardRepository(
                     fqn
                 },
         )
+    }
+
+    /**
+     * A choice field's current value as a plain export value (#80): pdfbox formats
+     * choice values via Arrays.toString, so a combo with /V General reports
+     * "[General]" — brackets would never match an /Opt entry in the fill rows or
+     * the preview, and would be drawn into the overlay verbatim.
+     */
+    private fun choiceValueAsString(field: PDField): String {
+        val raw =
+            try {
+                field.valueAsString
+            } catch (_: Exception) {
+                return ""
+            }
+        val plain = raw.removePrefix("[").removeSuffix("]")
+        return plain.trim().ifBlank { "" }
     }
 
     private fun terminalFields(field: PDField): List<PDField> {
