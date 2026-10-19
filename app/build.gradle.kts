@@ -100,7 +100,7 @@ android {
 // so 1.1.0 is 11000 and 1.2.0-beta.1 is 11901 (above the Play build, below 1.2.0).
 // DEPLOYTOOL_ARTIFACT_REF wins, because a deploy unpacks the tag with git archive
 // and that tree has no .git. Otherwise git describe is used. A checkout that is
-// not on a beta tag (local main before the tag exists) falls back to 1.2.0-beta.6.
+// not on a beta tag (local main before the tag exists) falls back to 1.2.0-beta.7.
 val betaVersionNameProvider =
     providers.environmentVariable("DEPLOYTOOL_ARTIFACT_REF").orElse(
         providers.exec {
@@ -115,12 +115,12 @@ fun betaVersionName(raw: String): String {
     return if (match != null) {
         "${match.groupValues[1]}-beta.${match.groupValues[2]}"
     } else {
-        "1.2.0-beta.6"
+        "1.2.0-beta.7"
     }
 }
 
 fun betaVersionCode(versionName: String): Int {
-    val match = Regex("""(\d+)\.(\d+)\.(\d+)-beta\.(\d+)""").find(versionName) ?: return 11906
+    val match = Regex("""(\d+)\.(\d+)\.(\d+)-beta\.(\d+)""").find(versionName) ?: return 11907
     val major = match.groupValues[1].toInt()
     val minor = match.groupValues[2].toInt()
     val patch = match.groupValues[3].toInt()
