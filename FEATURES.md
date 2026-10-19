@@ -36,9 +36,9 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Share an image (saved as an image clip) | Share → KlipSilo | 1.1.0 | [A4](docs/regression-checklist.md#A4) | no |
 | Share a PDF (saved as a PDF clip) | Share → KlipSilo | 1.1.0 | [A4](docs/regression-checklist.md#A4) | no |
 | Share any other file, including binaries (saved raw as a file clip) | File manager → Share → KlipSilo | 1.1.0 | [A5](docs/regression-checklist.md#A5) | no |
-| Share a file and text together (both saved) | Share → KlipSilo | 1.1.0 | — | no |
+| Share a file and text together (both saved) | Share → KlipSilo | 1.1.0 | [A7](docs/regression-checklist.md#A7) | no |
 | Duplicate file warning | Share a file that is already a clip: an "Already saved" dialog offers Open existing / Save again / Cancel | Unreleased | [A6](docs/regression-checklist.md#A6) | no |
-| Download what a link points to, as a PDF/image/text/file clip | Link clip → action sheet → Download from URL | 1.1.0 | — | no |
+| Download what a link points to, as a PDF/image/text/file clip | Link clip → action sheet → Download from URL | 1.1.0 | [A8](docs/regression-checklist.md#A8) | no |
 
 ## Sharing / exporting out
 
@@ -47,7 +47,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Share a clip to another app | Action sheet → Share | 1.1.0 | [D1](docs/regression-checklist.md#D1) | no |
 | Share text from the editor | Editor top bar → Share | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save to Downloads (file/PDF/image) | Action sheet → Save to Downloads | 1.1.0 | [D2](docs/regression-checklist.md#D2) | no |
-| Open an HTML file in the browser | HTML file clip → action sheet → Open in browser | 1.1.0 | — | no |
+| Open an HTML file in the browser | HTML file clip → action sheet → Open in browser | 1.1.0 | [D4](docs/regression-checklist.md#D4) | no |
 | Back up all clips as a ZIP (unencrypted) | Tools → Maintenance → Backup | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
 | Restore from a ZIP | Tools → Maintenance → Restore | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
 
@@ -58,19 +58,19 @@ Each conversion creates a new clip.
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | DOCX → PDF (headings, images, tables, lists) | File clip → action sheet → Convert to PDF; or the file info card, if the viewer can't show the file | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
-| XLSX → PDF | Same as DOCX → PDF | 1.1.0 | — | no |
-| RTF → PDF | Same as DOCX → PDF | 1.1.0 | — | no |
-| TXT → PDF | Same as DOCX → PDF | 1.1.0 | — | no |
+| XLSX → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
+| RTF → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
+| TXT → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | DOCX/XLSX/RTF/TXT shown as readable text | Tap the file clip | 1.1.0 | [C4](docs/regression-checklist.md#C4) | no |
 | File → text for unknown formats | Action sheet → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
 | Text → PDF (Markdown-aware) | Text clip → action sheet → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
-| Text → .txt file | Text clip → action sheet → Text to .txt | 1.1.0 | — | no |
-| HTML text → PDF | Text clip that looks like HTML → action sheet → HTML to PDF | 1.1.0 | — | no |
+| Text → .txt file | Text clip → action sheet → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
+| HTML text → PDF | Text clip that looks like HTML → action sheet → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
 | Image → PDF | Image clip → action sheet → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
 | PDF → images | PDF clip → action sheet → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → text (OCR of the whole PDF) | PDF clip → action sheet → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → HTML | PDF clip → action sheet → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF export | 1.1.0 | — | no |
+| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
 
@@ -87,7 +87,7 @@ Each conversion creates a new clip.
 | Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: field labels and a live page preview | Fill form screen | Unreleased | [G1](docs/regression-checklist.md#G1) | no |
-| Fill form: password masking with a show toggle | Fill form screen, password fields | Unreleased | — | no |
+| Fill form: password masking with a show toggle | Fill form screen, password fields | Unreleased | [G4](docs/regression-checklist.md#G4) | no |
 
 ## Annotation editor (Mark up PDF)
 
@@ -99,7 +99,7 @@ Each conversion creates a new clip.
 | Highlighter | Annotate → Highlight | Unreleased | [H1](docs/regression-checklist.md#H1) | no |
 | Select / move / delete an annotation | Annotate → Select | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Undo / redo | Toolbar | Unreleased | [H1](docs/regression-checklist.md#H1) | no |
-| Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | — | no |
+| Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | [H3](docs/regression-checklist.md#H3) | no |
 | Multi-page markup | Previous/next page in the toolbar | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Save the annotated PDF as a new clip | Save | 1.1.0 | [H2](docs/regression-checklist.md#H2) | no |
 
@@ -110,19 +110,19 @@ Each conversion creates a new clip.
 | QR code scanner (camera) | Tools → QR scanner | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | OCR an image clip | Image clip → action sheet → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
-| QR from an image clip | Image viewer → QR button | 1.1.0 | — | no |
+| QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
 | Save the current location as a clip (with address) | Tools → Location | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
 
 ## Text editor and reader
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Text editor with autosave | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Text editor (save with the checkmark; leaving with unsaved edits asks "Save changes?") | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save-changes prompt when leaving the editor | Editor → back with unsaved changes | Unreleased | [J1](docs/regression-checklist.md#J1) | no |
 | Markdown preview | Editor → preview | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
-| Select word / sentence / paragraph | Editor selection controls | 1.1.0 | — | no |
+| Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
 | Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → action sheet → Text editor | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | Unreleased | — | no |
+| Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | Unreleased | [J3](docs/regression-checklist.md#J3) | no |
 | Reader mode with dark/bright theme and auto-scroll | Tap a text clip | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
 
 ## Settings / languages
@@ -131,7 +131,7 @@ Each conversion creates a new clip.
 |---|---|---|---|---|
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
 | 13 languages plus System default, synced with Android App Info | Settings → Language | Unreleased | [K1](docs/regression-checklist.md#K1) | no |
-| Tips, Limitations, Why, Use cases, About, Privacy policy | Settings | 1.1.0 | — | no |
+| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy | Settings | 1.1.0 | [K3](docs/regression-checklist.md#K3) | no |
 
 ## Other / maintenance
 
@@ -139,7 +139,7 @@ Each conversion creates a new clip.
 |---|---|---|---|---|
 | Delete all clips, or all clips of one type (locked clips kept) | Tools → Maintenance → Delete | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Unlock all locked clips | Tools → Maintenance | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
-| Offline only: no account, no tracking | Everything works offline | 1.1.0 | — | no |
+| Offline only: no account, no tracking | Everything works offline | 1.1.0 | [K4](docs/regression-checklist.md#K4) | no |
 
 ## Not supported
 

@@ -13,7 +13,9 @@
   - a JPG
   - a text PDF
   - testaroo `job-application.pdf` and `event-registration.pdf`
-  - a DOCX, a TXT, an APK or ZIP
+  - a DOCX, an XLSX, an RTF, a TXT, an HTML file, an APK or ZIP
+  - a PDF form with a password field
+  - a link to a PDF or image file, and a link to an ordinary web page
   - a web link
   - a short text
 
@@ -24,6 +26,8 @@
 - <a id="A4"></a>**A4 · Share an image and a PDF in:** share the JPG and the PDF from Files. → You get an Image clip (type and size shown) and a PDF clip.
 - <a id="A5"></a>**A5 · Share any other file in:** share a DOCX, TXT and APK/ZIP from Files. → Each one appears as a File clip with the right name, type and size.
 - <a id="A6"></a>**A6 · Duplicate share:** share the same JPG again. → The "Already saved" dialog appears. Cancel saves nothing, Save again adds a copy, and Open existing opens the original.
+- <a id="A7"></a>**A7 · Share a file and text together:** from an app that shares a file with a caption (e.g. Photos or Files with text added), share both to KlipSilo in one go. Use a file that is not already a clip, so the A6 dialog does not appear. → Two clips appear: the file (Image, PDF or File clip) and a Text clip with the text. Neither is lost.
+- <a id="A8"></a>**A8 · Download from URL:** on a URL clip that points to a PDF or image, sheet → **Download from URL**. → "Downloading…" then "File downloaded", and a new PDF or Image clip (or Text/File clip for other files) appears at the top. On a link to an ordinary web page you get "Could not download file" and no clip.
 
 ## B. Clip list
 - <a id="B1"></a>**B1 · Search:** type part of a clip title or text. → Only matching clips are shown. Clearing the search restores the full list.
@@ -44,6 +48,7 @@
 - <a id="D1"></a>**D1 · Share out:** sheet → **Share** on a text, an image and a file clip. → The system share sheet carries the right content or file. For example, it pastes correctly into Gmail.
 - <a id="D2"></a>**D2 · Save to Downloads:** run it on an image, a PDF and a file clip. → Each file appears in Downloads with its correct name and opens.
 - <a id="D3"></a>**D3 · Backup and restore:** Tools → Maintenance → **Backup** to ZIP. Delete a test clip, then **Restore** from the ZIP. → The deleted clip comes back, and the other clips aren't duplicated or lost.
+- <a id="D4"></a>**D4 · Open in browser:** on an HTML file clip, sheet → **Open in browser**. → The page opens in the browser and renders. The clip is unchanged.
 
 ## E. Conversions (each one creates a new clip)
 - <a id="E1"></a>**E1 · Text → PDF:** use a Markdown text clip (with a heading and a list), then sheet → PDF. → A new PDF clip shows the formatted text.
@@ -52,6 +57,10 @@
 - <a id="E4"></a>**E4 · PDF → Image and PDF → Text:** run both on the text PDF. → You get image clip(s) per page, and a text clip with the PDF's text.
 - <a id="E5"></a>**E5 · PDF → HTML, then edit:** run PDF → HTML, open the result, and tap **Edit**. → The HTML clip is created. Edit shows the HTML **source**, not the preview (#69).
 - <a id="E6"></a>**E6 · Try as text:** use the sheet's **Try as text** on an unknown file. → You get a text result or a clear message, with no crash.
+- <a id="E7"></a>**E7 · XLSX, RTF and TXT → PDF:** on each file clip, sheet → **Convert to PDF**. → Each gives a new PDF clip with the content (XLSX: sheets as tables; RTF: formatted text; TXT: plain text) that opens in the PDF viewer.
+- <a id="E8"></a>**E8 · Text → TXT:** on a text clip, sheet → **Text → TXT**. → A new File clip (.txt) appears with the same text. Tapping it shows the text.
+- <a id="E9"></a>**E9 · HTML → PDF:** on a text clip that contains HTML (e.g. the result of E5), sheet → **HTML → PDF**. → A new PDF clip shows the rendered page (headings, paragraphs, lists), not the raw tags. Plain text clips don't offer this row.
+- <a id="E10"></a>**E10 · PDF output settings:** Settings → **PDF & export**: change Font type, Font size, Line spacing, the two margins and Max output resolution, then repeat E1. → The new PDF uses the new font, size, spacing and margins. The settings survive an app restart.
 
 ## F. PDF viewer and PDF tools
 - <a id="F1"></a>**F1 · PDF viewer:** tap a multi-page PDF, swipe pages, pinch-zoom, and use go-to-page. → The pages render, and navigation and zoom work.
@@ -63,19 +72,26 @@
 - <a id="G1"></a>**G1 · Single-line fields:** fill Full name and Email, then **Save PDF**. → The values show in the preview. The saved PDF clip shows them in Files or another PDF viewer.
 - <a id="G2"></a>**G2 · Multi-line field:** type several lines in **Cover letter** (job form) and **Notes** (event form). → There's no crash on the first character, the text wraps in the preview, and it's saved (#68).
 - <a id="G3"></a>**G3 · Checkboxes and radio groups:** tick checkboxes. In each radio group (Position, Ticket), pick an option and then switch to another. → Each radio option shows separately, and only one per group is selected. This is not shown as a single checkbox (#67). The choice is kept in the saved PDF.
+- <a id="G4"></a>**G4 · Password field:** in a form with a password field, type a value. Use the eye button (**Show password** / **Hide password**). → The field shows dots by default and the value on Show. The note "This will be saved in the PDF as readable text." is shown. The preview shows dots (with a "Saved as readable text" pill when the field is large enough). The saved PDF holds the real value.
 
 ## H. Mark up PDF
 - <a id="H1"></a>**H1 · Annotate:** on page 1, add a text box (two lines), a line, a freehand stroke and a highlight. Move one item, then delete it via Select. Try Undo/Redo. Go to page 2 and add a stroke. → All the tools work, and undo/redo steps back and forth correctly.
 - <a id="H2"></a>**H2 · Save:** tap **Save**. → A new PDF clip has all the annotations on the right pages, line breaks included. Saving with no changes creates no duplicate.
+- <a id="H3"></a>**H3 · Colours and sizes remembered:** in Mark up, pick a non-default colour (Black, White, Red, Yellow) and a different text and stroke size, then leave. Open Mark up again, also after an app restart. → The last colours and sizes are preselected.
 
 ## I. Scan and capture
 - <a id="I1"></a>**I1 · QR scanner and camera OCR:** Tools → QR on a QR code, and Tools → OCR camera on printed text. → The decoded text or link is offered or saved as a clip, and the OCR text is saved as a clip.
 - <a id="I2"></a>**I2 · OCR from an image clip:** sheet → **Crop/OCR from image** on a photo of text. → A text clip holds the recognised text.
 - <a id="I3"></a>**I3 · Location:** Tools → Location (current location; there is no typed-address entry). → A location clip is created with the address. The snackbar's **Open** opens the clip in KlipSilo, and tapping the clip opens Maps.
+- <a id="I4"></a>**I4 · QR from an image clip:** open an image clip that contains a QR code and tap the **Scan QR** button. → The decoded message is shown with **Copy**, **Save to clip** and **Cancel**. Save to clip creates a text or URL clip. An image without a QR shows "No QR code found".
 
 ## J. Text editor
 - <a id="J1"></a>**J1 · Edit and save prompt:** open a text clip in the editor, change the text, and leave. → A "Save changes?" prompt appears (intended since beta.4, #27). Save, then reopen. → The change was kept. Share from the editor works. The Markdown preview renders.
+- <a id="J2"></a>**J2 · Select word / sentence / paragraph:** in the editor, place the cursor in a word and use the **Select word / sentence / paragraph** button → **Word**, then **Sentence**, then **Select paragraph**. → Each selects exactly that unit around the cursor.
+- <a id="J3"></a>**J3 · HTML preview toggle:** open an HTML text clip (e.g. from E5) in the editor and use the top-bar toggle (**Preview** / **Source**). → Preview shows the rendered page and Source shows the editable HTML. Switching back and forth keeps edits.
 
 ## K. Settings and maintenance
 - <a id="K1"></a>**K1 · Theme and language:** switch Light/Dark/System. Switch the language to Danish, then German, then back to English or System default. → Each takes effect at once and survives an app restart. The App Info language stays in sync.
 - <a id="K2"></a>**K2 · Bulk delete:** Tools → Maintenance → delete all clips of one type, then **Unlock all**. → Only that type is removed, and locked clips are kept. Unlock all clears every lock.
+- <a id="K3"></a>**K3 · Guide and info screens:** in Settings, open **Tips**, **Limitations**, **Why**, **Where the app helps**, **About** and **Privacy policy** in turn. → Each opens with its content, scrolls, and back returns to Settings.
+- <a id="K4"></a>**K4 · Offline only:** turn on airplane mode and restart the app. Run A1, A2, C1, E1, E3, F1, F2, G1, H2 and I2. → Everything works with no network and no sign-in prompt. Only Download from URL and opening a link in the browser need the network, and they fail with a message, not a crash.
