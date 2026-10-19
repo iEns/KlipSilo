@@ -89,6 +89,16 @@ class ClipboardViewModel(
     private val clipboardManager =
         application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+    // Declared above init on purpose (#70): Kotlin runs property initialisers
+    // and init blocks in source order, and the list collector launched in init
+    // can run inside the constructor (Dispatchers.Main.immediate plus a Room
+    // flow that emits synchronously on a cold start). Everything init touches
+    // must already be initialised here.
+    private val _clips = MutableStateFlow<List<ClipboardEntry>>(emptyList())
+    val clips: StateFlow<List<ClipboardEntry>> = _clips.asStateFlow()
+
+    private val clipGeneration = AtomicLong(0)
+
     init {
         viewModelScope.launch {
             repository.migrateLegacyNames()
@@ -308,11 +318,6 @@ class ClipboardViewModel(
             }
         }
     }
-
-    private val _clips = MutableStateFlow<List<ClipboardEntry>>(emptyList())
-    val clips: StateFlow<List<ClipboardEntry>> = _clips.asStateFlow()
-
-    private val clipGeneration = AtomicLong(0)
 
     /** Drop the clip from the on-screen list before the database round-trip finishes. */
     private fun hideClipsNow(ids: Collection<Long>) {
