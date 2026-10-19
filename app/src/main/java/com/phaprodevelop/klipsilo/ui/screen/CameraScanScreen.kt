@@ -36,13 +36,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -509,194 +516,200 @@ fun CameraScanScreen(
                     }
                 }
             } else {
-                // Title and hint live in a solid header above the preview
-                // (letterbox-style), so they never cover the camera image (#51).
-                Column(Modifier.fillMaxSize().background(Color.Black)) {
-                    CameraScanHeader(
-                        title =
-                            stringResource(
-                                if (mode == ScanMode.QR) R.string.tool_qr else R.string.tool_ocr_camera,
-                            ),
-                        hint =
-                            stringResource(
-                                if (mode == ScanMode.QR) R.string.qr_hint else R.string.ocr_hint,
-                            ),
-                        hintIcon =
-                            if (mode == ScanMode.QR) {
-                                Icons.Filled.QrCodeScanner
-                            } else {
-                                Icons.Filled.DocumentScanner
-                            },
-                    )
-                    Box(Modifier.weight(1f)) {
-                        AndroidView(
-                            factory = { previewView },
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                            cameraProviderFuture.addListener(
-                                {
-                                    val cameraProvider = cameraProviderFuture.get()
-                                    val previewResolution =
-                                        if (isLandscape) {
-                                            android.util.Size(1920, 1440)
-                                        } else {
-                                            android.util.Size(1440, 1920)
-                                        }
-                                    val preview =
-                                        Preview.Builder()
-                                            .setTargetResolution(previewResolution)
-                                            .build()
-                                            .also { it.surfaceProvider = previewView.surfaceProvider }
-                                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                                    try {
-                                        cameraProvider.unbindAll()
-                                        if (mode == ScanMode.QR) {
-                                            val options =
-                                                BarcodeScannerOptions.Builder()
-                                                    .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                                                    .build()
-                                            val scanner = BarcodeScanning.getClient(options)
-                                            val analysisResolution =
-                                                if (isLandscape) {
-                                                    android.util.Size(1280, 720)
-                                                } else {
-                                                    android.util.Size(720, 1280)
-                                                }
-                                            val analysis =
-                                                ImageAnalysis.Builder()
-                                                    .setTargetResolution(analysisResolution)
-                                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                                    .build()
-                                            analysis.setAnalyzer(
-                                                Executors.newSingleThreadExecutor(),
-                                            ) { imageProxy ->
-                                                if (scanned) {
-                                                    imageProxy.close()
-                                                    return@setAnalyzer
-                                                }
-                                                val mediaImage =
-                                                    imageProxy.image
-                                                        ?: run {
-                                                            imageProxy.close()
-                                                            return@setAnalyzer
-                                                        }
-                                                val inputImage =
-                                                    InputImage.fromMediaImage(
-                                                        mediaImage,
-                                                        imageProxy.imageInfo.rotationDegrees,
-                                                    )
-                                                scanner.process(inputImage)
-                                                    .addOnSuccessListener { barcodes ->
-                                                        for (barcode in barcodes) {
-                                                            barcode.rawValue?.let { value ->
-                                                                scanned = true
-                                                                mainHandler.post { onScanned(value) }
-                                                                return@addOnSuccessListener
+                // Live camera layout (#79): the header, the preview and the shutter
+                // bar are laid out as siblings, so the shutter never floats over the
+                // preview and the preview never extends under it at any scale.
+                CameraCaptureLayout(
+                    isLandscape = isLandscape,
+                    header = {
+                        CameraScanHeader(
+                            title =
+                                stringResource(
+                                    if (mode == ScanMode.QR) R.string.tool_qr else R.string.tool_ocr_camera,
+                                ),
+                            hint =
+                                stringResource(
+                                    if (mode == ScanMode.QR) R.string.qr_hint else R.string.ocr_hint,
+                                ),
+                            hintIcon =
+                                if (mode == ScanMode.QR) {
+                                    Icons.Filled.QrCodeScanner
+                                } else {
+                                    Icons.Filled.DocumentScanner
+                                },
+                        )
+                    },
+                    preview = {
+                        Box(Modifier.fillMaxSize()) {
+                            AndroidView(
+                                factory = { previewView },
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                                cameraProviderFuture.addListener(
+                                    {
+                                        val cameraProvider = cameraProviderFuture.get()
+                                        val previewResolution =
+                                            if (isLandscape) {
+                                                android.util.Size(1920, 1440)
+                                            } else {
+                                                android.util.Size(1440, 1920)
+                                            }
+                                        val preview =
+                                            Preview.Builder()
+                                                .setTargetResolution(previewResolution)
+                                                .build()
+                                                .also { it.surfaceProvider = previewView.surfaceProvider }
+                                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                                        try {
+                                            cameraProvider.unbindAll()
+                                            if (mode == ScanMode.QR) {
+                                                val options =
+                                                    BarcodeScannerOptions.Builder()
+                                                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                                                        .build()
+                                                val scanner = BarcodeScanning.getClient(options)
+                                                val analysisResolution =
+                                                    if (isLandscape) {
+                                                        android.util.Size(1280, 720)
+                                                    } else {
+                                                        android.util.Size(720, 1280)
+                                                    }
+                                                val analysis =
+                                                    ImageAnalysis.Builder()
+                                                        .setTargetResolution(analysisResolution)
+                                                        .setBackpressureStrategy(
+                                                            ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST,
+                                                        )
+                                                        .build()
+                                                analysis.setAnalyzer(
+                                                    Executors.newSingleThreadExecutor(),
+                                                ) { imageProxy ->
+                                                    if (scanned) {
+                                                        imageProxy.close()
+                                                        return@setAnalyzer
+                                                    }
+                                                    val mediaImage =
+                                                        imageProxy.image
+                                                            ?: run {
+                                                                imageProxy.close()
+                                                                return@setAnalyzer
+                                                            }
+                                                    val inputImage =
+                                                        InputImage.fromMediaImage(
+                                                            mediaImage,
+                                                            imageProxy.imageInfo.rotationDegrees,
+                                                        )
+                                                    scanner.process(inputImage)
+                                                        .addOnSuccessListener { barcodes ->
+                                                            for (barcode in barcodes) {
+                                                                barcode.rawValue?.let { value ->
+                                                                    scanned = true
+                                                                    mainHandler.post { onScanned(value) }
+                                                                    return@addOnSuccessListener
+                                                                }
                                                             }
                                                         }
-                                                    }
-                                                    .addOnCompleteListener { imageProxy.close() }
+                                                        .addOnCompleteListener { imageProxy.close() }
+                                                }
+                                                cameraProvider.bindToLifecycle(
+                                                    lifecycleOwner,
+                                                    cameraSelector,
+                                                    preview,
+                                                    analysis,
+                                                )
+                                            } else {
+                                                cameraProvider.bindToLifecycle(
+                                                    lifecycleOwner,
+                                                    cameraSelector,
+                                                    preview,
+                                                    imageCapture,
+                                                )
                                             }
-                                            cameraProvider.bindToLifecycle(
-                                                lifecycleOwner,
-                                                cameraSelector,
-                                                preview,
-                                                analysis,
-                                            )
-                                        } else {
-                                            cameraProvider.bindToLifecycle(
-                                                lifecycleOwner,
-                                                cameraSelector,
-                                                preview,
-                                                imageCapture,
-                                            )
+                                        } catch (_: Exception) {
+                                            cameraBindFailed = true
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.camera_permission_needed),
+                                                Toast.LENGTH_LONG,
+                                            ).show()
                                         }
-                                    } catch (_: Exception) {
-                                        cameraBindFailed = true
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.camera_permission_needed),
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
-                                },
-                                ContextCompat.getMainExecutor(context),
-                            )
+                                    },
+                                    ContextCompat.getMainExecutor(context),
+                                )
+                            }
+                            if (cameraBindFailed) {
+                                Text(
+                                    text = stringResource(R.string.camera_permission_needed),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White,
+                                    modifier =
+                                        Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.primary,
+                                                RoundedCornerShape(8.dp),
+                                            ),
+                                )
+                            }
                         }
-
+                    },
+                    bar =
                         if (mode == ScanMode.OCR) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .align(if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter)
-                                        .navigationBarsPadding()
-                                        .padding(24.dp),
-                            ) {
-                                CameraShutterButton(
-                                    contentDescription = stringResource(R.string.take_photo).withoutSoftHyphens(),
-                                    enabled = !capturing && !scanned,
-                                    onClick = {
-                                        capturing = true
-                                        val photoFile =
-                                            File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
-                                        val outputOptions =
-                                            ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                                        imageCapture.takePicture(
-                                            outputOptions,
-                                            ContextCompat.getMainExecutor(context),
-                                            object : ImageCapture.OnImageSavedCallback {
-                                                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                                                    val decoded =
-                                                        decodeSampledWithFallback(
-                                                            context,
-                                                            photoFile.absolutePath,
-                                                            MAX_CAPTURE_DIM,
-                                                        )
-                                                    displayed.update(decoded)
-                                                    photoFile.delete()
-                                                    capturing = false
-                                                    if (decoded == null) {
+                            {
+                                CameraShutterBar(isLandscape = isLandscape) {
+                                    CameraShutterButton(
+                                        contentDescription = stringResource(R.string.take_photo).withoutSoftHyphens(),
+                                        enabled = !capturing && !scanned,
+                                        onClick = {
+                                            capturing = true
+                                            val photoFile =
+                                                File(context.cacheDir, "ocr_${System.currentTimeMillis()}.jpg")
+                                            val outputOptions =
+                                                ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                                            imageCapture.takePicture(
+                                                outputOptions,
+                                                ContextCompat.getMainExecutor(context),
+                                                object : ImageCapture.OnImageSavedCallback {
+                                                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                                        val decoded =
+                                                            decodeSampledWithFallback(
+                                                                context,
+                                                                photoFile.absolutePath,
+                                                                MAX_CAPTURE_DIM,
+                                                            )
+                                                        displayed.update(decoded)
+                                                        photoFile.delete()
+                                                        capturing = false
+                                                        if (decoded == null) {
+                                                            Toast.makeText(
+                                                                context,
+                                                                context.getString(R.string.clip_save_failed),
+                                                                Toast.LENGTH_SHORT,
+                                                            ).show()
+                                                        }
+                                                    }
+
+                                                    override fun onError(exception: ImageCaptureException) {
+                                                        photoFile.delete()
+                                                        capturing = false
                                                         Toast.makeText(
                                                             context,
                                                             context.getString(R.string.clip_save_failed),
                                                             Toast.LENGTH_SHORT,
                                                         ).show()
                                                     }
-                                                }
-
-                                                override fun onError(exception: ImageCaptureException) {
-                                                    photoFile.delete()
-                                                    capturing = false
-                                                    Toast.makeText(
-                                                        context,
-                                                        context.getString(R.string.clip_save_failed),
-                                                        Toast.LENGTH_SHORT,
-                                                    ).show()
-                                                }
-                                            },
-                                        )
-                                    },
-                                )
+                                                },
+                                            )
+                                        },
+                                    )
+                                }
                             }
-                        }
-                        if (cameraBindFailed) {
-                            Text(
-                                text = stringResource(R.string.camera_permission_needed),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White,
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.Center)
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.primary,
-                                            RoundedCornerShape(8.dp),
-                                        ),
-                            )
-                        }
-                    }
-                }
+                        } else {
+                            null
+                        },
+                )
             }
             if (showNoText) {
                 Text(
@@ -927,12 +940,81 @@ private fun CameraScanHeader(
 }
 
 /**
+ * Live-camera layout skeleton (#79): the header, the preview and the shutter
+ * bar are siblings, so the shutter never floats over the preview. Portrait
+ * stacks header, weighted preview, bottom bar; landscape keeps the header
+ * above the preview inside the weighted area and moves the bar to the end
+ * side. [bar] is null for QR mode, which has no shutter.
+ */
+@Composable
+internal fun CameraCaptureLayout(
+    isLandscape: Boolean,
+    header: @Composable () -> Unit,
+    preview: @Composable () -> Unit,
+    bar: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    if (isLandscape) {
+        Row(modifier.fillMaxSize().background(Color.Black)) {
+            Column(Modifier.weight(1f)) {
+                header()
+                Box(Modifier.weight(1f)) { preview() }
+            }
+            if (bar != null) {
+                Box(Modifier.align(Alignment.CenterVertically)) { bar() }
+            }
+        }
+    } else {
+        Column(modifier.fillMaxSize().background(Color.Black)) {
+            header()
+            Box(Modifier.weight(1f)) { preview() }
+            if (bar != null) bar()
+        }
+    }
+}
+
+/**
+ * Solid black shutter bar (#79): sized by its content (the 72 dp shutter keeps
+ * its ≥ 48 dp touch target) and padded away from the navigation bar and the
+ * display cutout on the sides the bar touches — bottom + horizontal in
+ * portrait, end side + vertical in landscape.
+ */
+@Composable
+internal fun CameraShutterBar(
+    isLandscape: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val sides =
+        if (isLandscape) {
+            WindowInsetsSides.End + WindowInsetsSides.Vertical
+        } else {
+            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+        }
+    Box(
+        modifier =
+            modifier
+                .then(if (isLandscape) Modifier else Modifier.fillMaxWidth())
+                .background(Color.Black)
+                .windowInsetsPadding(
+                    WindowInsets.navigationBars
+                        .union(WindowInsets.displayCutout)
+                        .only(sides),
+                )
+                .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/**
  * Standard camera shutter button (#51): a solid white disc inside a white ring
  * with a small transparent gap, so it never reads as a crescent moon. The disc
  * shrinks slightly while pressed or while a capture is in flight.
  */
 @Composable
-private fun CameraShutterButton(
+internal fun CameraShutterButton(
     contentDescription: String,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -1069,6 +1151,62 @@ private fun CameraScanHeaderPreview() {
             title = "OCR von der Kamera",
             hint = "Text fotografieren",
             hintIcon = Icons.Filled.DocumentScanner,
+        )
+    }
+}
+
+// Layout skeleton previews with a placeholder box instead of the camera (#79):
+// the shutter bar must stay beside the preview at the largest font scale.
+@androidx.compose.ui.tooling.preview.Preview(fontScale = 2f, widthDp = 320, heightDp = 640, showBackground = true)
+@Composable
+private fun CameraCaptureLayoutPortraitPreview() {
+    MaterialTheme {
+        CameraCaptureLayout(
+            isLandscape = false,
+            header = {
+                CameraScanHeader(
+                    title = "OCR von der Kamera",
+                    hint = "Text fotografieren",
+                    hintIcon = Icons.Filled.DocumentScanner,
+                )
+            },
+            preview = { Box(Modifier.fillMaxSize().background(Color.DarkGray)) },
+            bar = {
+                CameraShutterBar(isLandscape = false) {
+                    CameraShutterButton(
+                        contentDescription = "Auslösen",
+                        enabled = true,
+                        onClick = {},
+                    )
+                }
+            },
+        )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(fontScale = 2f, widthDp = 640, heightDp = 320, showBackground = true)
+@Composable
+private fun CameraCaptureLayoutLandscapePreview() {
+    MaterialTheme {
+        CameraCaptureLayout(
+            isLandscape = true,
+            header = {
+                CameraScanHeader(
+                    title = "OCR von der Kamera",
+                    hint = "Text fotografieren",
+                    hintIcon = Icons.Filled.DocumentScanner,
+                )
+            },
+            preview = { Box(Modifier.fillMaxSize().background(Color.DarkGray)) },
+            bar = {
+                CameraShutterBar(isLandscape = true) {
+                    CameraShutterButton(
+                        contentDescription = "Auslösen",
+                        enabled = true,
+                        onClick = {},
+                    )
+                }
+            },
         )
     }
 }
