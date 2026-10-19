@@ -827,6 +827,8 @@ fun CameraScanScreen(
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.back).withoutSoftHyphens(),
+                // #81: intentional White — the camera viewfinder is always
+                // black regardless of the theme, so the overlay stays white.
                 tint = Color.White,
             )
         }

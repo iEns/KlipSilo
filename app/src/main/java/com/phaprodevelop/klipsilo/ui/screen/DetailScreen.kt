@@ -1297,6 +1297,8 @@ private fun ImageViewer(
                     Icon(
                         Icons.Filled.QrCodeScanner,
                         contentDescription = LocalContext.current.getString(R.string.scan_content).withoutSoftHyphens(),
+                        // #81: intentional White — the button floats on the
+                        // image itself over a black scrim, never on a surface.
                         tint = Color.White,
                     )
                 }
@@ -1955,11 +1957,14 @@ private fun ZoomPreviewDialog(
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
+                    // #81: intentional White — full-screen image zoom dialog,
+                    // the close floats over the image on a black scrim.
                     tint = Color.White,
                 )
             }
             Text(
                 text = context.getString(R.string.page_label, pageNumber),
+                // #81: intentional White, same black scrim as the close above.
                 color = Color.White,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),

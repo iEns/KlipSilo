@@ -466,11 +466,14 @@ private fun PagePreviewDialog(
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
+                    // #81: intentional White — full-screen page preview, the
+                    // close floats over the page on a black scrim.
                     tint = Color.White,
                 )
             }
             Text(
                 text = context.getString(R.string.page_label, originalIndex + 1),
+                // #81: intentional White, same black scrim as the close above.
                 color = Color.White,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),

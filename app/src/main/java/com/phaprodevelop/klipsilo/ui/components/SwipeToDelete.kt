@@ -96,6 +96,8 @@ fun SwipeToDelete(
             Icon(
                 Icons.Filled.Delete,
                 contentDescription = null,
+                // #81: intentional White — the icon sits on the red delete
+                // background and must stay white for contrast in both modes.
                 tint = Color.White,
             )
         }

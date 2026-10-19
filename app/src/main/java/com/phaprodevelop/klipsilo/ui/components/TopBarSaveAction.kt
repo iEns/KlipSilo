@@ -1,5 +1,6 @@
 package com.phaprodevelop.klipsilo.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
@@ -284,6 +286,20 @@ data class TopBarIconAction(
 )
 
 /**
+ * #81: a top-bar icon must never receive [Color.Unspecified] — Material3
+ * [Icon] then skips the colour filter and paints the vector's own black
+ * fill, which disappears on a dark top bar. [Color.Unspecified] resolves to
+ * the hosting bar's content colour ([androidx.compose.material3
+ * .LocalContentColor]; inside an [IconButton] that is the theme's dimmed
+ * content colour when the button is disabled), an explicit tint (the ✓ save
+ * flash, an error colour) is kept as-is.
+ */
+internal fun resolveTopBarIconTint(
+    tint: Color,
+    contentColor: Color,
+): Color = if (tint == Color.Unspecified) contentColor else tint
+
+/**
  * Back bar with icon actions and a growing title (#62). The editor top bar
  * used to cram "Bearbeiten"/"Rediger" into the slot left over between the
  * back arrow and four fixed icons ("B/ea…" at font scale 2.0, "Bearb/eiten"
@@ -350,7 +366,11 @@ fun FitActionBar(
                             Icon(
                                 action.icon,
                                 contentDescription = action.label.withoutSoftHyphens(),
-                                tint = action.tint,
+                                // #81: resolve Unspecified to the bar's content
+                                // colour inside the IconButton content lambda, so
+                                // the icon follows the theme (white in dark mode)
+                                // and keeps IconButton's dimmed disabled colour.
+                                tint = resolveTopBarIconTint(action.tint, LocalContentColor.current),
                             )
                         }
                     }
@@ -367,7 +387,20 @@ fun FitActionBar(
                             overflowed.forEach { action ->
                                 DropdownMenuItem(
                                     text = { DisplayText(action.label) },
-                                    leadingIcon = { Icon(action.icon, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(
+                                            action.icon,
+                                            contentDescription = null,
+                                            // #81: same rule as the pinned
+                                            // icons — the menu item's content
+                                            // colour (dimmed when disabled).
+                                            tint =
+                                                resolveTopBarIconTint(
+                                                    action.tint,
+                                                    LocalContentColor.current,
+                                                ),
+                                        )
+                                    },
                                     enabled = action.enabled,
                                     onClick = {
                                         menuOpen = false
@@ -555,6 +588,35 @@ private fun FitActionBarPrivacyTitlePreview() {
             onBack = {},
             backContentDescription = "Zurück",
             moreContentDescription = "Weitere Optionen",
+        )
+    }
+}
+
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    fontScale = 2f,
+    widthDp = 360,
+    showBackground = true,
+)
+@Composable
+private fun FitActionBarDarkPreview() {
+    // #81: the editor top bar in dark mode. The eye / PDF / share actions
+    // pass the default (Unspecified) tint and must resolve to the theme's
+    // content colour — they used to paint the vector's black fill and
+    // vanish on the dark surface.
+    MaterialTheme {
+        FitActionBar(
+            title = "Bearbeiten",
+            actions =
+                listOf(
+                    TopBarIconAction(Icons.Filled.Visibility, "Forhåndsvisning") {},
+                    TopBarIconAction(Icons.Filled.PictureAsPdf, "Tekst til PDF") {},
+                    TopBarIconAction(Icons.Filled.Share, "Del") {},
+                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
+                ),
+            onBack = {},
+            backContentDescription = "Tilbage",
+            moreContentDescription = "Flere muligheder",
         )
     }
 }
