@@ -2,7 +2,7 @@
 
 This file lists what KlipSilo can do on the current `main` branch, grouped by area, with how to reach each feature in the app. The manual test pass for these features is [`docs/regression-checklist.md`](docs/regression-checklist.md).
 
-- **Released in:** `1.1.0` means the feature is in the current Play release (tag `v1.1.0`). `Unreleased` means it is only on `main` so far. **At each Play release, every `Unreleased` becomes that release's version.**
+- **Released in:** A version such as `1.2.0` means the feature first shipped in that Play release (tag `v1.2.0`). `Unreleased` means it is only on `main` so far. **At each Play release, every `Unreleased` becomes that release's version.**
 - **Test:** the checklist item(s) that cover the feature. `—` means no item yet.
 - **Automated:** whether an automated test covers the feature end to end. All `no` for now.
 
@@ -13,7 +13,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Save the current clipboard | Big button at the top of the Clips tab | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
 | Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
-| Open a clip | Tap a row: text opens the reader, a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | Unreleased | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
+| Open a clip | Tap a row: text opens the reader, a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
 | Action sheet (share, save, convert, and more) | Long-press a row, or tap the ⋮ button on the row | 1.1.0 | [C3](docs/regression-checklist.md#C3) | no |
 | Search clips | Search field above the list | 1.1.0 | [B1](docs/regression-checklist.md#B1) | no |
 | Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
@@ -25,7 +25,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Find links and phone numbers in text or PDF, then tap to open or call | Action sheet → Find links | 1.1.0 | [C5](docs/regression-checklist.md#C5) | no |
 | Link clip: open the URL | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
 | Location clip: open in maps | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
-| File info card for files the viewer can't show | Tap a file clip the viewer can't display (e.g. APK, ZIP): name, type and size with Share, Save to Downloads, Convert to PDF and Try as text | Unreleased | [C4](docs/regression-checklist.md#C4) | no |
+| File info card for files the viewer can't show | Tap a file clip the viewer can't display (e.g. APK, ZIP): name, type and size with Share, Save to Downloads, Convert to PDF and Try as text | 1.2.0 | [C4](docs/regression-checklist.md#C4) | no |
 
 ## Receiving / sharing in
 
@@ -37,7 +37,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Share a PDF (saved as a PDF clip) | Share → KlipSilo | 1.1.0 | [A4](docs/regression-checklist.md#A4) | no |
 | Share any other file, including binaries (saved raw as a file clip) | File manager → Share → KlipSilo | 1.1.0 | [A5](docs/regression-checklist.md#A5) | no |
 | Share a file and text together (both saved) | Share → KlipSilo | 1.1.0 | [A7](docs/regression-checklist.md#A7) | no |
-| Duplicate file warning | Share a file that is already a clip: an "Already saved" dialog offers Open existing / Save again / Cancel | Unreleased | [A6](docs/regression-checklist.md#A6) | no |
+| Duplicate file warning | Share a file that is already a clip: an "Already saved" dialog offers Open existing / Save again / Cancel | 1.2.0 | [A6](docs/regression-checklist.md#A6) | no |
 | Download what a link points to, as a PDF/image/text/file clip | Link clip → action sheet → Download from URL | 1.1.0 | [A8](docs/regression-checklist.md#A8) | no |
 
 ## Sharing / exporting out
@@ -77,7 +77,7 @@ Each conversion creates a new clip.
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | PDF viewer with page flipping and pinch zoom | Tap a PDF clip | 1.1.0 | [F1](docs/regression-checklist.md#F1) | no |
-| Page navigation and go-to-page | Viewer action bar: previous/next, or tap the page indicator to jump to a page | Unreleased | [F1](docs/regression-checklist.md#F1) | no |
+| Page navigation and go-to-page | Viewer action bar: previous/next, or tap the page indicator to jump to a page | 1.2.0 | [F1](docs/regression-checklist.md#F1) | no |
 | OCR the current page to text | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Save one page as its own PDF | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Read a QR code on a page | Viewer action bar → Read QR | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
@@ -86,8 +86,8 @@ Each conversion creates a new clip.
 | Combine text clips | Tools → Combine texts | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
-| Fill form: field labels and a live page preview | Fill form screen | Unreleased | [G1](docs/regression-checklist.md#G1) | no |
-| Fill form: password masking with a show toggle | Fill form screen, password fields | Unreleased | [G4](docs/regression-checklist.md#G4) | no |
+| Fill form: field labels and a live page preview | Fill form screen | 1.2.0 | [G1](docs/regression-checklist.md#G1) | no |
+| Fill form: password masking with a show toggle | Fill form screen, password fields | 1.2.0 | [G4](docs/regression-checklist.md#G4) | no |
 
 ## Annotation editor (Mark up PDF)
 
@@ -96,9 +96,9 @@ Each conversion creates a new clip.
 | Text box on a page | PDF clip → action sheet → Annotate PDF → Text | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Straight line | Annotate → Line | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Freehand drawing | Annotate → Draw | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
-| Highlighter | Annotate → Highlight | Unreleased | [H1](docs/regression-checklist.md#H1) | no |
+| Highlighter | Annotate → Highlight | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Select / move / delete an annotation | Annotate → Select | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
-| Undo / redo | Toolbar | Unreleased | [H1](docs/regression-checklist.md#H1) | no |
+| Undo / redo | Toolbar | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | [H3](docs/regression-checklist.md#H3) | no |
 | Multi-page markup | Previous/next page in the toolbar | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Save the annotated PDF as a new clip | Save | 1.1.0 | [H2](docs/regression-checklist.md#H2) | no |
@@ -118,11 +118,11 @@ Each conversion creates a new clip.
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | Text editor (save with the checkmark; leaving with unsaved edits asks "Save changes?") | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
-| Save-changes prompt when leaving the editor | Editor → back with unsaved changes | Unreleased | [J1](docs/regression-checklist.md#J1) | no |
+| Save-changes prompt when leaving the editor | Editor → back with unsaved changes | 1.2.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Markdown preview | Editor → preview | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
 | Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → action sheet → Text editor | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | Unreleased | [J3](docs/regression-checklist.md#J3) | no |
+| Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | 1.2.0 | [J3](docs/regression-checklist.md#J3) | no |
 | Reader mode with dark/bright theme and auto-scroll | Tap a text clip | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
 
 ## Settings / languages
@@ -130,7 +130,7 @@ Each conversion creates a new clip.
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
-| 13 languages plus System default, synced with Android App Info | Settings → Language | Unreleased | [K1](docs/regression-checklist.md#K1) | no |
+| 13 languages plus System default, synced with Android App Info | Settings → Language | 1.2.0 | [K1](docs/regression-checklist.md#K1) | no |
 | Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy | Settings | 1.1.0 | [K3](docs/regression-checklist.md#K3) | no |
 
 ## Other / maintenance

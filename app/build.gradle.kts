@@ -15,8 +15,8 @@ android {
         applicationId = "com.phaprodevelop.klipsilo"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11000
-        versionName = "1.1.0"
+        versionCode = 12000
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -51,7 +51,7 @@ android {
         }
         // Side-by-side with the Play app. applicationIdSuffix keeps providers,
         // FileProvider and the share target on ${applicationId}. Release stays
-        // com.phaprodevelop.klipsilo / 1.1.0 (versionCode 11000).
+        // com.phaprodevelop.klipsilo / 1.2.0 (versionCode 12000).
         create("beta") {
             initWith(getByName("release"))
             applicationIdSuffix = ".beta"
@@ -97,7 +97,7 @@ android {
 
 // Beta versionName follows a tag such as v1.2.0-beta.1.
 // versionCode = major*10000 + minor*1000 + patch*100 + betaNumber - 100,
-// so 1.1.0 is 11000 and 1.2.0-beta.1 is 11901 (above the Play build, below 1.2.0).
+// so 1.1.0 is 11000, 1.2.0-beta.1 is 11901 and 1.2.0 is 12000.
 // DEPLOYTOOL_ARTIFACT_REF wins, because a deploy unpacks the tag with git archive
 // and that tree has no .git. Otherwise git describe is used. A checkout that is
 // not on a beta tag (local main before the tag exists) falls back to 1.2.0-beta.7.
