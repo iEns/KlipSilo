@@ -40,6 +40,7 @@
     <string name="save_current_clipboard">Save current clipboard</string>
     <string name="clipboard_empty">Clipboard is empty</string>
     <string name="clipboard_no_saveable_content">Clipboard has no saveable content</string>
+    <string name="share_no_saveable_content">This share has no file or text to save</string>
     <string name="clip_saved">Clip saved</string>
     <string name="already_saved">Already saved</string>
     <string name="already_saved_message">%1$s is already saved.</string>

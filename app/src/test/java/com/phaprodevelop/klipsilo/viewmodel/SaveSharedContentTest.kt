@@ -3,16 +3,25 @@
 package com.phaprodevelop.klipsilo.viewmodel
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
+import com.phaprodevelop.klipsilo.data.db.ClipboardItem
+import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.ClipboardRepository
 import com.phaprodevelop.klipsilo.fakes.FakeClipboardItemDao
 import com.phaprodevelop.klipsilo.util.MainDispatcherRule
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -25,6 +34,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class SaveSharedContentTest {
     @get:Rule
@@ -34,18 +44,16 @@ class SaveSharedContentTest {
     private lateinit var dao: FakeClipboardItemDao
     private lateinit var repository: ClipboardRepository
     private lateinit var viewModel: ClipboardViewModel
+    private lateinit var clipboard: ClipboardManager
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext()
         dao = FakeClipboardItemDao()
         repository = ClipboardRepository(dao, app)
-        viewModel =
-            ClipboardViewModel(
-                application = app,
-                repository = repository,
-                ioDispatcher = mainDispatcherRule.dispatcher,
-            )
+        viewModel = newViewModel(dao)
+        clipboard = app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.clearPrimaryClip()
     }
 
     @After
@@ -57,18 +65,25 @@ class SaveSharedContentTest {
     }
 
     @Test
-    fun noTextNoStream_doesNotInsert() =
+    fun noTextNoStream_explainsWithoutRetryAndDoesNotInsert() =
         runTest(mainDispatcherRule.dispatcher) {
             // Arrange
             val intent = Intent()
+            val noticeDeferred =
+                backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
+                    viewModel.toastEvents.first()
+                }
 
             // Act
             viewModel.saveSharedContent(intent)
             mainDispatcherRule.scheduler.advanceUntilIdle()
 
             // Assert
+            val notice = noticeDeferred.await()
+            assertEquals(string(R.string.share_no_saveable_content), notice.message)
+            assertNull(notice.actionLabel)
+            assertNull(notice.action)
             assertTrue(dao.getAllOnce().isEmpty())
-            assertEquals(string(R.string.clip_save_failed), viewModel.toastMessage.value)
         }
 
     @Test
@@ -320,5 +335,106 @@ class SaveSharedContentTest {
             assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
         }
 
+    @Test
+    fun missingPdfStream_failureOffersRetry() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val missing = File(app.cacheDir, "missing.pdf")
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(missing))
+                    .setType("application/pdf")
+            val noticeDeferred =
+                backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
+                    viewModel.toastEvents.first()
+                }
+
+            // Act
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val notice = noticeDeferred.await()
+            assertEquals(string(R.string.clip_save_failed), notice.message)
+            assertEquals(string(R.string.retry), notice.actionLabel)
+            assertEquals(ClipNoticeAction.RetrySaveClipboard, notice.action)
+            assertTrue(dao.getAllOnce().isEmpty())
+        }
+
+    @Test
+    fun retryAfterSharedPdfFailure_savesSharedPdfInsteadOfClipboard() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val shared = File(app.cacheDir, "shared.pdf")
+            val intent =
+                Intent()
+                    .putExtra(Intent.EXTRA_STREAM, Uri.fromFile(shared))
+                    .setType("application/pdf")
+            clipboard.setPrimaryClip(ClipData.newPlainText("clip", "clipboard text"))
+            viewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+            assertTrue(dao.getAllOnce().isEmpty())
+
+            // Act
+            shared.writeBytes("%PDF".toByteArray() + ByteArray(16))
+            viewModel.retryLastSave()
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val item = dao.getAllOnce().single()
+            assertEquals(ContentType.PDF, item.contentType)
+            assertEquals(string(R.string.clip_saved), viewModel.toastMessage.value)
+        }
+
+    @Test
+    fun retryAfterSharedTextFailure_savesSharedTextInsteadOfClipboard() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange
+            val failingDao = FailingInsertDao(FakeClipboardItemDao(), failuresRemaining = 1)
+            val failingViewModel = newViewModel(failingDao)
+            clipboard.setPrimaryClip(ClipData.newPlainText("clip", "clipboard text"))
+            val intent = Intent().putExtra(Intent.EXTRA_TEXT, "shared text")
+            val noticeDeferred =
+                backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
+                    failingViewModel.toastEvents.first()
+                }
+            failingViewModel.saveSharedContent(intent)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+            val notice = noticeDeferred.await()
+            assertEquals(string(R.string.clip_save_failed), notice.message)
+            assertEquals(string(R.string.retry), notice.actionLabel)
+            assertEquals(ClipNoticeAction.RetrySaveClipboard, notice.action)
+
+            // Act
+            failingViewModel.retryLastSave()
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            val item = failingDao.getAllOnce().single()
+            assertEquals(ContentType.TEXT, item.contentType)
+            assertEquals("shared text", item.textContent)
+        }
+
+    private fun newViewModel(dao: ClipboardItemDao): ClipboardViewModel =
+        ClipboardViewModel(
+            application = app,
+            repository = ClipboardRepository(dao, app),
+            ioDispatcher = mainDispatcherRule.dispatcher,
+        )
+
     private fun string(resId: Int): String = LocaleHelper.applyLocale(app).getString(resId)
+
+    /** Lets the repository's insert fail so saveNewClip returns [SaveClipResult.Failed]. */
+    private class FailingInsertDao(
+        private val delegate: FakeClipboardItemDao,
+        var failuresRemaining: Int = Int.MAX_VALUE,
+    ) : ClipboardItemDao by delegate {
+        override suspend fun insert(item: ClipboardItem): Long {
+            if (failuresRemaining > 0) {
+                failuresRemaining--
+                throw IllegalStateException("insert failed")
+            }
+            return delegate.insert(item)
+        }
+    }
 }

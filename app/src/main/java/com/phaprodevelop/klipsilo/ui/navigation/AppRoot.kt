@@ -149,7 +149,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                 if (result == SnackbarResult.ActionPerformed) {
                     when (val action = notice.action) {
                         is ClipNoticeAction.OpenClip -> navController.navigate("detail/${action.clipId}")
-                        ClipNoticeAction.RetrySaveClipboard -> viewModel.saveCurrentClipboard()
+                        ClipNoticeAction.RetrySaveClipboard -> viewModel.retryLastSave()
                         null -> Unit
                     }
                 }

@@ -139,7 +139,7 @@ class SaveCurrentClipboardTest {
             mainDispatcherRule.scheduler.advanceUntilIdle()
 
             // Act
-            failingViewModel.saveCurrentClipboard()
+            failingViewModel.retryLastSave()
             mainDispatcherRule.scheduler.advanceUntilIdle()
 
             // Assert
