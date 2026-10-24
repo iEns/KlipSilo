@@ -47,7 +47,7 @@
 ## D. Sharing out and export
 - <a id="D1"></a>**D1 · Share out:** sheet → **Share** on a text, an image and a file clip. → The system share sheet carries the right content or file. For example, it pastes correctly into Gmail.
 - <a id="D2"></a>**D2 · Save to Downloads:** run it on an image, a PDF and a file clip. → Each file appears in Downloads with its correct name and opens.
-- <a id="D3"></a>**D3 · Backup and restore:** Tools → Maintenance → **Backup** to ZIP. Delete a test clip, then **Restore** from the ZIP. → The deleted clip comes back, and the other clips aren't duplicated or lost.
+- <a id="D3"></a>**D3 · Backup and restore:** Tools → Maintenance → **Backup** to ZIP. Delete a test clip, then **Restore** from the ZIP. → The deleted clip comes back with its original id, and the other clips aren't duplicated or lost. Restore the same ZIP again → every clip that already exists is skipped (same backup id), so nothing is duplicated.
 - <a id="D4"></a>**D4 · Open in browser:** on an HTML file clip, sheet → **Open in browser**. → The page opens in the browser and renders. The clip is unchanged.
 
 ## E. Conversions (each one creates a new clip)
@@ -78,6 +78,8 @@
 - <a id="H1"></a>**H1 · Annotate:** on page 1, add a text box (two lines), a line, a freehand stroke and a highlight. Move one item, then delete it via Select. Try Undo/Redo. Go to page 2 and add a stroke. → All the tools work, and undo/redo steps back and forth correctly.
 - <a id="H2"></a>**H2 · Save:** tap **Save**. → A new PDF clip has all the annotations on the right pages, line breaks included. Saving with no changes creates no duplicate.
 - <a id="H3"></a>**H3 · Colours and sizes remembered:** in Mark up, pick a non-default colour (Black, White, Red, Yellow) and a different text and stroke size, then leave. Open Mark up again, also after an app restart. → The last colours and sizes are preselected.
+- <a id="H4"></a>**H4 · Leave with unsaved marks:** add a text box and a stroke, then press system Back and, separately, the top-bar Back. → Each time a Save / Discard / Cancel dialog appears. Cancel keeps editing, Discard drops the marks, Save creates the annotated PDF clip.
+- <a id="H5"></a>**H5 · Unsaved marks survive a language change:** add a text box and a stroke, then change the app language (or recreate the activity, e.g. rotate) with Mark up still open and return to it. → The unsaved marks are still there, and Back still asks Save / Discard / Cancel.
 
 ## I. Scan and capture
 - <a id="I1"></a>**I1 · QR scanner and camera OCR:** Tools → QR on a QR code, and Tools → OCR camera on printed text. → The decoded text or link is offered or saved as a clip, and the OCR text is saved as a clip.

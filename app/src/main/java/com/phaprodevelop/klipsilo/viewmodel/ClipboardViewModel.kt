@@ -72,6 +72,20 @@ data class DuplicateShareOffer(
     val fileUri: Uri?,
 )
 
+/**
+ * In-memory draft markup for one clip (#85). The annotate screen keeps its edit state in
+ * Compose, which is lost when the activity is recreated (for example on a language change);
+ * holding the draft here lets the screen rehydrate it after the recreate. Never written to disk.
+ */
+data class MarkupSession(
+    val entryId: Long,
+    val annotations: Map<Int, List<PdfAnnotation>>,
+    val strokes: Map<Int, List<PdfStroke>>,
+    val savedAnnotations: List<PdfAnnotation>,
+    val savedStrokes: List<PdfStroke>,
+    val pageIndex: Int = 0,
+)
+
 class ClipboardViewModel(
     application: Application,
     private val repository: ClipboardRepository,
@@ -908,6 +922,23 @@ class ClipboardViewModel(
         _formFieldsLoading.value = false
     }
 
+    private var markupSession: MarkupSession? = null
+
+    /** The draft markup for [entryId], or null when the screen has no unsaved marks. */
+    fun markupSessionOrNull(entryId: Long): MarkupSession? = markupSession?.takeIf { it.entryId == entryId }
+
+    fun updateMarkupSession(session: MarkupSession) {
+        markupSession = session
+    }
+
+    /** Clear the held draft; when [entryId] is set, only clear that clip's session. */
+    fun clearMarkupSession(entryId: Long? = null) {
+        val current = markupSession ?: return
+        if (entryId == null || current.entryId == entryId) {
+            markupSession = null
+        }
+    }
+
     /**
      * The fill-form preview bitmap (#80): one page of a temporary, filled copy of
      * the PDF whose field appearances were regenerated — no Compose value overlay
@@ -1620,6 +1651,7 @@ class ClipboardViewModel(
                 if (newId > 0L) {
                     triggerScrollToTop()
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
+                    clearMarkupSession(entry.id)
                     _navigateBack.value = true
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))

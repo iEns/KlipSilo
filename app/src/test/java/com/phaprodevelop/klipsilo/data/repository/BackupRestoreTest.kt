@@ -17,7 +17,6 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -152,15 +151,62 @@ class BackupRestoreTest {
             assertEquals(0, result.skipped)
             assertFalse(result.invalid)
             assertEquals(2, restored.size)
-            restored.forEach { clip ->
-                assertNotEquals(text.id, clip.id)
-                assertNotEquals(image.id, clip.id)
-            }
-            val restoredText = restored.single { it.contentType == ContentType.TEXT }
+            // The manifest ids are preserved so a second restore can recognise the clips (#73).
+            val restoredText = restored.single { it.id == text.id }
             assertEquals(null, restoredText.textContent)
             assertEquals("round-trip text", restoreRepo.getClip(restoredText.id)?.textContent)
-            val restoredImage = restored.single { it.contentType == ContentType.IMAGE }
+            val restoredImage = restored.single { it.id == image.id }
             assertArrayEquals(imageBytes, File(restoredImage.filePath!!).readBytes())
+        }
+
+    @Test
+    fun restore_existingId_skipped() =
+        runTest {
+            // Arrange
+            val text = textEntry(id = 31L, text = "already here")
+            repo.insertEntry(text)
+            val zip = createEmptyZipFile("existing-id.zip")
+            val backup = repo.backupClipsToZip(Uri.fromFile(zip), listOf(text))
+            assertEquals(1, backup.exported)
+
+            // Act: restoring into the same database hits the existing id
+            val result = repo.restoreClipsFromZip(Uri.fromFile(zip))
+
+            // Assert
+            assertFalse(result.invalid)
+            assertEquals(0, result.loaded)
+            assertEquals(1, result.skipped)
+            assertEquals(1, result.total)
+            assertEquals(1, dao.getAllOnce().size)
+            assertEquals(text.id, dao.getAllOnce().single().id)
+        }
+
+    @Test
+    fun restore_sameZipTwice_secondRestoreSkipsAll() =
+        runTest {
+            // Arrange
+            val first = textEntry(id = 41L, text = "first")
+            val second = textEntry(id = 42L, text = "second")
+            repo.insertEntry(first)
+            repo.insertEntry(second)
+            val zip = createEmptyZipFile("restore-twice.zip")
+            assertEquals(2, repo.backupClipsToZip(Uri.fromFile(zip), listOf(first, second)).exported)
+
+            val restoreDao = FakeClipboardItemDao()
+            val restoreRepo = ClipboardRepository(restoreDao, context)
+
+            // Act
+            val once = restoreRepo.restoreClipsFromZip(Uri.fromFile(zip))
+            val twice = restoreRepo.restoreClipsFromZip(Uri.fromFile(zip))
+
+            // Assert
+            assertEquals(2, once.loaded)
+            assertEquals(0, once.skipped)
+            assertEquals(2, once.total)
+            assertEquals(0, twice.loaded)
+            assertEquals(2, twice.skipped)
+            assertEquals(2, twice.total)
+            assertEquals(setOf(41L, 42L), restoreDao.getAllOnce().map { it.id }.toSet())
         }
 
     @Test
