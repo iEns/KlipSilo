@@ -127,6 +127,13 @@ class InvisibleBreakUsageTest {
                     "text_presentation" to
                         "the title val is rendered through DisplayText in the TopAppBar",
                 ),
+            // The label is held in SheetItem and rendered through
+            // SheetRow → DisplayText.
+            "ClipActionSheet.kt" to
+                mapOf(
+                    "download_url" to "label rendered through SheetRow → DisplayText",
+                    "text_presentation" to "label rendered through SheetRow → DisplayText",
+                ),
             // The TopBarIconAction label: the icon's content description is
             // stripped with withoutSoftHyphens() (TopBarSaveAction.kt), the
             // tooltip and the overflow menu item render through DisplayText.
