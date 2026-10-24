@@ -77,7 +77,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| PDF viewer with page flipping and pinch zoom | Tap a PDF clip | 1.1.0 | [F1](docs/regression-checklist.md#F1) | no |
+| PDF viewer with page flipping and pinch zoom | Tap a PDF clip; a horizontal swipe flips pages when the page is not zoomed, and pinch-zoom/pan take over once zoomed in | 1.1.0 | [F1](docs/regression-checklist.md#F1) | no |
 | Page navigation and go-to-page | Viewer action bar: previous/next, or tap the page indicator to jump to a page | 1.2.0 | [F1](docs/regression-checklist.md#F1) | no |
 | OCR the current page to text | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Save one page as its own PDF | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
@@ -114,7 +114,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | OCR an image clip | Image clip → action sheet → Convert → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
 | QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
-| Save the current location as a clip (with address) | Tools → Location; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
+| Save the current location as a clip (with address) | Tools → Location; current location only, with no typed address; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
 
 ## Text editor and reader
 
@@ -141,7 +141,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | Delete all clips, or all clips of one type (locked clips kept) | Tools → Maintenance → Delete; choose All or a type, then Delete | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
-| Unlock all locked clips | Tools → Maintenance | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
+| Unlock all locked clips (asks for confirmation first) | Tools → Maintenance → Locked clips, then confirm Unlock all | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Offline only: no account, no tracking | Everything works offline | 1.1.0 | [K4](docs/regression-checklist.md#K4) | no |
 
 ## Not supported

@@ -250,6 +250,10 @@
     <string name="clips_deleted_count">%d recortes excluídos</string>
     <string name="delete_type_confirm">Excluir todos os %1$d recortes de %2$s?</string>
     <string name="delete_all_confirm_count">Excluir todos os %1$d recortes?</string>
+    <string name="unlock_all">Desbloquear tudo</string>
+    <string name="unlock">Desbloquear</string>
+    <string name="unlock_all_confirm">Desbloquear todos os recortes bloqueados?</string>
+    <string name="unlock_all_confirm_count">Desbloquear todos os %1$d recortes bloqueados?</string>
     <string name="find_links">Encontrar links e números</string>
     <string name="scan_content">Ler QR</string>
     <string name="save_to_clip">Salvar em um recorte</string>
@@ -455,7 +459,7 @@
     <string name="use_6_t">Referências e reutilização</string>
     <string name="use_6_b">Links e telefones em texto e PDFs podem ser encontrados automaticamente e abertos direto. É prático para contatos, páginas de reserva ou pedidos de clientes.</string>
     <string name="use_7_t">Contatos e lugares</string>
-    <string name="use_7_b">Salve um endereço ou sua localização atual como recorte e abra a navegação com um toque duplo.</string>
+    <string name="use_7_b">Salve sua localização atual como recorte (sem endereço digitado) e abra no Maps com um toque ou toque duplo.</string>
     <string name="use_8_t">Compartilhar e armazenar</string>
     <string name="use_8_b">Os recortes podem ser compartilhados, e arquivos, PDFs e imagens podem ser salvos direto na pasta Downloads do telefone, sem passar por outros apps.</string>
     <string name="use_9_t">No aparelho, com poucas exceções</string>

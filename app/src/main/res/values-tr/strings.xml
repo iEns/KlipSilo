@@ -250,6 +250,10 @@
     <string name="clips_deleted_count">%d klip silindi</string>
     <string name="delete_type_confirm">%1$d %2$s klip silinsin mi?</string>
     <string name="delete_all_confirm_count">%1$d klip silinsin mi?</string>
+    <string name="unlock_all">Tümünün kilidini aç</string>
+    <string name="unlock">Kilidi aç</string>
+    <string name="unlock_all_confirm">Tüm kilitli kliplerin kilidi açılsın mı?</string>
+    <string name="unlock_all_confirm_count">%1$d kilitli klipin kilidi açılsın mı?</string>
     <string name="find_links">Bağlantıları ve numaraları bul</string>
     <string name="scan_content">QR oku</string>
     <string name="save_to_clip">Klipe kaydet</string>
@@ -455,7 +459,7 @@
     <string name="use_6_t">Başvuru ve yeniden kullanım</string>
     <string name="use_6_b">Metin ve PDF\'lerdeki bağlantılar ile telefon numaraları kendiliğinden bulunup doğrudan açılabilir. İletişim bilgileri, rezervasyon sayfaları veya müşteri soruları için elverişlidir.</string>
     <string name="use_7_t">İletişim bilgileri ve yerler</string>
-    <string name="use_7_b">Bir adresi veya geçerli konumunuzu klip olarak kaydedin ve çift dokunuşla yol tarifini açın.</string>
+    <string name="use_7_b">Geçerli konumunuzu klip olarak kaydedin (yazılı adres yok) ve dokunuş veya çift dokunuşla Maps\'te açın.</string>
     <string name="use_8_t">Paylaşma ve saklama</string>
     <string name="use_8_b">Klipler paylaşılabilir; dosyalar, PDF\'ler ve resimler başka uygulamalara uğramadan telefonun İndirilenler klasörüne kaydedilebilir.</string>
     <string name="use_9_t">Cihazda, birkaç istisna ile</string>

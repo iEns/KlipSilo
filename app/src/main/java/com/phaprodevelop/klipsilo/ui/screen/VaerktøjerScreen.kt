@@ -600,6 +600,40 @@ internal fun DeleteTypeDialog(
                 clips.count { it.contentType == type && !it.isLocked }
             }
         } ?: 0
+    // #77: unlocking everything is as destructive as a delete, so the row
+    // asks for confirmation before it clears any lock.
+    var confirmUnlock by remember { mutableStateOf(false) }
+    if (confirmUnlock) {
+        AlertDialog(
+            onDismissRequest = { confirmUnlock = false },
+            title = { DialogTitleLabel(context.getString(R.string.unlock_all)) },
+            text = {
+                Text(
+                    if (lockedCount == 1) {
+                        context.getString(R.string.unlock_all_confirm)
+                    } else {
+                        context.getString(R.string.unlock_all_confirm_count, lockedCount)
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmUnlock = false
+                        onUnlock()
+                    },
+                ) {
+                    ButtonLabel(context.getString(R.string.unlock))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmUnlock = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
+        )
+        return
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { DialogTitleLabel(context.getString(R.string.maintenance_delete)) },
@@ -616,7 +650,7 @@ internal fun DeleteTypeDialog(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = lockedEnabled) { onUnlock() }
+                            .clickable(enabled = lockedEnabled) { confirmUnlock = true }
                             .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

@@ -249,6 +249,10 @@
     <string name="clips_deleted_count">%d 件のクリップを削除しました</string>
     <string name="delete_type_confirm">%2$s のクリップ %1$d 件をすべて削除しますか？</string>
     <string name="delete_all_confirm_count">%1$d 件のクリップをすべて削除しますか？</string>
+    <string name="unlock_all">すべてロック解除</string>
+    <string name="unlock">ロック解除</string>
+    <string name="unlock_all_confirm">ロックされたクリップをすべて解除しますか？</string>
+    <string name="unlock_all_confirm_count">ロックされたクリップ %1$d 件をすべて解除しますか？</string>
     <string name="find_links">リンクと番号を検索</string>
     <string name="scan_content">QRを読み取る</string>
     <string name="save_to_clip">クリップに保存</string>
@@ -454,7 +458,7 @@
     <string name="use_6_t">参照と再利用</string>
     <string name="use_6_b">テキストとPDFの中のリンクと電話番号は自動で見つかり、そのまま開けます。連絡先、予約ページ、顧客からの問い合わせに便利です。</string>
     <string name="use_7_t">連絡先と場所</string>
-    <string name="use_7_b">住所や現在地をクリップとして保存し、ダブルタップでナビを開きます。</string>
+    <string name="use_7_b">現在地をクリップとして保存し（住所の入力なし）、タップまたはダブルタップで Maps で開きます。</string>
     <string name="use_8_t">共有と保存</string>
     <string name="use_8_b">クリップは共有でき、ファイル、PDF、画像はほかのアプリを介さず、端末のダウンロードフォルダに直接保存できます。</string>
     <string name="use_9_t">端末の中で、いくつかを除いて</string>

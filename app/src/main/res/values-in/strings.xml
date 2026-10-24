@@ -249,6 +249,10 @@
     <string name="clips_deleted_count">%d klip dihapus</string>
     <string name="delete_type_confirm">Hapus semua %1$d klip %2$s?</string>
     <string name="delete_all_confirm_count">Hapus semua %1$d klip?</string>
+    <string name="unlock_all">Buka kunci semua</string>
+    <string name="unlock">Buka kunci</string>
+    <string name="unlock_all_confirm">Buka kunci semua klip terkunci?</string>
+    <string name="unlock_all_confirm_count">Buka kunci semua %1$d klip terkunci?</string>
     <string name="find_links">Temukan tautan &amp; nomor</string>
     <string name="scan_content">Pindai QR</string>
     <string name="save_to_clip">Simpan ke klip</string>
@@ -454,7 +458,7 @@
     <string name="use_6_t">Rujukan dan penggunaan ulang</string>
     <string name="use_6_b">Tautan dan nomor telepon di teks dan PDF dapat ditemukan otomatis lalu dibuka langsung. Praktis untuk kontak, halaman pemesanan, atau pertanyaan pelanggan.</string>
     <string name="use_7_t">Kontak dan tempat</string>
-    <string name="use_7_b">Simpan alamat atau lokasi Anda saat ini sebagai klip dan buka navigasi dengan ketuk dua kali.</string>
+    <string name="use_7_b">Simpan lokasi Anda saat ini sebagai klip (tanpa alamat yang diketik) dan buka di Maps dengan ketuk atau ketuk dua kali.</string>
     <string name="use_8_t">Berbagi dan penyimpanan</string>
     <string name="use_8_b">Klip dapat dibagikan, dan file, PDF, serta gambar dapat disimpan langsung ke folder Download ponsel, tanpa lewat aplikasi lain.</string>
     <string name="use_9_t">Di perangkat, dengan sedikit pengecualian</string>

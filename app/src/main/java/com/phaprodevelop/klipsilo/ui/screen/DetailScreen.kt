@@ -1371,14 +1371,56 @@ private fun PdfViewer(
                                 translationY = offsetY,
                             )
                             .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(1f, 8f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
-                                    } else {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    var dragX = 0f
+                                    var dragY = 0f
+                                    var pinched = false
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val pressed = event.changes.count { it.pressed }
+                                        val zoomChange = event.calculateZoom()
+                                        val panChange = event.calculatePan()
+                                        if (pressed >= 2) {
+                                            pinched = true
+                                            val newScale = (scale * zoomChange).coerceIn(1f, 8f)
+                                            if (newScale != scale) {
+                                                scale = newScale
+                                            }
+                                            if (scale > 1f) {
+                                                offsetX += panChange.x
+                                                offsetY += panChange.y
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        } else if (pressed == 1) {
+                                            if (scale > PDF_UNZOOMED_MAX_SCALE) {
+                                                offsetX += panChange.x
+                                                offsetY += panChange.y
+                                                event.changes.forEach { it.consume() }
+                                            } else {
+                                                dragX += panChange.x
+                                                dragY += panChange.y
+                                            }
+                                        }
+                                    } while (event.changes.any { it.pressed })
+
+                                    if (scale <= PDF_UNZOOMED_MAX_SCALE) {
+                                        scale = 1f
                                         offsetX = 0f
                                         offsetY = 0f
+                                        if (!pinched) {
+                                            val step =
+                                                pdfSwipePageStep(
+                                                    scale = scale,
+                                                    dx = dragX,
+                                                    dy = dragY,
+                                                    thresholdPx = 56.dp.toPx(),
+                                                )
+                                            val target = pageIndex + step
+                                            if (step != 0 && target in 0 until pageCount) {
+                                                pageIndex = target
+                                            }
+                                        }
                                     }
                                 }
                             },

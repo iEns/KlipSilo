@@ -252,6 +252,10 @@
     <string name="clips_deleted_count">Удалено клипов: %d</string>
     <string name="delete_type_confirm">Удалить все клипы «%2$s»: %1$d?</string>
     <string name="delete_all_confirm_count">Удалить все клипы: %1$d?</string>
+    <string name="unlock_all">Разблокировать всё</string>
+    <string name="unlock">Разблокировать</string>
+    <string name="unlock_all_confirm">Разблокировать все заблокированные клипы?</string>
+    <string name="unlock_all_confirm_count">Разблокировать все заблокированные клипы: %1$d?</string>
     <string name="find_links">Найти ссылки и номера</string>
     <string name="scan_content">Считать QR</string>
     <string name="save_to_clip">Сохранить в клип</string>
@@ -457,7 +461,7 @@
     <string name="use_6_t">Ссылки и повторное использование</string>
     <string name="use_6_b">Ссылки и телефоны в тексте и PDF находятся автоматически и открываются сразу. Удобно для контактов, страниц бронирования или обращений клиентов.</string>
     <string name="use_7_t">Контакты и места</string>
-    <string name="use_7_b">Сохраните адрес или текущее место как клип и откройте навигацию двойным касанием.</string>
+    <string name="use_7_b">Сохраните текущее место как клип (без ввода адреса) и откройте его в Maps одним или двойным касанием.</string>
     <string name="use_8_t">Отправка и хранение</string>
     <string name="use_8_b">Клипами можно делиться, а файлы, PDF и изображения сохранять прямо в папку «Загрузки» телефона, без других приложений.</string>
     <string name="use_9_t">На устройстве, с немногими исключениями</string>
