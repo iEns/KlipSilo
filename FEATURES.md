@@ -10,7 +10,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Save the current clipboard | Button at the top of the Clips tab, shown while the clipboard has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
+| Save the current clipboard | Button at the top of the Clips tab, shown while the clipboard has content; a failed save says why and offers Retry when the clipboard still has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
 | Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
 | Open a clip | Tap a row: text opens the reader, a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
@@ -140,7 +140,7 @@ Each conversion creates a new clip.
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Delete all clips, or all clips of one type (locked clips kept) | Tools → Maintenance → Delete | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
+| Delete all clips, or all clips of one type (locked clips kept) | Tools → Maintenance → Delete; choose All or a type, then Delete | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Unlock all locked clips | Tools → Maintenance | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Offline only: no account, no tracking | Everything works offline | 1.1.0 | [K4](docs/regression-checklist.md#K4) | no |
 

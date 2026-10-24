@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,11 +38,13 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -58,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.phaprodevelop.klipsilo.R
@@ -549,7 +554,7 @@ private fun ToolRow(
 }
 
 @Composable
-private fun DeleteTypeDialog(
+internal fun DeleteTypeDialog(
     clips: List<ClipboardEntry>,
     onPick: (ContentType?) -> Unit,
     onUnlock: () -> Unit,
@@ -567,11 +572,29 @@ private fun DeleteTypeDialog(
             ContentType.FILE to typeName(context, ContentType.FILE),
             ContentType.LOCATION to typeName(context, ContentType.LOCATION),
         )
+    // null means nothing is selected yet; index 0 is All, so a separate
+    // marker is needed for "no selection" (#102).
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    val selectedCount =
+        selectedIndex?.let { index ->
+            val type = options[index].first
+            if (type == null) {
+                clips.count { !it.isLocked }
+            } else {
+                clips.count { it.contentType == type && !it.isLocked }
+            }
+        } ?: 0
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { DialogTitleLabel(context.getString(R.string.maintenance_delete)) },
         text = {
             Column {
+                Text(
+                    text = context.getString(R.string.delete_choose_type),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(4.dp))
                 val lockedEnabled = lockedCount > 0
                 Row(
                     modifier =
@@ -610,43 +633,64 @@ private fun DeleteTypeDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                options.forEach { (type, label) ->
-                    val count =
-                        if (type == null) {
-                            clips.count { !it.isLocked }
-                        } else {
-                            clips.count { it.contentType == type && !it.isLocked }
+                Column(modifier = Modifier.selectableGroup()) {
+                    options.forEachIndexed { index, (type, label) ->
+                        val count =
+                            if (type == null) {
+                                clips.count { !it.isLocked }
+                            } else {
+                                clips.count { it.contentType == type && !it.isLocked }
+                            }
+                        val enabled = count > 0
+                        val selected = selectedIndex == index
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = selected,
+                                        enabled = enabled,
+                                        role = Role.RadioButton,
+                                        onClick = { selectedIndex = index },
+                                    )
+                                    .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selected, onClick = null, enabled = enabled)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color =
+                                    if (enabled) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    },
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = "$count",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                    val enabled = count > 0
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = enabled) { onPick(type) }
-                                .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color =
-                                if (enabled) {
-                                    MaterialTheme.colorScheme.onSurface
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                },
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = "$count",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = {
+            TextButton(
+                onClick = { selectedIndex?.let { onPick(options[it].first) } },
+                enabled = selectedCount > 0,
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                ButtonLabel(context.getString(R.string.delete))
+            }
+        },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 ButtonLabel(context.getString(R.string.cancel))

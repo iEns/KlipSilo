@@ -59,11 +59,23 @@ import java.util.concurrent.atomic.AtomicLong
 
 data class UndoOffer(val message: String)
 
-/** A snackbar. When [clipId] is set, [actionLabel] opens that clip. */
+/** What the action button on a [ClipNotice] snackbar does. */
+sealed interface ClipNoticeAction {
+    /** Open the saved clip in the reader or viewer. */
+    data class OpenClip(val clipId: Long) : ClipNoticeAction
+
+    /**
+     * Retry the last failed save. The ViewModel remembers whether that was a
+     * clipboard save or a share so the right content is saved again (#101).
+     */
+    data object RetrySaveClipboard : ClipNoticeAction
+}
+
+/** A snackbar. When [action] is set, [actionLabel] runs it. */
 data class ClipNotice(
     val message: String,
     val actionLabel: String? = null,
-    val clipId: Long? = null,
+    val action: ClipNoticeAction? = null,
 )
 
 data class DuplicateShareOffer(
@@ -73,6 +85,18 @@ data class DuplicateShareOffer(
     val pdfUri: Uri?,
     val fileUri: Uri?,
 )
+
+/** What a [ClipNoticeAction.RetrySaveClipboard] snackbar should save again (#101). */
+private sealed interface PendingSaveRetry {
+    data object Clipboard : PendingSaveRetry
+
+    data class Share(
+        val text: String?,
+        val imageUri: Uri?,
+        val pdfUri: Uri?,
+        val fileUri: Uri?,
+    ) : PendingSaveRetry
+}
 
 /**
  * In-memory draft markup for one clip (#85). The annotate screen keeps its edit state in
@@ -167,6 +191,9 @@ class ClipboardViewModel(
 
     private val queuedToasts = ArrayDeque<ClipNotice>()
 
+    /** Content of the last failed save, kept so Retry repeats that save and not another one. */
+    private var pendingSaveRetry: PendingSaveRetry? = null
+
     private val _undoOffer = MutableStateFlow<UndoOffer?>(null)
     val undoOffer: StateFlow<UndoOffer?> = _undoOffer.asStateFlow()
 
@@ -188,8 +215,44 @@ class ClipboardViewModel(
         }
     }
 
+    /**
+     * A save from outside the clipboard/share flow failed (for example saving
+     * a file to Downloads). Keep offering Retry when an earlier clipboard or
+     * share save is still pending, so the snackbar never loses its action.
+     */
     fun showSaveFailed() {
-        toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+        showSaveFailure(pendingSaveRetry)
+    }
+
+    /** Retry the last failed clipboard or share save with its remembered content (#101). */
+    fun retryLastSave() {
+        val pending = pendingSaveRetry ?: return
+        pendingSaveRetry = null
+        when (pending) {
+            PendingSaveRetry.Clipboard -> saveCurrentClipboard()
+            is PendingSaveRetry.Share -> saveSharedPayload(pending)
+        }
+    }
+
+    /**
+     * A failed save that can be retried offers Retry in the snackbar. [pending]
+     * remembers exactly what to save again; null means the failure cannot be
+     * retried (empty content or too large). The clipboard and any editor draft
+     * are left untouched so retrying can use the same content (#101).
+     */
+    private fun showSaveFailure(pending: PendingSaveRetry?) {
+        pendingSaveRetry = pending
+        if (pending == null) {
+            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            return
+        }
+        postNotice(
+            ClipNotice(
+                message = localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed),
+                actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.retry),
+                action = ClipNoticeAction.RetrySaveClipboard,
+            ),
+        )
     }
 
     suspend fun getClip(id: Long): ClipboardEntry? =
@@ -1057,7 +1120,7 @@ class ClipboardViewModel(
                         ClipNotice(
                             message = localizedString(com.phaprodevelop.klipsilo.R.string.text_extracted),
                             actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
-                            clipId = id,
+                            action = ClipNoticeAction.OpenClip(id),
                         ),
                     )
                 }
@@ -1158,10 +1221,12 @@ class ClipboardViewModel(
     }
 
     fun saveCurrentClipboard() {
+        // A fresh attempt replaces whatever an older Retry would have saved.
+        pendingSaveRetry = null
         try {
             val clipData = clipboardManager.primaryClip
             if (clipData == null || clipData.itemCount == 0) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clipboard_empty))
                 return
             }
 
@@ -1191,22 +1256,37 @@ class ClipboardViewModel(
             }
 
             if (text.isNullOrBlank() && imageUri == null && pdfUri == null && fileUri == null) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clipboard_no_saveable_content))
                 return
             }
 
             viewModelScope.launch {
                 val result =
-                    withContext(ioDispatcher) {
-                        repository.saveNewClip(text, imageUri, pdfUri, fileUri)
+                    try {
+                        withContext(ioDispatcher) {
+                            repository.saveNewClip(text, imageUri, pdfUri, fileUri)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        SaveClipResult.Failed
                     }
-                toast(localizedString(toastForSave(result)))
+                if (result == SaveClipResult.Failed) {
+                    showSaveFailure(PendingSaveRetry.Clipboard)
+                } else {
+                    toast(localizedString(toastForSave(result)))
+                }
                 if (result == SaveClipResult.Saved) {
                     triggerScrollToTop()
                 }
             }
         } catch (_: Exception) {
-            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            // Retry only when the clipboard still looks pasteable, so a
+            // permission error or an empty clipboard does not loop.
+            refreshClipboardHasContent()
+            showSaveFailure(
+                if (_clipboardHasContent.value) PendingSaveRetry.Clipboard else null,
+            )
         }
     }
 
@@ -1238,15 +1318,32 @@ class ClipboardViewModel(
 
         val hasStream = imageUri != null || pdfUri != null || fileUri != null
         val hasText = !text.isNullOrBlank()
+        // A fresh share replaces whatever an older Retry would have saved.
+        pendingSaveRetry = null
         if (!hasStream && !hasText) {
-            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            toast(localizedString(com.phaprodevelop.klipsilo.R.string.share_no_saveable_content))
             return
         }
 
+        saveSharedPayload(
+            PendingSaveRetry.Share(
+                text = if (hasText) text else null,
+                imageUri = imageUri,
+                pdfUri = pdfUri,
+                fileUri = fileUri,
+            ),
+        )
+    }
+
+    /**
+     * Saves a share's stream and/or text. Retry reuses the remembered payload,
+     * so a failed ACTION_SEND save never falls back to the clipboard (#101).
+     */
+    private fun saveSharedPayload(payload: PendingSaveRetry.Share) {
         viewModelScope.launch {
             val results = mutableListOf<SaveClipResult>()
             var duplicateOffer: DuplicateShareOffer? = null
-            val streamForCheck = imageUri ?: pdfUri ?: fileUri
+            val streamForCheck = payload.imageUri ?: payload.pdfUri ?: payload.fileUri
             if (streamForCheck != null) {
                 val checked =
                     withContext(ioDispatcher) {
@@ -1262,24 +1359,24 @@ class ClipboardViewModel(
                         DuplicateShareOffer(
                             existingId = duplicate.id,
                             displayName = identity.first,
-                            imageUri = imageUri,
-                            pdfUri = pdfUri,
-                            fileUri = fileUri,
+                            imageUri = payload.imageUri,
+                            pdfUri = payload.pdfUri,
+                            fileUri = payload.fileUri,
                         )
                 }
             }
             if (duplicateOffer != null) {
                 _duplicateShare.value = duplicateOffer
-            } else if (hasStream) {
+            } else if (streamForCheck != null) {
                 results +=
                     withContext(ioDispatcher) {
-                        repository.saveNewClip(null, imageUri, pdfUri, fileUri)
+                        repository.saveNewClip(null, payload.imageUri, payload.pdfUri, payload.fileUri)
                     }
             }
-            if (hasText) {
+            if (payload.text != null) {
                 results +=
                     withContext(ioDispatcher) {
-                        repository.saveNewClip(text, null, null, null)
+                        repository.saveNewClip(payload.text, null, null, null)
                     }
             }
             if (results.isNotEmpty()) {
@@ -1289,7 +1386,17 @@ class ClipboardViewModel(
                         results.any { it == SaveClipResult.TooLarge } -> SaveClipResult.TooLarge
                         else -> SaveClipResult.Failed
                     }
-                toast(localizedString(toastForSave(result)))
+                when (result) {
+                    SaveClipResult.Failed -> showSaveFailure(payload)
+                    SaveClipResult.TooLarge -> {
+                        pendingSaveRetry = null
+                        toast(localizedString(toastForSave(result)))
+                    }
+                    SaveClipResult.Saved -> {
+                        pendingSaveRetry = null
+                        toast(localizedString(toastForSave(result)))
+                    }
+                }
                 if (result == SaveClipResult.Saved) {
                     triggerScrollToTop()
                 }
@@ -1774,7 +1881,7 @@ class ClipboardViewModel(
                                         saved.second,
                                     ),
                                 actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
-                                clipId = saved.first,
+                                action = ClipNoticeAction.OpenClip(saved.first),
                             ),
                         )
                     } else {

@@ -20,7 +20,7 @@
   - a short text
 
 ## A. Capture and share intake
-- <a id="A1"></a>**A1 · Save clipboard:** with an empty clipboard, open KlipSilo. → The **Save current clipboard** button is hidden and the empty state leads the list. Now copy a text in any app, return to KlipSilo, and tap **Save current clipboard**. → The button reappears and a new text clip appears at the top with that text.
+- <a id="A1"></a>**A1 · Save clipboard:** with an empty clipboard, open KlipSilo. → The **Save current clipboard** button is hidden and the empty state leads the list. Now copy a text in any app, return to KlipSilo, and tap **Save current clipboard**. → The button reappears and a new text clip appears at the top with that text. A failed save names the reason (empty, nothing saveable, too large) and offers **Retry** when the clipboard still has content; the clipboard is kept.
 - <a id="A2"></a>**A2 · New text clip:** tap **+**, type a text, then go back. → The clip is saved. Leaving it empty or discarding it saves nothing.
 - <a id="A3"></a>**A3 · Share text and links in:** share a sentence from Notes, then share a URL from Chrome, each to KlipSilo. → You get one Text clip and one URL clip with the right content.
 - <a id="A4"></a>**A4 · Share an image and a PDF in:** share the JPG and the PDF from Files. → You get an Image clip (type and size shown) and a PDF clip.
@@ -33,7 +33,7 @@
 - <a id="B1"></a>**B1 · Search:** type part of a clip title or text. → Only matching clips are shown. When nothing matches, including on an empty library, the empty state names the query and offers **Clear** instead of saying **No clips saved yet**; clearing the search restores the full list.
 - <a id="B2"></a>**B2 · Filter chips:** tap each chip in turn (Text, URL, Image, PDF, File, Location, and Locked if present). → Only clips of that type are shown, and an empty result names that chip with a matching hint (even when the library itself is empty). **All** restores the list. When the row runs past the screen edge, the clipped chip fades out and the row can be swiped sideways to the remaining chips.
 - <a id="B3"></a>**B3 · Pin:** pin a clip from the row icon or the sheet. → It moves to the top and stays there after the app restarts. Unpinning reverses this.
-- <a id="B4"></a>**B4 · Delete and undo:** delete one clip from the sheet (confirm), and swipe another one away. Tap **Undo** on one of them. → The undone clip comes back. The other one stays gone after the app restarts.
+- <a id="B4"></a>**B4 · Delete and undo:** delete one clip from the sheet (confirm), and swipe another one away. Tap **Undo** on one of them. → The undone clip comes back. The other one stays gone after the app restarts. The undo snackbar sits above the **+** button.
 - <a id="B5"></a>**B5 · Lock:** lock a clip. → Delete, swipe and edit are blocked for it. Unlocking restores them.
 - <a id="B6"></a>**B6 · Rename and Duplicate:** rename a clip, then duplicate it. → The new title shows. The duplicate is a separate clip with the same content.
 
@@ -94,6 +94,6 @@
 
 ## K. Settings and maintenance
 - <a id="K1"></a>**K1 · Theme and language:** switch Light/Dark/System. Switch the language to Danish, then German, then back to English or System default. → Each takes effect at once and survives an app restart. The App Info language stays in sync.
-- <a id="K2"></a>**K2 · Bulk delete:** Tools → Maintenance → delete all clips of one type, then **Unlock all**. → Only that type is removed, and locked clips are kept. Unlock all clears every lock.
+- <a id="K2"></a>**K2 · Bulk delete:** Tools → Maintenance → **Delete**, choose All or one type, then **Delete**, then **Unlock all**. → Only that type is removed, and locked clips are kept. Unlock all clears every lock.
 - <a id="K3"></a>**K3 · Guide and info screens:** in Settings, open **Tips**, **Limitations**, **Why**, **Where the app helps**, **About** and **Privacy policy** in turn. → Each opens with its content, scrolls, and back returns to Settings.
 - <a id="K4"></a>**K4 · Offline only:** turn on airplane mode and restart the app. Run A1, A2, C1, E1, E3, F1, F2, G1, H2 and I2. → Everything works with no network and no sign-in prompt. Only Download from URL and opening a link in the browser need the network, and they fail with a message, not a crash.
