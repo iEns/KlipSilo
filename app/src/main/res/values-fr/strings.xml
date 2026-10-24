@@ -251,6 +251,10 @@
     <string name="clips_deleted_count">%d extraits supprimés</string>
     <string name="delete_type_confirm">Supprimer les %1$d extraits %2$s ?</string>
     <string name="delete_all_confirm_count">Supprimer les %1$d extraits ?</string>
+    <string name="unlock_all">Tout déverrouiller</string>
+    <string name="unlock">Déverrouiller</string>
+    <string name="unlock_all_confirm">Déverrouiller tous les extraits verrouillés ?</string>
+    <string name="unlock_all_confirm_count">Déverrouiller les %1$d extraits verrouillés ?</string>
     <string name="find_links">Trouver liens et numéros</string>
     <string name="scan_content">Lire le QR</string>
     <string name="save_to_clip">Enregistrer dans un extrait</string>
@@ -456,7 +460,7 @@
     <string name="use_6_t">Références et réutilisation</string>
     <string name="use_6_b">Les liens et les numéros de téléphone dans le texte et les PDF peuvent être trouvés automatiquement et ouverts directement. Pratique pour des coordonnées, des pages de réservation ou des demandes de clients.</string>
     <string name="use_7_t">Coordonnées et lieux</string>
-    <string name="use_7_b">Enregistrez une adresse ou votre position actuelle comme extrait et lancez la navigation d\'un double appui.</string>
+    <string name="use_7_b">Enregistrez votre position actuelle comme extrait (pas d\'adresse saisie) et ouvrez-la dans Maps d\'un appui ou d\'un double appui.</string>
     <string name="use_8_t">Partage et stockage</string>
     <string name="use_8_b">Les extraits peuvent être partagés, et les fichiers, PDF et images enregistrés directement dans le dossier Téléchargements du téléphone, sans passer par d\'autres applis.</string>
     <string name="use_9_t">Sur l\'appareil, à quelques exceptions près</string>

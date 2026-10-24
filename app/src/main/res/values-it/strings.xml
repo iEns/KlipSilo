@@ -250,6 +250,10 @@
     <string name="clips_deleted_count">%d ritagli eliminati</string>
     <string name="delete_type_confirm">Eliminare tutti i %1$d ritagli %2$s?</string>
     <string name="delete_all_confirm_count">Eliminare tutti i %1$d ritagli?</string>
+    <string name="unlock_all">Sblocca tutto</string>
+    <string name="unlock">Sblocca</string>
+    <string name="unlock_all_confirm">Sbloccare tutti i ritagli bloccati?</string>
+    <string name="unlock_all_confirm_count">Sbloccare tutti i %1$d ritagli bloccati?</string>
     <string name="find_links">Trova link e numeri</string>
     <string name="scan_content">Leggi QR</string>
     <string name="save_to_clip">Salva in un ritaglio</string>
@@ -455,7 +459,7 @@
     <string name="use_6_t">Riferimenti e riuso</string>
     <string name="use_6_b">Link e numeri di telefono in testo e PDF si trovano da soli e si aprono direttamente. Comodo per contatti, pagine di prenotazione o richieste dei clienti.</string>
     <string name="use_7_t">Contatti e luoghi</string>
-    <string name="use_7_b">Salva un indirizzo o la posizione attuale come ritaglio e avvia la navigazione con un doppio tocco.</string>
+    <string name="use_7_b">Salva la posizione attuale come ritaglio (nessun indirizzo digitato) e aprila in Maps con un tocco o un doppio tocco.</string>
     <string name="use_8_t">Condivisione e archiviazione</string>
     <string name="use_8_b">I ritagli si possono condividere, e file, PDF e immagini si salvano direttamente nella cartella Download del telefono, senza passare da altre app.</string>
     <string name="use_9_t">Sul dispositivo, con poche eccezioni</string>

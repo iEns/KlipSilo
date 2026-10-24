@@ -249,6 +249,10 @@
     <string name="clips_deleted_count">已删除 %d 条剪贴</string>
     <string name="delete_type_confirm">删除全部 %1$d 条%2$s剪贴？</string>
     <string name="delete_all_confirm_count">删除全部 %1$d 条剪贴？</string>
+    <string name="unlock_all">全部解锁</string>
+    <string name="unlock">解锁</string>
+    <string name="unlock_all_confirm">解锁所有已锁定的剪贴？</string>
+    <string name="unlock_all_confirm_count">解锁全部 %1$d 条已锁定的剪贴？</string>
     <string name="find_links">查找链接和号码</string>
     <string name="scan_content">扫描二维码</string>
     <string name="save_to_clip">保存到剪贴</string>
@@ -454,7 +458,7 @@
     <string name="use_6_t">查阅和再利用</string>
     <string name="use_6_b">文本和 PDF 里的链接和电话号码可以自动找出并直接打开。适合联系方式、预订页面或客户咨询。</string>
     <string name="use_7_t">联系方式和地点</string>
-    <string name="use_7_b">把地址或当前位置存成剪贴，双击即可打开导航。</string>
+    <string name="use_7_b">把当前位置存成剪贴（不能输入地址），点按或双击即可在地图中打开。</string>
     <string name="use_8_t">分享和存储</string>
     <string name="use_8_b">剪贴可以分享，文件、PDF 和图片也可以不经过其他应用，直接保存到手机的下载文件夹。</string>
     <string name="use_9_t">在设备上完成，只有少数例外</string>
