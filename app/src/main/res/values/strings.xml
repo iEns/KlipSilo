@@ -178,6 +178,8 @@
     <string name="section_edit">Edit</string>
     <string name="view_content">View content</string>
     <string name="edit">Edit</string>
+    <string name="action_convert">Convert</string>
+    <string name="action_manage">Manage</string>
     <string name="pin_or_unpin">Pin / unpin</string>
     <string name="lock_or_unlock">Lock/unlock</string>
     <string name="clip_is_locked">Clip is locked</string>
@@ -217,7 +219,7 @@
     <string name="qr_hint">Point at a QR code</string>
     <string name="ocr_hint">Photograph text</string>
     <string name="no_content_preview">No content to preview</string>
-    <string name="text_presentation">Text presentation</string>
+    <string name="text_presentation">Present</string>
     <string name="reader_back">Back</string>
     <string name="reader_dark">Dark</string>
     <string name="reader_light">Light</string>
@@ -350,11 +352,11 @@
     <string name="tip_clips_delete_t">Delete with undo</string>
     <string name="tip_clips_delete_b">Delete clips with an undo option — you can also delete a whole type under Maintenance. Locked clips cannot be deleted.</string>
     <string name="tip_sheet_open_t">Open a clip</string>
-    <string name="tip_sheet_open_b">Tap a clip to open it. Long-press the clip, or tap ⋮, for the action sheet: View content, Share, Save to Downloads, conversions, Rename, Duplicate, Lock/unlock and Delete. On locked clips, Rename, Delete and Text editor are dimmed.</string>
+    <string name="tip_sheet_open_b">Tap a clip to open it — text opens in the editor. Long-press the clip, or tap ⋮, for the action sheet: Open/View content and Share sit at the top (with Present for text), conversions are grouped under Convert, and Rename, Duplicate and Delete are under Manage. On locked clips, Edit, Rename and Delete are dimmed.</string>
     <string name="tip_sheet_links_t">Find links &amp; numbers</string>
     <string name="tip_sheet_links_b">On text and PDF clips you can find URLs and phone numbers and open or call them.</string>
     <string name="tip_sheet_convert_t">Convert files</string>
-    <string name="tip_sheet_convert_b">File clips can be converted to PDF or plain text (txt, rtf, docx, xlsx) — unknown formats can be tried as text, and docx/xlsx/rtf are shown directly as readable text.</string>
+    <string name="tip_sheet_convert_b">Open Convert in the action sheet. File clips can be converted to PDF or plain text (txt, rtf, docx, xlsx) — unknown formats can be tried as text, and docx/xlsx/rtf are shown directly as readable text.</string>
     <string name="tip_pdf_zoom_t">Zoom &amp; pan</string>
     <string name="tip_pdf_zoom_b">Zoom with two fingers and pan when zoomed in. Pages start at 1x.</string>
     <string name="tip_pdf_pages_t">Browse pages</string>
