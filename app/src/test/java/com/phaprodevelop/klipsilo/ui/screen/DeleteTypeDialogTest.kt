@@ -96,4 +96,85 @@ class DeleteTypeDialogTest {
             assertEquals(false, picked)
         }
     }
+
+    @Test
+    fun unlockRowAsksForConfirmationBeforeUnlocking() {
+        // Arrange
+        var unlocked = 0
+        composeRule.setContent {
+            MaterialTheme {
+                DeleteTypeDialog(
+                    clips = listOf(lockedTextEntry(1L), lockedTextEntry(2L)),
+                    onPick = {},
+                    onUnlock = { unlocked++ },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        // Act
+        composeRule.onNodeWithText(context.getString(R.string.locked_clips)).performClick()
+
+        // Assert
+        composeRule.onNodeWithText(context.getString(R.string.unlock_all)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.unlock_all_confirm_count, 2)).assertIsDisplayed()
+        composeRule.runOnIdle { assertEquals(0, unlocked) }
+    }
+
+    @Test
+    fun cancelOnUnlockConfirmationKeepsLocks() {
+        // Arrange
+        var unlocked = 0
+        composeRule.setContent {
+            MaterialTheme {
+                DeleteTypeDialog(
+                    clips = listOf(lockedTextEntry(1L), lockedTextEntry(2L)),
+                    onPick = {},
+                    onUnlock = { unlocked++ },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        // Act
+        composeRule.onNodeWithText(context.getString(R.string.locked_clips)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.cancel)).performClick()
+
+        // Assert
+        composeRule.onNodeWithText(context.getString(R.string.delete_choose_type)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.unlock_all)).assertDoesNotExist()
+        composeRule.runOnIdle { assertEquals(0, unlocked) }
+    }
+
+    @Test
+    fun confirmingUnlockAllUnlocks() {
+        // Arrange
+        var unlocked = 0
+        composeRule.setContent {
+            MaterialTheme {
+                DeleteTypeDialog(
+                    clips = listOf(lockedTextEntry(1L), lockedTextEntry(2L)),
+                    onPick = {},
+                    onUnlock = { unlocked++ },
+                    onDismiss = {},
+                )
+            }
+        }
+
+        // Act
+        composeRule.onNodeWithText(context.getString(R.string.locked_clips)).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.unlock)).performClick()
+
+        // Assert
+        composeRule.runOnIdle { assertEquals(1, unlocked) }
+    }
+
+    private fun lockedTextEntry(id: Long) =
+        ClipboardEntry(
+            id = id,
+            contentType = ContentType.TEXT,
+            previewText = "locked note",
+            timestamp = 0L,
+            isLocked = true,
+        )
 }
