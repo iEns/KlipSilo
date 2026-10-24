@@ -13,8 +13,8 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Save the current clipboard | Button at the top of the Clips tab, shown while the clipboard has content; a failed save says why and offers Retry when the clipboard still has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
 | Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
-| Open a clip | Tap a row: text opens the reader, a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
-| Action sheet (share, save, convert, and more) | Long-press a row, or tap the ⋮ button on the row | 1.1.0 | [C3](docs/regression-checklist.md#C3) | no |
+| Open a clip | Tap a row: text opens the editor with its content (read/edit), a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
+| Action sheet (share, save, present, convert, and more) | Long-press a row, or tap the ⋮ button on the row; primary actions sit on top, conversions under **Convert** (collapsed by default), and Rename/Duplicate/Delete under **Manage** | 1.1.0 | [C3](docs/regression-checklist.md#C3), [C6](docs/regression-checklist.md#C6) | no |
 | Search clips | Search field above the list | 1.1.0 | [B1](docs/regression-checklist.md#B1) | no |
 | Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips; the row fades at the edge when more types are off screen | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
 | Pin / unpin | Pin icon on a pinned row, or the action sheet | 1.1.0 | [B3](docs/regression-checklist.md#B3) | no |
@@ -54,23 +54,23 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 
 ## Conversions
 
-Each conversion creates a new clip.
+Each conversion creates a new clip. In the action sheet they are grouped under **Convert** (tap to expand; collapsed by default).
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| DOCX → PDF (headings, images, tables, lists) | File clip → action sheet → Convert to PDF; or the file info card, if the viewer can't show the file | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
+| DOCX → PDF (headings, images, tables, lists) | File clip → action sheet → Convert → Convert to PDF; or the file info card, if the viewer can't show the file | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
 | XLSX → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | RTF → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | TXT → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | DOCX/XLSX/RTF/TXT shown as readable text | Tap the file clip | 1.1.0 | [C4](docs/regression-checklist.md#C4) | no |
-| File → text for unknown formats | Action sheet → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
-| Text → PDF (Markdown-aware) | Text clip → action sheet → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
-| Text → .txt file | Text clip → action sheet → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
-| HTML text → PDF | Text clip that looks like HTML → action sheet → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
-| Image → PDF | Image clip → action sheet → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
-| PDF → images | PDF clip → action sheet → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
-| PDF → text (OCR of the whole PDF) | PDF clip → action sheet → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
-| PDF → HTML | PDF clip → action sheet → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
+| File → text for unknown formats | Action sheet → Convert → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
+| Text → PDF (Markdown-aware) | Text clip → action sheet → Convert → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
+| Text → .txt file | Text clip → action sheet → Convert → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
+| HTML text → PDF | Text clip that looks like HTML → action sheet → Convert → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
+| Image → PDF | Image clip → action sheet → Convert → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
+| PDF → images | PDF clip → action sheet → Convert → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
+| PDF → text (OCR of the whole PDF) | PDF clip → action sheet → Convert → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
+| PDF → HTML | PDF clip → action sheet → Convert → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
 | PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (tap the row to expand) | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
@@ -112,7 +112,7 @@ Each conversion creates a new clip.
 |---|---|---|---|---|
 | QR code scanner (camera) | Tools → QR scanner | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
-| OCR an image clip | Image clip → action sheet → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
+| OCR an image clip | Image clip → action sheet → Convert → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
 | QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
 | Save the current location as a clip (with address) | Tools → Location; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
 
@@ -120,13 +120,13 @@ Each conversion creates a new clip.
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Text editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Text editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Tap a text clip, or use the action sheet → Edit | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save-changes prompt when leaving the editor | Editor → back with unsaved changes | 1.2.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Markdown preview | Editor → preview | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
-| Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → action sheet → Text editor | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
+| Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → tap it, or action sheet → Edit | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
 | Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | 1.2.0 | [J3](docs/regression-checklist.md#J3) | no |
-| Reader mode with dark/bright theme and auto-scroll | Tap a text clip | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
+| Reader mode with dark/bright theme and auto-scroll | Text clip → action sheet → Present | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
 
 ## Settings / languages
 

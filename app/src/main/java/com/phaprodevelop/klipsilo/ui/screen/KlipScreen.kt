@@ -692,7 +692,7 @@ internal enum class ClipOpenTarget {
 /** Where a single tap on a list row goes. The action sheet stays on long-press and ⋮. */
 internal fun defaultClipOpen(type: ContentType): ClipOpenTarget =
     when (type) {
-        ContentType.TEXT -> ClipOpenTarget.PRESENTATION
+        ContentType.TEXT -> ClipOpenTarget.DETAIL
         ContentType.URL -> ClipOpenTarget.URL
         ContentType.LOCATION -> ClipOpenTarget.LOCATION
         ContentType.PDF, ContentType.IMAGE, ContentType.FILE -> ClipOpenTarget.DETAIL
