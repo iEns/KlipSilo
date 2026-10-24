@@ -38,6 +38,8 @@
     <string name="clip_restored">Clip restored</string>
     <string name="undo">Undo</string>
     <string name="save_current_clipboard">Save current clipboard</string>
+    <string name="clipboard_empty">Clipboard is empty</string>
+    <string name="clipboard_no_saveable_content">Clipboard has no saveable content</string>
     <string name="clip_saved">Clip saved</string>
     <string name="already_saved">Already saved</string>
     <string name="already_saved_message">%1$s is already saved.</string>
@@ -45,6 +47,7 @@
     <string name="save_again">Save again</string>
     <string name="image_saved">Image saved</string>
     <string name="try_again">Try again</string>
+    <string name="retry">Retry</string>
     <string name="save_image">Save image</string>
     <string name="analyze">Save text</string>
     <string name="save_selection">Save selection</string>
@@ -60,7 +63,7 @@
     <string name="view_image">View image</string>
     <string name="ocr_text">Optical reader</string>
     <string name="new_image">New image</string>
-    <string name="clip_save_failed">Clip could not be saved</string>
+    <string name="clip_save_failed">Couldn\'t save — try again</string>
     <string name="delete_all">Delete all</string>
     <string name="delete_all_confirm">Are you sure you want to delete all saved clips?</string>
     <string name="confirm">Confirm</string>
@@ -251,6 +254,7 @@
     <string name="backup_continue">Continue</string>
     <string name="maintenance_busy">Working…</string>
     <string name="maintenance_delete">Delete clips</string>
+    <string name="delete_choose_type">Choose what to delete</string>
     <string name="locked_clips">Locked clips</string>
     <string name="locked">Locked</string>
     <string name="clips_unlocked">%1$d clips unlocked</string>

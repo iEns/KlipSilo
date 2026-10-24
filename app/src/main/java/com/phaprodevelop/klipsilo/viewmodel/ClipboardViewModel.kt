@@ -59,11 +59,20 @@ import java.util.concurrent.atomic.AtomicLong
 
 data class UndoOffer(val message: String)
 
-/** A snackbar. When [clipId] is set, [actionLabel] opens that clip. */
+/** What the action button on a [ClipNotice] snackbar does. */
+sealed interface ClipNoticeAction {
+    /** Open the saved clip in the reader or viewer. */
+    data class OpenClip(val clipId: Long) : ClipNoticeAction
+
+    /** Run the clipboard save again, keeping the current clipboard content. */
+    data object RetrySaveClipboard : ClipNoticeAction
+}
+
+/** A snackbar. When [action] is set, [actionLabel] runs it. */
 data class ClipNotice(
     val message: String,
     val actionLabel: String? = null,
-    val clipId: Long? = null,
+    val action: ClipNoticeAction? = null,
 )
 
 data class DuplicateShareOffer(
@@ -190,6 +199,25 @@ class ClipboardViewModel(
 
     fun showSaveFailed() {
         toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+    }
+
+    /**
+     * A failed save that can be retried offers Retry in the snackbar. The
+     * clipboard and any editor draft are left untouched so retrying can use
+     * the same content (#101).
+     */
+    private fun showSaveFailure(retryable: Boolean) {
+        if (!retryable) {
+            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            return
+        }
+        postNotice(
+            ClipNotice(
+                message = localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed),
+                actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.retry),
+                action = ClipNoticeAction.RetrySaveClipboard,
+            ),
+        )
     }
 
     suspend fun getClip(id: Long): ClipboardEntry? =
@@ -1057,7 +1085,7 @@ class ClipboardViewModel(
                         ClipNotice(
                             message = localizedString(com.phaprodevelop.klipsilo.R.string.text_extracted),
                             actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
-                            clipId = id,
+                            action = ClipNoticeAction.OpenClip(id),
                         ),
                     )
                 }
@@ -1161,7 +1189,7 @@ class ClipboardViewModel(
         try {
             val clipData = clipboardManager.primaryClip
             if (clipData == null || clipData.itemCount == 0) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clipboard_empty))
                 return
             }
 
@@ -1191,22 +1219,35 @@ class ClipboardViewModel(
             }
 
             if (text.isNullOrBlank() && imageUri == null && pdfUri == null && fileUri == null) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clipboard_no_saveable_content))
                 return
             }
 
             viewModelScope.launch {
                 val result =
-                    withContext(ioDispatcher) {
-                        repository.saveNewClip(text, imageUri, pdfUri, fileUri)
+                    try {
+                        withContext(ioDispatcher) {
+                            repository.saveNewClip(text, imageUri, pdfUri, fileUri)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        SaveClipResult.Failed
                     }
-                toast(localizedString(toastForSave(result)))
+                if (result == SaveClipResult.Failed) {
+                    showSaveFailure(retryable = true)
+                } else {
+                    toast(localizedString(toastForSave(result)))
+                }
                 if (result == SaveClipResult.Saved) {
                     triggerScrollToTop()
                 }
             }
         } catch (_: Exception) {
-            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            // Retry only when the clipboard still looks pasteable, so a
+            // permission error or an empty clipboard does not loop.
+            refreshClipboardHasContent()
+            showSaveFailure(retryable = _clipboardHasContent.value)
         }
     }
 
@@ -1774,7 +1815,7 @@ class ClipboardViewModel(
                                         saved.second,
                                     ),
                                 actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
-                                clipId = saved.first,
+                                action = ClipNoticeAction.OpenClip(saved.first),
                             ),
                         )
                     } else {

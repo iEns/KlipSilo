@@ -75,6 +75,7 @@ import com.phaprodevelop.klipsilo.ui.screen.TipsScreen
 import com.phaprodevelop.klipsilo.ui.screen.UseCasesScreen
 import com.phaprodevelop.klipsilo.ui.screen.VaerktøjerScreen
 import com.phaprodevelop.klipsilo.ui.screen.WhyScreen
+import com.phaprodevelop.klipsilo.viewmodel.ClipNoticeAction
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutInvisibleBreaks
 import kotlinx.coroutines.delay
@@ -146,7 +147,11 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                             },
                     )
                 if (result == SnackbarResult.ActionPerformed) {
-                    notice.clipId?.let { id -> navController.navigate("detail/$id") }
+                    when (val action = notice.action) {
+                        is ClipNoticeAction.OpenClip -> navController.navigate("detail/${action.clipId}")
+                        ClipNoticeAction.RetrySaveClipboard -> viewModel.saveCurrentClipboard()
+                        null -> Unit
+                    }
                 }
             }
         }
@@ -167,7 +172,9 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     Modifier
                         .navigationBarsPadding()
                         .imePadding()
-                        .padding(bottom = if (isFullScreenRoute) 72.dp else 0.dp),
+                        // Clear the + FAB in KlipScreen on the main tabs too, not only
+                        // the full-screen routes (#104). Undo snackbars stay usable.
+                        .padding(bottom = 72.dp),
             )
         },
         contentWindowInsets =
