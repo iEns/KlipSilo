@@ -102,7 +102,8 @@ internal fun topBarActionCollapses(
  * button with the localized [label] as content description and a
  * [androidx.compose.material3.PlainTooltip], so the title keeps its space and
  * stays readable. [title] is the title shown next to the action; the collapse
- * decision accounts for its width.
+ * decision accounts for its width. [labelled] overrides that decision when the
+ * hosting bar has already planned the surrounding actions (#95).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,20 +113,27 @@ fun TopBarSaveAction(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    labelled: Boolean? = null,
+    tint: Color = Color.Unspecified,
 ) {
-    if (rememberTopBarActionCollapses(label, title)) {
+    if (labelled ?: !rememberTopBarActionCollapses(label, title)) {
+        Button(onClick = onClick, enabled = enabled, modifier = modifier) {
+            ButtonLabel(label)
+        }
+    } else {
         TooltipBox(
             positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             tooltip = { PlainTooltip { Text(label) } },
             state = rememberTooltipState(),
         ) {
             IconButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-                Icon(Icons.Filled.Check, contentDescription = label.withoutSoftHyphens())
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = label.withoutSoftHyphens(),
+                    // #81/#95: keep the ✓ save flash in the icon-only state.
+                    tint = resolveTopBarIconTint(tint, LocalContentColor.current),
+                )
             }
-        }
-    } else {
-        Button(onClick = onClick, enabled = enabled, modifier = modifier) {
-            ButtonLabel(label)
         }
     }
 }
@@ -307,7 +315,9 @@ internal fun resolveTopBarIconTint(
  * [FitTextPolicy] (two lines, shrink, hyphenate). The actions go through
  * the shared action-bar degrade (#45): as many icon buttons as the row
  * fits once the title's floor slot is reserved, everything else moves into
- * a ⋮ overflow menu that always stays on screen.
+ * a ⋮ overflow menu that always stays on screen. A [saveAction] is pinned at
+ * the trailing edge and keeps its label while the same #47 rules allow it, so
+ * the editor's Save is not just another check icon (#95).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -317,6 +327,7 @@ fun FitActionBar(
     onBack: () -> Unit,
     backContentDescription: String,
     moreContentDescription: String,
+    saveAction: TopBarIconAction? = null,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -325,6 +336,7 @@ fun FitActionBar(
             val density = LocalDensity.current
             val measurer = rememberTextMeasurer()
             val titleStyle = MaterialTheme.typography.titleLarge
+            val saveLabelStyle = MaterialTheme.typography.labelLarge
             val hyphenLinesOf = rememberHyphenLinesOf(style = titleStyle, maxLines = 2)
             val barWidthPx = constraints.maxWidth.toFloat()
             val backPx = with(density) { 48.dp.toPx() }
@@ -333,10 +345,55 @@ fun FitActionBar(
                 remember(title, titleStyle, density.fontScale, density.density, hyphenLinesOf) {
                     titleFragmentFloorWidthPx(measurer, title, titleStyle, hyphenLinesOf)
                 }
+            val saveLabelWidthPx =
+                remember(saveAction?.label, saveLabelStyle, density.fontScale, density.density) {
+                    val label = saveAction?.label
+                    if (label == null) {
+                        0f
+                    } else {
+                        textWidthPx(
+                            measurer,
+                            label,
+                            saveLabelStyle,
+                            saveLabelStyle.fontSize.value,
+                            1f,
+                        )
+                    }
+                }
+            val hasSaveAction = saveAction != null
+            val saveLabelled =
+                remember(
+                    hasSaveAction,
+                    saveAction?.label,
+                    barWidthPx,
+                    backPx,
+                    titleMinPx,
+                    saveLabelWidthPx,
+                    density.fontScale,
+                    density.density,
+                ) {
+                    hasSaveAction &&
+                        !topBarActionCollapses(
+                            fontScale = density.fontScale,
+                            barWidthPx = barWidthPx,
+                            pxPerDp = density.density,
+                            leadingWidthPx = backPx,
+                            titleWidthPx = titleMinPx,
+                            actionLabelWidthPx =
+                                saveLabelWidthPx + with(density) { 64.dp.toPx() },
+                        )
+                }
+            val savePinnedPx =
+                when {
+                    !hasSaveAction -> 0f
+                    saveLabelled -> saveLabelWidthPx + with(density) { 64.dp.toPx() }
+                    else -> iconPx
+                }
             val plan =
-                remember(barWidthPx, backPx, iconPx, titleMinPx, actions.size) {
+                remember(barWidthPx, backPx, iconPx, titleMinPx, actions.size, savePinnedPx) {
                     planActionBar(
-                        availablePx = (barWidthPx - backPx - titleMinPx).coerceAtLeast(0f),
+                        availablePx =
+                            (barWidthPx - backPx - titleMinPx - savePinnedPx).coerceAtLeast(0f),
                         overflowPx = iconPx,
                         pinnedPx = 0f,
                         iconOnlyPx = List(actions.size) { iconPx },
@@ -410,6 +467,17 @@ fun FitActionBar(
                             }
                         }
                     }
+                }
+                if (saveAction != null) {
+                    TopBarSaveAction(
+                        label = saveAction.label,
+                        title = title,
+                        enabled = saveAction.enabled,
+                        onClick = saveAction.onClick,
+                        labelled = saveLabelled,
+                        tint = saveAction.tint,
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp),
+                    )
                 }
             }
         }
@@ -564,11 +632,11 @@ private fun FitActionBarLargeScalePreview() {
                     TopBarIconAction(Icons.Filled.Visibility, "Forhåndsvisning") {},
                     TopBarIconAction(Icons.Filled.PictureAsPdf, "Tekst til PDF") {},
                     TopBarIconAction(Icons.Filled.Share, "Del") {},
-                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
                 ),
             onBack = {},
             backContentDescription = "Tilbage",
             moreContentDescription = "Flere muligheder",
+            saveAction = TopBarIconAction(Icons.Filled.Check, "Gem") {},
         )
     }
 }
@@ -581,13 +649,11 @@ private fun FitActionBarPrivacyTitlePreview() {
     MaterialTheme {
         FitActionBar(
             title = "Datenschutzerklärung",
-            actions =
-                listOf(
-                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
-                ),
+            actions = emptyList(),
             onBack = {},
             backContentDescription = "Zurück",
             moreContentDescription = "Weitere Optionen",
+            saveAction = TopBarIconAction(Icons.Filled.Check, "Gem") {},
         )
     }
 }
@@ -612,11 +678,11 @@ private fun FitActionBarDarkPreview() {
                     TopBarIconAction(Icons.Filled.Visibility, "Forhåndsvisning") {},
                     TopBarIconAction(Icons.Filled.PictureAsPdf, "Tekst til PDF") {},
                     TopBarIconAction(Icons.Filled.Share, "Del") {},
-                    TopBarIconAction(Icons.Filled.Check, "Gem") {},
                 ),
             onBack = {},
             backContentDescription = "Tilbage",
             moreContentDescription = "Flere muligheder",
+            saveAction = TopBarIconAction(Icons.Filled.Check, "Gem") {},
         )
     }
 }

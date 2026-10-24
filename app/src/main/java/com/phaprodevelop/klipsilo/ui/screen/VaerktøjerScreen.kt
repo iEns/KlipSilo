@@ -459,16 +459,21 @@ fun VaerktøjerScreen(
     val isLocating by viewModel.isLocating.collectAsState()
     if (isLocating) {
         AlertDialog(
-            onDismissRequest = {},
-            title = { DialogTitleLabel(context.getString(R.string.location_finding)) },
+            onDismissRequest = { viewModel.cancelLocating() },
+            title = { DialogTitleLabel(context.getString(R.string.location_getting_title)) },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(24.dp))
                     Spacer(Modifier.width(16.dp))
-                    Text(context.getString(R.string.location_finding))
+                    Text(context.getString(R.string.location_getting_body))
                 }
             },
             confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelLocating() }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
         )
     }
 }

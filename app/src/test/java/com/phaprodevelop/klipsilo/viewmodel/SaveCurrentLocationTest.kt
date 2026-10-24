@@ -107,4 +107,28 @@ class SaveCurrentLocationTest {
             assertEquals(null, viewModel.navigateToNewClip.value)
             assertFalse(viewModel.isLocating.value)
         }
+
+    @Test
+    fun cancelLocating_stopsPendingLookupWithoutToast() =
+        runTest(mainDispatcherRule.dispatcher) {
+            Shadows.shadowOf(app).grantPermissions(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+            )
+            val manager = app.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val shadowManager = Shadows.shadowOf(manager)
+            shadowManager.setProviderEnabled(LocationManager.NETWORK_PROVIDER, true)
+            shadowManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+
+            viewModel.saveCurrentLocation()
+            mainDispatcherRule.scheduler.runCurrent()
+            assertTrue(viewModel.isLocating.value)
+
+            viewModel.cancelLocating()
+            mainDispatcherRule.scheduler.runCurrent()
+
+            assertFalse(viewModel.isLocating.value)
+            assertEquals(null, viewModel.toastMessage.value)
+            assertTrue(dao.getAllOnce().isEmpty())
+        }
 }

@@ -34,7 +34,9 @@ import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.obtainCurrentLocation
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -227,6 +229,7 @@ class ClipboardViewModel(
 
     private val _isLocating = MutableStateFlow(false)
     val isLocating: StateFlow<Boolean> = _isLocating.asStateFlow()
+    private var locatingJob: Job? = null
 
     private val _isDownloading = MutableStateFlow(false)
     val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
@@ -1741,47 +1744,65 @@ class ClipboardViewModel(
 
     fun saveCurrentLocation() {
         if (_isLocating.value) return
-        viewModelScope.launch {
-            val app = getApplication<Application>()
-            if (!hasLocationPermission(app)) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_permission_denied))
-                return@launch
-            }
-            if (!isLocationEnabled(app)) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_disabled))
-                return@launch
-            }
-            _isLocating.value = true
-            try {
-                val location = withContext(ioDispatcher) { obtainCurrentLocation(app) }
-                if (location != null) {
-                    val saved =
-                        withContext(ioDispatcher) {
-                            val id = repository.saveLocation(location.latitude, location.longitude)
-                            val address = repository.getClip(id)?.previewText.orEmpty()
-                            id to address
-                        }
-                    triggerScrollToTop()
-                    postNotice(
-                        ClipNotice(
-                            message =
-                                localizedString(
-                                    com.phaprodevelop.klipsilo.R.string.location_saved,
-                                    saved.second,
-                                ),
-                            actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
-                            clipId = saved.first,
-                        ),
-                    )
-                } else {
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_unavailable))
+        val job =
+            viewModelScope.launch(start = CoroutineStart.LAZY) {
+                val app = getApplication<Application>()
+                if (!hasLocationPermission(app)) {
+                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_permission_denied))
+                    return@launch
                 }
-            } catch (_: Exception) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_unavailable))
-            } finally {
-                _isLocating.value = false
+                if (!isLocationEnabled(app)) {
+                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_disabled))
+                    return@launch
+                }
+                _isLocating.value = true
+                try {
+                    val location = withContext(ioDispatcher) { obtainCurrentLocation(app) }
+                    if (location != null) {
+                        val saved =
+                            withContext(ioDispatcher) {
+                                val id = repository.saveLocation(location.latitude, location.longitude)
+                                val address = repository.getClip(id)?.previewText.orEmpty()
+                                id to address
+                            }
+                        triggerScrollToTop()
+                        postNotice(
+                            ClipNotice(
+                                message =
+                                    localizedString(
+                                        com.phaprodevelop.klipsilo.R.string.location_saved,
+                                        saved.second,
+                                    ),
+                                actionLabel = localizedString(com.phaprodevelop.klipsilo.R.string.snackbar_open),
+                                clipId = saved.first,
+                            ),
+                        )
+                    } else {
+                        toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_unavailable))
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.location_unavailable))
+                } finally {
+                    // #106: a cancelled job must not hide the dialog belonging
+                    // to a newer locating attempt.
+                    if (locatingJob === coroutineContext[Job]) {
+                        locatingJob = null
+                        _isLocating.value = false
+                    }
+                }
             }
-        }
+        locatingJob = job
+        job.start()
+    }
+
+    /** Dismisses the "Getting location" dialog and stops the pending lookup (#106). */
+    fun cancelLocating() {
+        val job = locatingJob
+        locatingJob = null
+        job?.cancel()
+        _isLocating.value = false
     }
 
     fun openLocation(entry: ClipboardEntry) {

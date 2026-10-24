@@ -198,6 +198,8 @@ fun DetailScreen(
 
     val isNewEmpty = viewModel.isNewEmptyDraft(entry)
     val canAutoDelete = isNewEmpty
+    val isEditableText =
+        entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
 
     var editedText by rememberSaveable(
         entryId,
@@ -630,8 +632,6 @@ fun DetailScreen(
                     },
                 actions =
                     buildList {
-                        val isEditableText =
-                            entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
                         if (entry.contentType == ContentType.TEXT) {
                             add(
                                 TopBarIconAction(
@@ -728,52 +728,53 @@ fun DetailScreen(
                                 },
                             )
                         }
-                        if (isEditableText && !entry.isLocked) {
-                            add(
-                                TopBarIconAction(
-                                    icon = Icons.Filled.Check,
-                                    label = context.getString(R.string.save),
-                                    tint =
-                                        if (savedFlash) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            LocalContentColor.current
-                                        },
-                                ) {
-                                    if (isNewEmpty && editedText.text.isBlank()) {
-                                        viewModel.deleteClip(entry)
-                                        viewModel.clearRecentNewClipId()
-                                        onNavigateBack()
-                                        return@TopBarIconAction
-                                    }
-                                    val txt = editedText.text
-                                    val updated =
-                                        if (isNewEmpty) {
-                                            val preview =
-                                                if (txt.isBlank()) {
-                                                    ""
-                                                } else {
-                                                    com.phaprodevelop.klipsilo.data.textClipTitle(txt)
-                                                }
-                                            entry.copy(
-                                                textContent = txt.ifBlank { null },
-                                                previewText = preview,
-                                            )
-                                        } else {
-                                            entry.copy(
-                                                textContent = txt.ifBlank { null },
-                                            )
-                                        }
-                                    committedText = txt
-                                    savedFlash = true
-                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                    viewModel.updateClip(updated)
-                                    if (isNewEmpty && editedText.text.isNotBlank()) {
-                                        viewModel.clearRecentNewClipId()
-                                    }
+                    },
+                saveAction =
+                    if (isEditableText && !entry.isLocked) {
+                        TopBarIconAction(
+                            icon = Icons.Filled.Check,
+                            label = context.getString(R.string.save),
+                            tint =
+                                if (savedFlash) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    LocalContentColor.current
                                 },
-                            )
+                        ) {
+                            if (isNewEmpty && editedText.text.isBlank()) {
+                                viewModel.deleteClip(entry)
+                                viewModel.clearRecentNewClipId()
+                                onNavigateBack()
+                                return@TopBarIconAction
+                            }
+                            val txt = editedText.text
+                            val updated =
+                                if (isNewEmpty) {
+                                    val preview =
+                                        if (txt.isBlank()) {
+                                            ""
+                                        } else {
+                                            com.phaprodevelop.klipsilo.data.textClipTitle(txt)
+                                        }
+                                    entry.copy(
+                                        textContent = txt.ifBlank { null },
+                                        previewText = preview,
+                                    )
+                                } else {
+                                    entry.copy(
+                                        textContent = txt.ifBlank { null },
+                                    )
+                                }
+                            committedText = txt
+                            savedFlash = true
+                            ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                            viewModel.updateClip(updated)
+                            if (isNewEmpty && editedText.text.isNotBlank()) {
+                                viewModel.clearRecentNewClipId()
+                            }
                         }
+                    } else {
+                        null
                     },
                 onBack = {
                     if (canAutoDelete && editedText.text.isBlank()) {
