@@ -84,6 +84,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import coil.compose.AsyncImage
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
@@ -119,6 +121,7 @@ fun KlipScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val clips by viewModel.clips.collectAsState()
+    val clipboardHasContent by viewModel.clipboardHasContent.collectAsState()
     val listState = rememberLazyListState()
     val scrollToTop by viewModel.scrollToTop.collectAsState()
     var handledScrollToTop by rememberSaveable { mutableStateOf(0L) }
@@ -140,6 +143,13 @@ fun KlipScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reloadClips()
+        viewModel.refreshClipboardHasContent()
+    }
+
+    // The clipboard can change while the app is in the background. Android only
+    // reports the listener while KlipSilo is focused, so re-check on every resume.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshClipboardHasContent()
     }
 
     LaunchedEffect(scrollToTop) {
@@ -335,18 +345,22 @@ fun KlipScreen(
                     .fillMaxSize()
                     .padding(horizontal = 12.dp),
         ) {
-            Button(
-                onClick = {
-                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                    viewModel.saveCurrentClipboard()
-                },
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            ) {
-                Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                // 3 lines at word boundaries instead of an ellipsis when even the
-                // floor font size cannot fit 2 lines at large font scales (#54, #45).
-                ButtonLabel(context.getString(R.string.save_current_clipboard), maxLines = 3)
+            // #93: lead with the empty state and the + FAB. The big clipboard
+            // button only earns its space once there is something to save.
+            if (clipboardHasContent) {
+                Button(
+                    onClick = {
+                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                        viewModel.saveCurrentClipboard()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                ) {
+                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    // 3 lines at word boundaries instead of an ellipsis when even the
+                    // floor font size cannot fit 2 lines at large font scales (#54, #45).
+                    ButtonLabel(context.getString(R.string.save_current_clipboard), maxLines = 3)
+                }
             }
 
             CompactSearchField(
@@ -369,6 +383,7 @@ fun KlipScreen(
                         listEmpty = clips.isEmpty(),
                         query = searchQuery,
                         filter = filter,
+                        onClearSearch = { searchQuery = "" },
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
@@ -502,21 +517,28 @@ private fun EmptyListMessage(
     listEmpty: Boolean,
     query: String,
     filter: ClipFilter,
+    onClearSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val state = emptyListState(listEmpty = listEmpty, query = query, filter = filter)
     val title =
-        when {
-            listEmpty -> stringResource(R.string.no_clips_yet)
-            query.isNotBlank() -> stringResource(R.string.search_no_results, query.trim())
-            filter != ClipFilter.ALL -> stringResource(R.string.filter_no_results, filterChipLabel(context, filter))
-            else -> stringResource(R.string.no_clips_yet)
+        when (state.title) {
+            EmptyListTitle.NO_CLIPS -> stringResource(R.string.no_clips_yet)
+            EmptyListTitle.SEARCH -> stringResource(R.string.search_no_results, query.trim())
+            EmptyListTitle.FILTER -> stringResource(R.string.filter_no_results, filterChipLabel(context, filter))
         }
     val hint =
-        if (listEmpty) {
-            stringResource(R.string.no_clips_description)
-        } else {
-            stringResource(R.string.empty_list_hint)
+        when (state.hint) {
+            EmptyListHint.NO_CLIPS -> stringResource(R.string.no_clips_description)
+            EmptyListHint.CLEAR_SEARCH_OR_FILTER -> stringResource(R.string.empty_list_hint)
+            EmptyListHint.TEXT -> stringResource(R.string.filter_text_hint)
+            EmptyListHint.URL -> stringResource(R.string.filter_url_hint)
+            EmptyListHint.IMAGE -> stringResource(R.string.filter_image_hint)
+            EmptyListHint.PDF -> stringResource(R.string.filter_pdf_hint)
+            EmptyListHint.FILE -> stringResource(R.string.filter_file_hint)
+            EmptyListHint.LOCATION -> stringResource(R.string.filter_location_hint)
+            EmptyListHint.LOCKED -> stringResource(R.string.filter_locked_hint)
         }
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
@@ -535,6 +557,12 @@ private fun EmptyListMessage(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        if (query.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onClearSearch) {
+                ButtonLabel(context.getString(R.string.clear))
+            }
+        }
     }
 }
 

@@ -155,6 +155,70 @@ class ClipFilterTest {
         )
     }
 
+    @Test
+    fun emptyState_blankQueryOnEmptyLibrary_keepsNoClipsCopy() {
+        // Arrange
+        val expected = EmptyListState(EmptyListTitle.NO_CLIPS, EmptyListHint.NO_CLIPS)
+
+        // Act
+        val empty = emptyListState(listEmpty = true, query = "", filter = ClipFilter.ALL)
+        val whitespace = emptyListState(listEmpty = true, query = "   ", filter = ClipFilter.ALL)
+
+        // Assert
+        assertEquals(expected, empty)
+        assertEquals(expected, whitespace)
+    }
+
+    @Test
+    fun emptyState_searchInEmptyLibrary_namesQueryBeforeLibraryState() {
+        // #97: an empty library must not hide the fact that a search found nothing.
+        assertEquals(
+            EmptyListState(EmptyListTitle.SEARCH, EmptyListHint.CLEAR_SEARCH_OR_FILTER),
+            emptyListState(listEmpty = true, query = "  invoice  ", filter = ClipFilter.ALL),
+        )
+    }
+
+    @Test
+    fun emptyState_searchWithActiveFilter_stillNamesQuery() {
+        // #97: the search copy wins over the chip copy while a query is present.
+        assertEquals(
+            EmptyListState(EmptyListTitle.SEARCH, EmptyListHint.CLEAR_SEARCH_OR_FILTER),
+            emptyListState(listEmpty = false, query = "foo", filter = ClipFilter.TEXT),
+        )
+    }
+
+    @Test
+    fun emptyState_filterOnEmptyLibrary_usesChipTitleAndHint() {
+        // #98: a selected chip names itself even when the whole library is empty.
+        val expectedHints =
+            mapOf(
+                ClipFilter.TEXT to EmptyListHint.TEXT,
+                ClipFilter.URL to EmptyListHint.URL,
+                ClipFilter.IMAGE to EmptyListHint.IMAGE,
+                ClipFilter.PDF to EmptyListHint.PDF,
+                ClipFilter.FILE to EmptyListHint.FILE,
+                ClipFilter.LOCATION to EmptyListHint.LOCATION,
+                ClipFilter.LOCKED to EmptyListHint.LOCKED,
+            )
+
+        expectedHints.forEach { (filter, hint) ->
+            // Act
+            val state = emptyListState(listEmpty = true, query = "", filter = filter)
+
+            // Assert
+            assertEquals("filter $filter", EmptyListState(EmptyListTitle.FILTER, hint), state)
+        }
+    }
+
+    @Test
+    fun emptyState_filterWithItemsButNoMatches_usesChipTitleAndHint() {
+        // #98: the filtered-empty case keeps the chip copy too.
+        assertEquals(
+            EmptyListState(EmptyListTitle.FILTER, EmptyListHint.LOCKED),
+            emptyListState(listEmpty = false, query = "", filter = ClipFilter.LOCKED),
+        )
+    }
+
     private fun allContentTypes(): List<ClipboardEntry> =
         listOf(
             entry(id = 1, contentType = ContentType.TEXT, previewText = "text"),
