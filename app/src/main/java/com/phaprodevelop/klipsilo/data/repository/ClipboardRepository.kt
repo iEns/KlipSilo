@@ -4315,6 +4315,14 @@ class ClipboardRepository(
                     skipped++
                     continue
                 }
+                // Restoring the same ZIP again must not duplicate clips (#73): the backup
+                // keeps the original id, so an existing row with that id means this clip
+                // was already restored (or still exists). Skip it before copying any file.
+                val backupId = obj.optLong("id", 0L)
+                if (backupId > 0L && dao.getById(backupId) != null) {
+                    skipped++
+                    continue
+                }
                 val contentType =
                     runCatching { ContentType.valueOf(obj.optString("contentType")) }.getOrNull()
                 if (contentType == null) {
@@ -4356,7 +4364,7 @@ class ClipboardRepository(
                 }
                 items.add(
                     ClipboardItem(
-                        id = System.nanoTime() + i,
+                        id = if (backupId > 0L) backupId else System.nanoTime() + i,
                         contentType = contentType,
                         textContent =
                             obj.optString("textContent", "")

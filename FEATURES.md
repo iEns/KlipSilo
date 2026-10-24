@@ -50,6 +50,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Open an HTML file in the browser | HTML file clip → action sheet → Open in browser | 1.1.0 | [D4](docs/regression-checklist.md#D4) | no |
 | Back up all clips as a ZIP (unencrypted) | Tools → Maintenance → Backup | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
 | Restore from a ZIP | Tools → Maintenance → Restore | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
+| Restore skips clips that already exist from the same backup | Tools → Maintenance → Restore the same ZIP again | 1.3.0 | [D3](docs/regression-checklist.md#D3) | no |
 
 ## Conversions
 
@@ -102,6 +103,8 @@ Each conversion creates a new clip.
 | Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | [H3](docs/regression-checklist.md#H3) | no |
 | Multi-page markup | Previous/next page in the toolbar | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Save the annotated PDF as a new clip | Save | 1.1.0 | [H2](docs/regression-checklist.md#H2) | no |
+| Back with unsaved marks asks Save / Discard / Cancel | Annotate → Back (system or top bar) | 1.3.0 | [H4](docs/regression-checklist.md#H4) | no |
+| Unsaved marks survive a language or configuration change | Annotate, then change the app language | 1.3.0 | [H5](docs/regression-checklist.md#H5) | no |
 
 ## Scan and capture
 

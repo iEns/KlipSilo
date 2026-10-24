@@ -135,6 +135,7 @@ import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
+import com.phaprodevelop.klipsilo.viewmodel.MarkupSession
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -198,8 +199,11 @@ fun AnnotatePdfScreen(
     }
     val entry = loadedEntry ?: clips.find { it.id == entryId }
     val navigateBack by viewModel.navigateBack.collectAsState()
+    var leaving by remember { mutableStateOf(false) }
     LaunchedEffect(navigateBack) {
         if (navigateBack) {
+            leaving = true
+            viewModel.clearMarkupSession(entryId)
             viewModel.clearNavigateBack()
             onNavigateBack()
         }
@@ -227,7 +231,10 @@ fun AnnotatePdfScreen(
         return
     }
 
-    var pageIndex by remember { mutableIntStateOf(0) }
+    // Draft markup is held by the activity-scoped ViewModel so it survives a configuration
+    // change (e.g. an app language change recreating the activity) (#85).
+    val restoredSession = remember(entryId) { viewModel.markupSessionOrNull(entryId) }
+    var pageIndex by remember(entryId) { mutableIntStateOf(restoredSession?.pageIndex ?: 0) }
     var pageCount by remember { mutableIntStateOf(0) }
     var baseBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var scale by remember { mutableFloatStateOf(1f) }
@@ -250,7 +257,12 @@ fun AnnotatePdfScreen(
     val drawMode = tool == MarkupTool.LINE || tool == MarkupTool.DRAW || tool == MarkupTool.HIGHLIGHT
     val straightMode = tool == MarkupTool.LINE
     val focusRequester = remember { FocusRequester() }
-    val strokes = remember { mutableStateMapOf<Int, List<PdfStroke>>() }
+    val strokes =
+        remember(entryId) {
+            mutableStateMapOf<Int, List<PdfStroke>>().apply {
+                restoredSession?.strokes?.forEach { (page, items) -> this[page] = items }
+            }
+        }
     var draftStroke by remember { mutableStateOf<PdfStroke?>(null) }
     val savedAnnotate = remember { AnnotateSettingsStore.load(context) }
     var strokeWidth by remember {
@@ -261,7 +273,14 @@ fun AnnotatePdfScreen(
         mutableFloatStateOf(nearestMarkupTextSize(savedAnnotate.textSizeFraction))
     }
     var textColor by remember { mutableIntStateOf(savedAnnotate.textColor) }
-    var zSeq by remember { mutableStateOf(0L) }
+    var zSeq by remember(entryId) {
+        mutableStateOf(
+            (
+                restoredSession?.annotations?.values?.flatten().orEmpty().map { it.zOrder } +
+                    restoredSession?.strokes?.values?.flatten().orEmpty().map { it.zOrder }
+            ).maxOrNull() ?: 0L,
+        )
+    }
 
     fun nextZ(): Long {
         zSeq += 1
@@ -285,10 +304,44 @@ fun AnnotatePdfScreen(
     var selectedStroke by remember { mutableIntStateOf(-1) }
     var pageSize by remember { mutableStateOf(IntSize.Zero) }
     var showExitWarning by remember { mutableStateOf(false) }
-    val annotations = remember { mutableStateMapOf<Int, List<PdfAnnotation>>() }
+    val annotations =
+        remember(entryId) {
+            mutableStateMapOf<Int, List<PdfAnnotation>>().apply {
+                restoredSession?.annotations?.forEach { (page, items) -> this[page] = items }
+            }
+        }
     var pageHeightPt by remember { mutableFloatStateOf(0f) }
-    var savedAnnotations by remember { mutableStateOf(emptyList<PdfAnnotation>()) }
-    var savedStrokes by remember { mutableStateOf(emptyList<PdfStroke>()) }
+    var savedAnnotations by remember(entryId) {
+        mutableStateOf(restoredSession?.savedAnnotations ?: emptyList())
+    }
+    var savedStrokes by remember(entryId) {
+        mutableStateOf(restoredSession?.savedStrokes ?: emptyList())
+    }
+
+    // Persist the draft session on every markup/page change so a recreate can rehydrate it.
+    val persistedAnnotations = annotations.mapValues { it.value.toList() }
+    val persistedStrokes = strokes.mapValues { it.value.toList() }
+    LaunchedEffect(
+        entryId,
+        leaving,
+        persistedAnnotations,
+        persistedStrokes,
+        savedAnnotations,
+        savedStrokes,
+        pageIndex,
+    ) {
+        if (leaving) return@LaunchedEffect
+        viewModel.updateMarkupSession(
+            MarkupSession(
+                entryId = entryId,
+                annotations = persistedAnnotations,
+                strokes = persistedStrokes,
+                savedAnnotations = savedAnnotations,
+                savedStrokes = savedStrokes,
+                pageIndex = pageIndex,
+            ),
+        )
+    }
 
     // The commit decision for a draft text box (#50, #55): a new box left
     // empty is dropped, an edit cleared to empty text deletes the item, an
@@ -590,9 +643,17 @@ fun AnnotatePdfScreen(
         draftStroke = null
     }
 
-    BackHandler(enabled = dirty) {
-        showExitWarning = true
+    fun leave() {
+        if (dirty) {
+            showExitWarning = true
+        } else {
+            leaving = true
+            viewModel.clearMarkupSession(entryId)
+            onNavigateBack()
+        }
     }
+
+    BackHandler { leave() }
 
     val filePath = entry.filePath
     val pageGate = remember { AtomicInteger(0) }
@@ -732,13 +793,7 @@ fun AnnotatePdfScreen(
                 title = context.getString(R.string.annotate_title),
                 saveLabel = context.getString(R.string.save),
                 saveEnabled = entry.filePath != null,
-                onBack = {
-                    if (dirty) {
-                        showExitWarning = true
-                    } else {
-                        onNavigateBack()
-                    }
-                },
+                onBack = { leave() },
                 onSave = {
                     if (dirty) {
                         commitDrafts()
@@ -748,6 +803,8 @@ fun AnnotatePdfScreen(
                     } else {
                         // Save with no changes (#60): just leave, like Back, instead
                         // of creating an identical copy clip.
+                        leaving = true
+                        viewModel.clearMarkupSession(entryId)
                         onNavigateBack()
                     }
                 },
@@ -1539,7 +1596,14 @@ fun AnnotatePdfScreen(
                     TextButton(onClick = { showExitWarning = false }) {
                         ButtonLabel(context.getString(R.string.cancel))
                     }
-                    TextButton(onClick = onNavigateBack) {
+                    TextButton(
+                        onClick = {
+                            showExitWarning = false
+                            leaving = true
+                            viewModel.clearMarkupSession(entryId)
+                            onNavigateBack()
+                        },
+                    ) {
                         ButtonLabel(context.getString(R.string.discard))
                     }
                     TextButton(
