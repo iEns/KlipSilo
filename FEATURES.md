@@ -71,7 +71,7 @@ Each conversion creates a new clip.
 | PDF → images | PDF clip → action sheet → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → text (OCR of the whole PDF) | PDF clip → action sheet → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → HTML | PDF clip → action sheet → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
+| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (tap the row to expand) | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
 
@@ -84,7 +84,7 @@ Each conversion creates a new clip.
 | Read a QR code on a page | Viewer action bar → Read QR | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
-| Combine text clips | Tools → Combine texts | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
+| Combine text clips | Tools → Combine texts; needs two or more text clips, otherwise a hint offers Create another | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: field labels and a live page preview | Fill form screen | 1.2.0 | [G1](docs/regression-checklist.md#G1) | no |
@@ -134,7 +134,7 @@ Each conversion creates a new clip.
 |---|---|---|---|---|
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
 | 13 languages plus System default, synced with Android App Info | Settings → Language | 1.2.0 | [K1](docs/regression-checklist.md#K1) | no |
-| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy | Settings | 1.1.0 | [K3](docs/regression-checklist.md#K3) | no |
+| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy | Settings, above PDF & export | 1.1.0 | [K3](docs/regression-checklist.md#K3) | no |
 
 ## Other / maintenance
 

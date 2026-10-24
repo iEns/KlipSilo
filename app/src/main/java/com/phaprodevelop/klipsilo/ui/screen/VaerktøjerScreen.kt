@@ -46,8 +46,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -216,7 +218,21 @@ fun VaerktøjerScreen(
                     showCombineDialog = true
                 }
                 ToolRow(Icons.Filled.TextFields, context.getString(R.string.tool_combine_texts)) {
-                    showCombineTextsDialog = true
+                    if (hasTwoTextClips(clips)) {
+                        showCombineTextsDialog = true
+                    } else {
+                        scope.launch {
+                            val result =
+                                snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.combine_texts_need_two),
+                                    actionLabel = context.getString(R.string.combine_texts_create_another),
+                                    duration = SnackbarDuration.Long,
+                                )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.createEmptyClip()
+                            }
+                        }
+                    }
                 }
             }
 
@@ -698,6 +714,13 @@ internal fun DeleteTypeDialog(
         },
     )
 }
+
+/**
+ * #105: combining texts needs at least two text clips. With fewer, the screen
+ * explains why instead of opening a picker where nothing can be selected.
+ */
+internal fun hasTwoTextClips(clips: List<ClipboardEntry>): Boolean =
+    clips.count { it.contentType == ContentType.TEXT } >= 2
 
 @Composable
 private fun CombineDialog(
