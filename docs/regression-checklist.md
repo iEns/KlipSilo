@@ -60,12 +60,12 @@
 - <a id="E7"></a>**E7 · XLSX, RTF and TXT → PDF:** on each file clip, sheet → **Convert to PDF**. → Each gives a new PDF clip with the content (XLSX: sheets as tables; RTF: formatted text; TXT: plain text) that opens in the PDF viewer.
 - <a id="E8"></a>**E8 · Text → TXT:** on a text clip, sheet → **Text → TXT**. → A new File clip (.txt) appears with the same text. Tapping it shows the text.
 - <a id="E9"></a>**E9 · HTML → PDF:** on a text clip that contains HTML (e.g. the result of E5), sheet → **HTML → PDF**. → A new PDF clip shows the rendered page (headings, paragraphs, lists), not the raw tags. Plain text clips don't offer this row.
-- <a id="E10"></a>**E10 · PDF output settings:** Settings → **PDF & export**: change Font type, Font size, Line spacing, the two margins and Max output resolution, then repeat E1. → The new PDF uses the new font, size, spacing and margins. The settings survive an app restart.
+- <a id="E10"></a>**E10 · PDF output settings:** Settings → **PDF & export** (collapsed by default; tap the row to expand): change Font type, Font size, Line spacing, the two margins and Max output resolution, then repeat E1. → The new PDF uses the new font, size, spacing and margins. The settings survive an app restart.
 
 ## F. PDF viewer and PDF tools
 - <a id="F1"></a>**F1 · PDF viewer:** tap a multi-page PDF, swipe pages, pinch-zoom, and use go-to-page. → The pages render, and navigation and zoom work.
 - <a id="F2"></a>**F2 · Viewer actions:** in the viewer, run OCR page, Save page as PDF, Read QR (on a page with a QR code) and Extract images. → Each one gives a correct new clip or result.
-- <a id="F3"></a>**F3 · Combine:** Tools → **Combine** two PDFs and an image, and **Combine texts** with two text clips. → You get one merged PDF clip in the chosen order, and one merged text clip.
+- <a id="F3"></a>**F3 · Combine:** Tools → **Combine** two PDFs and an image, and **Combine texts** with two text clips. → You get one merged PDF clip in the chosen order, and one merged text clip. With fewer than two text clips, **Combine texts** shows a hint and **Create another** instead of opening an empty picker.
 - <a id="F4"></a>**F4 · Edit pages:** PDF sheet → **Edit pages**, reorder two pages, delete one, and save. → The new PDF has the expected page order and count.
 
 ## G. Fill PDF form (testaroo job-application and event-registration)
@@ -95,5 +95,5 @@
 ## K. Settings and maintenance
 - <a id="K1"></a>**K1 · Theme and language:** switch Light/Dark/System. Switch the language to Danish, then German, then back to English or System default. → Each takes effect at once and survives an app restart. The App Info language stays in sync.
 - <a id="K2"></a>**K2 · Bulk delete:** Tools → Maintenance → **Delete**, choose All or one type, then **Delete**, then **Unlock all**. → Only that type is removed, and locked clips are kept. Unlock all clears every lock.
-- <a id="K3"></a>**K3 · Guide and info screens:** in Settings, open **Tips**, **Limitations**, **Why**, **Where the app helps**, **About** and **Privacy policy** in turn. → Each opens with its content, scrolls, and back returns to Settings.
+- <a id="K3"></a>**K3 · Guide and info screens:** in Settings, open **Tips**, **Limitations**, **Why**, **Where the app helps**, **About** and **Privacy policy** in turn; they sit above the collapsed **PDF & export** row. → Each opens with its content, scrolls, and back returns to Settings.
 - <a id="K4"></a>**K4 · Offline only:** turn on airplane mode and restart the app. Run A1, A2, C1, E1, E3, F1, F2, G1, H2 and I2. → Everything works with no network and no sign-in prompt. Only Download from URL and opening a link in the browser need the network, and they fail with a message, not a crash.
