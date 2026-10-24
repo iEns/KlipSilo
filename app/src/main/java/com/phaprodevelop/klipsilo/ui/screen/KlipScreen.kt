@@ -2,7 +2,6 @@ package com.phaprodevelop.klipsilo.ui.screen
 
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -67,6 +66,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -604,57 +606,78 @@ private fun FilterRow(
         }
     val scroll = rememberScrollState()
     val fade = MaterialTheme.colorScheme.background
-    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(scroll),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            options.forEach { (filter, label) ->
-                val active = selected == filter
-                Card(
-                    onClick = {
-                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                        onSelect(if (active) ClipFilter.ALL else filter)
-                    },
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                if (active) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                        ),
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color =
-                            if (active) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
+    // #94: fade the row itself rather than drawing an overlay on top. The
+    // gradient never intercepts taps or the horizontal scroll gesture, and
+    // drawWithContent re-reads the scroll state on every frame so the fade
+    // follows the row as it moves.
+    val fadeWidthPx = with(LocalDensity.current) { 32.dp.toPx() }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .drawWithContent {
+                    drawContent()
+                    val position = scroll.value
+                    val maxPosition = scroll.maxValue
+                    if (maxPosition <= 0) return@drawWithContent
+                    val width = minOf(fadeWidthPx, size.width)
+                    if (position > 0) {
+                        drawRect(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors = listOf(fade, Color.Transparent),
+                                    startX = 0f,
+                                    endX = width,
+                                ),
+                            size = Size(width, size.height),
+                        )
+                    }
+                    if (position < maxPosition) {
+                        drawRect(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color.Transparent, fade),
+                                    startX = size.width - width,
+                                    endX = size.width,
+                                ),
+                            topLeft = Offset(size.width - width, 0f),
+                            size = Size(width, size.height),
+                        )
+                    }
                 }
-            }
-        }
-        if (scroll.canScrollBackward || scroll.canScrollForward) {
-            val start = if (scroll.canScrollBackward) fade else Color.Transparent
-            val end = if (scroll.canScrollForward) fade else Color.Transparent
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            0f to start,
-                            0.08f to Color.Transparent,
-                            0.92f to Color.Transparent,
-                            1f to end,
-                        ),
+                .horizontalScroll(scroll)
+                .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        options.forEach { (filter, label) ->
+            val active = selected == filter
+            Card(
+                onClick = {
+                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                    onSelect(if (active) ClipFilter.ALL else filter)
+                },
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (active) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
                     ),
-            )
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color =
+                        if (active) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+            }
         }
     }
 }

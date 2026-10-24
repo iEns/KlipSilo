@@ -31,7 +31,7 @@
 
 ## B. Clip list
 - <a id="B1"></a>**B1 · Search:** type part of a clip title or text. → Only matching clips are shown. When nothing matches, including on an empty library, the empty state names the query and offers **Clear** instead of saying **No clips saved yet**; clearing the search restores the full list.
-- <a id="B2"></a>**B2 · Filter chips:** tap each chip in turn (Text, URL, Image, PDF, File, Location, and Locked if present). → Only clips of that type are shown, and an empty result names that chip with a matching hint (even when the library itself is empty). **All** restores the list.
+- <a id="B2"></a>**B2 · Filter chips:** tap each chip in turn (Text, URL, Image, PDF, File, Location, and Locked if present). → Only clips of that type are shown, and an empty result names that chip with a matching hint (even when the library itself is empty). **All** restores the list. When the row runs past the screen edge, the clipped chip fades out and the row can be swiped sideways to the remaining chips.
 - <a id="B3"></a>**B3 · Pin:** pin a clip from the row icon or the sheet. → It moves to the top and stays there after the app restarts. Unpinning reverses this.
 - <a id="B4"></a>**B4 · Delete and undo:** delete one clip from the sheet (confirm), and swipe another one away. Tap **Undo** on one of them. → The undone clip comes back. The other one stays gone after the app restarts.
 - <a id="B5"></a>**B5 · Lock:** lock a clip. → Delete, swipe and edit are blocked for it. Unlocking restores them.
@@ -84,11 +84,11 @@
 ## I. Scan and capture
 - <a id="I1"></a>**I1 · QR scanner and camera OCR:** Tools → QR on a QR code, and Tools → OCR camera on printed text. → The decoded text or link is offered or saved as a clip, and the OCR text is saved as a clip.
 - <a id="I2"></a>**I2 · OCR from an image clip:** sheet → **Crop/OCR from image** on a photo of text. → A text clip holds the recognised text.
-- <a id="I3"></a>**I3 · Location:** Tools → Location (current location; there is no typed-address entry). → A location clip is created with the address. The snackbar's **Open** opens the clip in KlipSilo, and tapping the clip opens Maps.
+- <a id="I3"></a>**I3 · Location:** Tools → Location (current location; there is no typed-address entry). → A "Getting location" dialog appears; **Cancel** closes it without saving, and the back gesture or a tap outside does the same. Let it finish: a location clip is created with the address. The snackbar's **Open** opens the clip in KlipSilo, and tapping the clip opens Maps.
 - <a id="I4"></a>**I4 · QR from an image clip:** open an image clip that contains a QR code and tap the **Scan QR** button. → The decoded message is shown with **Copy**, **Save to clip** and **Cancel**. Save to clip creates a text or URL clip. An image without a QR shows "No QR code found".
 
 ## J. Text editor
-- <a id="J1"></a>**J1 · Edit and save prompt:** open a text clip in the editor, change the text, and leave. → A "Save changes?" prompt appears (intended since beta.4, #27). Save, then reopen. → The change was kept. Share from the editor works. The Markdown preview renders.
+- <a id="J1"></a>**J1 · Edit and save prompt:** open a text clip in the editor, change the text, and leave. → A "Save changes?" prompt appears (intended since beta.4, #27). Save, then reopen. → The change was kept. The top bar shows **Save** as a label when there is room (or the ✓ with a "Save" tooltip when collapsed); tapping it saves without the prompt. Share from the editor works. The Markdown preview renders.
 - <a id="J2"></a>**J2 · Select word / sentence / paragraph:** in the editor, place the cursor in a word and use the **Select word / sentence / paragraph** button → **Word**, then **Sentence**, then **Select paragraph**. → Each selects exactly that unit around the cursor.
 - <a id="J3"></a>**J3 · HTML preview toggle:** open an HTML text clip (e.g. from E5) in the editor and use the top-bar toggle (**Preview** / **Source**). → Preview shows the rendered page and Source shows the editable HTML. Switching back and forth keeps edits.
 

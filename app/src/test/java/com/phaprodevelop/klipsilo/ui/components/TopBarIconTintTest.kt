@@ -3,6 +3,7 @@
 package com.phaprodevelop.klipsilo.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
@@ -13,12 +14,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * #81: top-bar action icons must follow the theme content colour. The editor
@@ -77,5 +80,30 @@ class TopBarIconTintTest {
         // colour yields that colour itself — never Color.Unspecified.
         assertEquals(barContentColor, resolveTopBarIconTint(Color.Unspecified, barContentColor))
         org.junit.Assert.assertNotEquals(Color.Unspecified, barContentColor)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun editorSaveKeepsItsLabelWhenTheBarHasRoom() {
+        // #95: Save is a labelled trailing control, not another ✓ in the
+        // eye / PDF / share row, while the other actions stay icon-only.
+        composeRule.setContent {
+            MaterialTheme {
+                FitActionBar(
+                    title = "Text editor",
+                    actions =
+                        listOf(
+                            TopBarIconAction(Icons.Filled.Visibility, "Preview") {},
+                            TopBarIconAction(Icons.Filled.PictureAsPdf, "Text to PDF") {},
+                            TopBarIconAction(Icons.Filled.Share, "Share") {},
+                        ),
+                    onBack = {},
+                    backContentDescription = "Back",
+                    moreContentDescription = "More options",
+                    saveAction = TopBarIconAction(Icons.Filled.Check, "Save") {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("Save").assertIsDisplayed()
     }
 }

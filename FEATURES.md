@@ -16,7 +16,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Open a clip | Tap a row: text opens the reader, a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
 | Action sheet (share, save, convert, and more) | Long-press a row, or tap the ⋮ button on the row | 1.1.0 | [C3](docs/regression-checklist.md#C3) | no |
 | Search clips | Search field above the list | 1.1.0 | [B1](docs/regression-checklist.md#B1) | no |
-| Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
+| Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips; the row fades at the edge when more types are off screen | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
 | Pin / unpin | Pin icon on a pinned row, or the action sheet | 1.1.0 | [B3](docs/regression-checklist.md#B3) | no |
 | Lock / unlock (blocks edit and delete) | Action sheet | 1.1.0 | [B5](docs/regression-checklist.md#B5) | no |
 | Rename | Action sheet | 1.1.0 | [B6](docs/regression-checklist.md#B6) | no |
@@ -114,13 +114,13 @@ Each conversion creates a new clip.
 | Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | OCR an image clip | Image clip → action sheet → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
 | QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
-| Save the current location as a clip (with address) | Tools → Location | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
+| Save the current location as a clip (with address) | Tools → Location; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
 
 ## Text editor and reader
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Text editor (save with the checkmark; leaving with unsaved edits asks "Save changes?") | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Text editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Text clip → action sheet → Text editor | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save-changes prompt when leaving the editor | Editor → back with unsaved changes | 1.2.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Markdown preview | Editor → preview | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
