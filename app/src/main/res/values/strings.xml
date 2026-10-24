@@ -5,9 +5,16 @@
     <string name="untitled_clip">(untitled)</string>
     <string name="clip_not_found">This clip no longer exists</string>
     <string name="no_clips_description">Copy text, images, URLs or PDFs and they will appear here</string>
-    <string name="search_no_results">No results for “%1$s”</string>
+    <string name="search_no_results">No clips match “%1$s”</string>
     <string name="filter_no_results">No %1$s clips yet</string>
     <string name="empty_list_hint">Clear the search or filter to see all clips</string>
+    <string name="filter_text_hint">Copy text or tap +.</string>
+    <string name="filter_url_hint">Copy a link to save it here.</string>
+    <string name="filter_image_hint">Copy an image to save it here.</string>
+    <string name="filter_pdf_hint">Copy a PDF to save it here.</string>
+    <string name="filter_file_hint">Share a file to KlipSilo to save it here.</string>
+    <string name="filter_location_hint">Save a location to see it here.</string>
+    <string name="filter_locked_hint">Lock a clip from its action sheet.</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="clip_deleted">Clip deleted</string>
     <string name="all_deleted">All clips deleted</string>

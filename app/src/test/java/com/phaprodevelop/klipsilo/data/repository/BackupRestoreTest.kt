@@ -182,6 +182,32 @@ class BackupRestoreTest {
         }
 
     @Test
+    fun restore_allSkipped_reportsDoneWithSkippedCount() =
+        runTest {
+            // Arrange
+            val text = textEntry(id = 51L, text = "already here")
+            repo.insertEntry(text)
+            val zip = createEmptyZipFile("all-skipped.zip")
+            assertEquals(1, repo.backupClipsToZip(Uri.fromFile(zip), listOf(text)).exported)
+            val viewModel =
+                ClipboardViewModel(
+                    context,
+                    repo,
+                    ioDispatcher = mainDispatcherRule.dispatcher,
+                )
+            val expected =
+                context.getString(R.string.restore_done, 0) +
+                    context.getString(R.string.restore_skipped, 1)
+
+            // Act
+            viewModel.restoreClips(listOf(Uri.fromFile(zip)))
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            assertEquals(expected, viewModel.toastMessage.value)
+        }
+
+    @Test
     fun restore_sameZipTwice_secondRestoreSkipsAll() =
         runTest {
             // Arrange

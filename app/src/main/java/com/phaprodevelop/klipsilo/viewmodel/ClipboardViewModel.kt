@@ -103,6 +103,15 @@ class ClipboardViewModel(
     private val clipboardManager =
         application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+    // #93: the Save clipboard CTA is hidden until there is pasteable content.
+    private val _clipboardHasContent = MutableStateFlow(false)
+    val clipboardHasContent: StateFlow<Boolean> = _clipboardHasContent.asStateFlow()
+
+    private val primaryClipChangedListener =
+        ClipboardManager.OnPrimaryClipChangedListener {
+            refreshClipboardHasContent()
+        }
+
     // Declared above init on purpose (#70): Kotlin runs property initialisers
     // and init blocks in source order, and the list collector launched in init
     // can run inside the constructor (Dispatchers.Main.immediate plus a Room
@@ -134,6 +143,13 @@ class ClipboardViewModel(
                 }
             }
         }
+        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
+        refreshClipboardHasContent()
+    }
+
+    override fun onCleared() {
+        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
+        super.onCleared()
     }
 
     private fun localizedString(
@@ -1120,6 +1136,24 @@ class ClipboardViewModel(
         }
     }
 
+    /** Re-check whether the clipboard currently holds text, HTML or a URI (#93). */
+    fun refreshClipboardHasContent() {
+        _clipboardHasContent.value =
+            try {
+                val clipData = clipboardManager.primaryClip
+                if (clipData == null || clipData.itemCount == 0) {
+                    false
+                } else {
+                    val item = clipData.getItemAt(0)
+                    item.uri != null || !item.text.isNullOrBlank() || !item.htmlText.isNullOrBlank()
+                }
+            } catch (_: SecurityException) {
+                false
+            } catch (_: Exception) {
+                false
+            }
+    }
+
     fun saveCurrentClipboard() {
         try {
             val clipData = clipboardManager.primaryClip
@@ -1457,7 +1491,9 @@ class ClipboardViewModel(
                 }
                 toast(
                     when {
-                        loaded > 0 -> {
+                        // #108: every valid clip was already present — that is a
+                        // skipped restore, not a failed one.
+                        loaded > 0 || (skipped > 0 && !anyInvalid) -> {
                             val base =
                                 LocaleHelper.applyLocale(getApplication())
                                     .getString(com.phaprodevelop.klipsilo.R.string.restore_done, loaded)

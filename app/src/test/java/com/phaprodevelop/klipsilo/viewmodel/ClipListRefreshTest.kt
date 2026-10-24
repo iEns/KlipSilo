@@ -3,7 +3,11 @@
 package com.phaprodevelop.klipsilo.viewmodel
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemListRow
 import com.phaprodevelop.klipsilo.data.db.ContentType
@@ -15,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -106,6 +111,26 @@ class ClipListRefreshTest {
 
         assertTrue(viewModel.clips.value.none { it.id == entry.id })
         assertTrue(runBlocking { dao.getAllOnce() }.none { it.id == entry.id })
+    }
+
+    @Test
+    fun refreshClipboardHasContent_tracksTextAndUriButNotEmptyText() {
+        // #93: the Save clipboard button is shown only for pasteable content.
+        val clipboard = app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+        clipboard.setPrimaryClip(ClipData.newPlainText("text", "hello"))
+        viewModel.refreshClipboardHasContent()
+        assertTrue(viewModel.clipboardHasContent.value)
+
+        clipboard.setPrimaryClip(ClipData.newPlainText("empty", ""))
+        viewModel.refreshClipboardHasContent()
+        assertFalse(viewModel.clipboardHasContent.value)
+
+        clipboard.setPrimaryClip(
+            ClipData.newUri(app.contentResolver, "file", Uri.parse("content://example.test/file.txt")),
+        )
+        viewModel.refreshClipboardHasContent()
+        assertTrue(viewModel.clipboardHasContent.value)
     }
 
     private fun textEntry(): ClipboardEntry =

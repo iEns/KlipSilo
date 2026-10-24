@@ -20,7 +20,7 @@
   - a short text
 
 ## A. Capture and share intake
-- <a id="A1"></a>**A1 · Save clipboard:** copy a text in any app, open KlipSilo, then tap **Save current clipboard**. → A new text clip appears at the top with that text.
+- <a id="A1"></a>**A1 · Save clipboard:** with an empty clipboard, open KlipSilo. → The **Save current clipboard** button is hidden and the empty state leads the list. Now copy a text in any app, return to KlipSilo, and tap **Save current clipboard**. → The button reappears and a new text clip appears at the top with that text.
 - <a id="A2"></a>**A2 · New text clip:** tap **+**, type a text, then go back. → The clip is saved. Leaving it empty or discarding it saves nothing.
 - <a id="A3"></a>**A3 · Share text and links in:** share a sentence from Notes, then share a URL from Chrome, each to KlipSilo. → You get one Text clip and one URL clip with the right content.
 - <a id="A4"></a>**A4 · Share an image and a PDF in:** share the JPG and the PDF from Files. → You get an Image clip (type and size shown) and a PDF clip.
@@ -30,8 +30,8 @@
 - <a id="A8"></a>**A8 · Download from URL:** on a URL clip that points to a PDF or image, sheet → **Download from URL**. → "Downloading…" then "File downloaded", and a new PDF or Image clip (or Text/File clip for other files) appears at the top. On a link to an ordinary web page you get "Could not download file" and no clip.
 
 ## B. Clip list
-- <a id="B1"></a>**B1 · Search:** type part of a clip title or text. → Only matching clips are shown. Clearing the search restores the full list.
-- <a id="B2"></a>**B2 · Filter chips:** tap each chip in turn (Text, URL, Image, PDF, File, Location, and Locked if present). → Only clips of that type are shown. **All** restores the list.
+- <a id="B1"></a>**B1 · Search:** type part of a clip title or text. → Only matching clips are shown. When nothing matches, including on an empty library, the empty state names the query and offers **Clear** instead of saying **No clips saved yet**; clearing the search restores the full list.
+- <a id="B2"></a>**B2 · Filter chips:** tap each chip in turn (Text, URL, Image, PDF, File, Location, and Locked if present). → Only clips of that type are shown, and an empty result names that chip with a matching hint (even when the library itself is empty). **All** restores the list.
 - <a id="B3"></a>**B3 · Pin:** pin a clip from the row icon or the sheet. → It moves to the top and stays there after the app restarts. Unpinning reverses this.
 - <a id="B4"></a>**B4 · Delete and undo:** delete one clip from the sheet (confirm), and swipe another one away. Tap **Undo** on one of them. → The undone clip comes back. The other one stays gone after the app restarts.
 - <a id="B5"></a>**B5 · Lock:** lock a clip. → Delete, swipe and edit are blocked for it. Unlocking restores them.
