@@ -12,11 +12,13 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 |---|---|---|---|---|
 | Save the current clipboard | Button at the top of the Clips tab. With an empty library it appears once the clipboard has content (#93); once there are clips it stays in place, disabled and labelled "Clipboard is empty" when there is nothing to save (#120). A failed save says why and offers Retry when the clipboard still has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
-| Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
-| Open a clip | Tap a row: text opens the editor with its content (read/edit), a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
-| Action sheet (share, save, present, convert, and more) | Long-press a row, or tap the ⋮ button on the row; primary actions sit on top, conversions and PDF editing tools under **Convert & Edit** (collapsed by default), and Rename/Duplicate/Pin/Lock/Delete under **Manage**; the sheet closes when an action runs | 1.1.0 | [C3](docs/regression-checklist.md#C3), [C6](docs/regression-checklist.md#C6) | no |
+| Clip types: Plain Text, Markdown, link, image, PDF, file, location | Rows in the list. Plain Text and Markdown are the two editable text kinds; HTML is a File clip (preview only, not editable) (#127) | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
+| Open a clip | Tap a row: Plain Text and Markdown open the editor with their content (read/edit), a link opens the browser, a location opens maps, a PDF, image or file opens the viewer; an HTML File clip opens the rendered page read-only (#127) | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
+| Text kind upgrade | On the first open after the upgrade, old text clips are migrated once, without a user action: Plain Text stays Plain Text, FILE clips ending in `.txt`/`.md` become Plain Text/Markdown, and old HTML text clips become `.html` File clips. No Markdown is inferred from `#`/`*` content (#127) | 1.3.0 | [C7](docs/regression-checklist.md#C7) | no |
+| Clip meta shows the text kind, not the storage extension | A large Plain Text or Markdown clip spills to `clip.txt`/`clip.md`; the list still shows **Text**/**Markdown**, never bare **TXT**/**MD** (#127) | 1.3.0 | [B7](docs/regression-checklist.md#B7) | no |
+| Action sheet (share, save, present, convert, and more) | Long-press a row, or tap the ⋮ button on the row; primary actions sit on top, conversions and PDF editing tools under **Convert & Edit** (collapsed by default), and Rename/Duplicate/Pin/Lock/Delete under **Manage**; the sheet closes when an action runs. Plain Text/Markdown offer **Share as text**, **Share as file**, **Download as file** and **Make this Markdown**/**Make this Plain Text** (#127) | 1.1.0 | [C3](docs/regression-checklist.md#C3), [C6](docs/regression-checklist.md#C6) | no |
 | Search clips | Search field above the list | 1.1.0 | [B1](docs/regression-checklist.md#B1) | no |
-| Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips; `<` and `>` cues at the row edges show which way more types can be swiped into view | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
+| Filter by type (All, Text, Markdown, URL, Image, PDF, File, Location, Locked) | Filter chips; Text and Markdown have separate pills. `<` and `>` cues at the row edges show which way more types can be swiped into view (#127) | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
 | Pin / unpin | Pin icon on a pinned row, or the action sheet → **Manage** | 1.1.0 | [B3](docs/regression-checklist.md#B3) | no |
 | Lock / unlock (blocks edit and delete) | Action sheet → **Manage** | 1.1.0 | [B5](docs/regression-checklist.md#B5) | no |
 | Rename | Action sheet | 1.1.0 | [B6](docs/regression-checklist.md#B6) | no |
@@ -44,10 +46,13 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Share a clip to another app | Action sheet → Share | 1.1.0 | [D1](docs/regression-checklist.md#D1) | no |
+| Share a clip to another app | Action sheet → Share (Plain Text/Markdown: **Share as text**) | 1.1.0 | [D1](docs/regression-checklist.md#D1) | no |
+| Share a Plain Text/Markdown clip as a `.txt`/`.md` attachment | Action sheet → Share as file (#127) | 1.3.0 | [D5](docs/regression-checklist.md#D5) | no |
 | Share text from the editor | Editor top bar → Share | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save to Downloads (file/PDF/image) | Action sheet → Save to Downloads | 1.1.0 | [D2](docs/regression-checklist.md#D2) | no |
+| Download a Plain Text/Markdown clip as a `.txt`/`.md` file | Action sheet → Download as file (#127) | 1.3.0 | [D5](docs/regression-checklist.md#D5) | no |
 | Open an HTML file in the browser | HTML file clip → action sheet → Open in browser | 1.1.0 | [D4](docs/regression-checklist.md#D4) | no |
+| Preview an HTML file | Tap an HTML File clip; the page renders read-only in the viewer (#127) | 1.3.0 | [D4](docs/regression-checklist.md#D4) | no |
 | Back up all clips as a ZIP (unencrypted) | Tools → Maintenance → Backup | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
 | Restore from a ZIP | Tools → Maintenance → Restore | 1.1.0 | [D3](docs/regression-checklist.md#D3) | no |
 | Restore skips clips that already exist from the same backup | Tools → Maintenance → Restore the same ZIP again | 1.3.0 | [D3](docs/regression-checklist.md#D3) | no |
@@ -64,13 +69,12 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | TXT → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | DOCX/XLSX/RTF/TXT shown as readable text | Tap the file clip | 1.1.0 | [C4](docs/regression-checklist.md#C4) | no |
 | File → text for unknown formats | Action sheet → **Convert & Edit** → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
-| Text → PDF (Markdown-aware) | Text clip → action sheet → **Convert & Edit** → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
-| Text → .txt file | Text clip → action sheet → **Convert & Edit** → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
-| HTML text → PDF | Text clip that looks like HTML → action sheet → **Convert & Edit** → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
+| Text → PDF | Plain Text/Markdown clip → action sheet → **Convert & Edit** → Text to PDF, or the editor. Markdown clips use the Markdown renderer; Plain Text is always rendered literally, never heuristic-detected as Markdown (#127) | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
+| Make this Markdown / Make this Plain Text | Editor top bar, or Plain Text/Markdown clip → action sheet → **Convert & Edit**. The same clip and body change kind in place; spilled bodies move between `clip.txt` and `clip.md` (#127) | 1.3.0 | [E8](docs/regression-checklist.md#E8) | no |
+| HTML file → PDF | File clip ending in `.html`/`.htm` → action sheet → **Convert & Edit** → HTML to PDF (#127) | 1.3.0 | [E9](docs/regression-checklist.md#E9) | no |
 | Image → PDF | Image clip → action sheet → **Convert & Edit** → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
 | PDF → images | PDF clip → action sheet → **Convert & Edit** → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → text (OCR of the whole PDF) | PDF clip → action sheet → **Convert & Edit** → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
-| PDF → HTML | PDF clip → action sheet → **Convert & Edit** → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
 | PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (directly under Display mode; the row shows the current font and expands on tap); font buttons read System / Sans Serif / Serif / Mono, are centered and are drawn in the family they select; the chosen font is embedded in plain Text → PDF output | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
@@ -85,7 +89,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Read a QR code on a page | Viewer action bar → Read QR | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs; needs two or more image/PDF clips, otherwise a hint says so instead of opening a picker | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
-| Combine text clips | Tools → Combine texts; needs two or more text clips, otherwise a hint offers Create another | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
+| Combine text clips | Tools → Combine texts; accepts Plain Text and Markdown clips and needs two or more, otherwise a hint offers Create another. Mixed Plain + Markdown combines to a Markdown clip; all Plain stays Plain Text (#127) | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Create a blank A4 PDF and mark it up | Tools → Create → Blank PDF; creates a one-page white PDF clip and opens it straight in Mark up (#121) | 1.3.0 | [H6](docs/regression-checklist.md#H6) | no |
 | Edit pages (reorder/delete) | PDF clip → action sheet → **Convert & Edit** → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → **Convert & Edit** → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
@@ -123,13 +127,12 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Text editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Tap a text clip, or use the action sheet → Edit | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Plain Text / Markdown editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Tap a Plain Text or Markdown clip, or use the action sheet → Edit | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save-changes prompt when leaving the editor | Editor → back with unsaved changes | 1.2.0 | [J1](docs/regression-checklist.md#J1) | no |
-| Markdown preview | Editor top bar → Preview; rendered pages open in a full-screen overlay with an X that returns to the editor (#130) | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Markdown insert toolbar | Only on Markdown clips: the **MD** button opens Bold/Italic/Heading/List/Code inserts. Plain Text hides it (#127) | 1.3.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Markdown preview | Editor top bar → Preview; Markdown clips render formatted pages, Plain Text renders literally, and the pages open in a full-screen overlay with an X that returns to the editor (#127, #130) | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
-| Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → tap it, or action sheet → Edit | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| Rendered preview for HTML clips in the editor | Editor top bar → Preview; the rendered page opens in a full-screen overlay with an X, while editing stays on the source (#130) | 1.2.0 | [J3](docs/regression-checklist.md#J3) | no |
-| Reader mode with dark/bright theme and auto-scroll | Text clip → action sheet → Present | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
+| Reader mode with dark/bright theme and auto-scroll | Plain Text/Markdown clip → action sheet → Present. Markdown renders its headings, lists, quotes and emphasis; Plain Text stays literal (#127) | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
 
 ## Settings / languages
 
@@ -151,7 +154,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Not supported | Notes |
 |---|---|
-| Converting into DOCX (or any Office format) | Conversions only produce PDF, text, images or HTML. DOCX/XLSX/RTF are read and converted to PDF |
+| Converting into DOCX (or any Office format) | Conversions only produce PDF, text or images. DOCX/XLSX/RTF are read and converted to PDF; PDF → HTML has been retired (#127) |
 | Sharing several files into KlipSilo at once | The app only receives `ACTION_SEND` (one item). `ACTION_SEND_MULTIPLE` is not handled |
 | "Open with KlipSilo" from a file manager | No `ACTION_VIEW` intent filter. Use Share → KlipSilo instead |
 | Copying a clip's content from the action sheet | There is no Copy action for a clip. Copy from the text editor's text field, or use Share |

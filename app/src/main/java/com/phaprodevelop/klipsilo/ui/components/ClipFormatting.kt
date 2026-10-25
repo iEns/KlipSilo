@@ -35,10 +35,7 @@ internal fun clipInfo(
     val filePath = entry.filePath
     if (filePath == null) return typeName(context, entry.contentType)
     val file = File(filePath)
-    val type =
-        filePath.substringAfterLast('.', "").uppercase().ifBlank {
-            typeName(context, entry.contentType)
-        }
+    val type = clipInfoTypeLabel(entry.contentType, filePath, typeName(context, entry.contentType))
     val size = if (file.exists()) formatSize(file.length()) else ""
     val dims =
         if (entry.contentType == ContentType.IMAGE) {
@@ -55,6 +52,24 @@ internal fun clipInfo(
     return listOf(type, size, dims).filter { it.isNotBlank() }.joinToString(" • ")
 }
 
+/**
+ * The type label in the clip meta line. Spilled Plain Text and Markdown clips
+ * store their body in `clip.txt` / `clip.md`; the list must show the clip kind
+ * ("Text" / "Markdown"), never the storage extension (#127).
+ */
+internal fun clipInfoTypeLabel(
+    contentType: ContentType,
+    filePath: String,
+    typeLabel: String,
+): String =
+    when (contentType) {
+        ContentType.TEXT, ContentType.MARKDOWN -> typeLabel
+        else ->
+            filePath.substringAfterLast('.', "").uppercase().ifBlank {
+                typeLabel
+            }
+    }
+
 internal fun formatSize(bytes: Long): String =
     when {
         bytes < 1024 -> "$bytes B"
@@ -69,6 +84,7 @@ internal fun typeName(
     val res =
         when (type) {
             ContentType.TEXT -> R.string.text
+            ContentType.MARKDOWN -> R.string.markdown
             ContentType.URL -> R.string.url
             ContentType.IMAGE -> R.string.image
             ContentType.PDF -> R.string.pdf

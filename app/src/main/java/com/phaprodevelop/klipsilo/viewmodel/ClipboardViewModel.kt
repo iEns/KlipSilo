@@ -14,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.db.SnipDatabase
+import com.phaprodevelop.klipsilo.data.db.isPlainOrMarkdown
+import com.phaprodevelop.klipsilo.data.db.isTextual
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.ClipboardRepository
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
@@ -157,6 +159,10 @@ class ClipboardViewModel(
             // #33 leftover: once per install, title text clips that still carry a
             // stale auto title from an older build (user renames are untouched).
             repository.recomputeStaleTextTitles()
+        }
+        viewModelScope.launch {
+            // #127: one-shot kind split (Plain Text / Markdown, HTML text -> File).
+            repository.migrateTextKinds()
         }
         viewModelScope.launch {
             // Re-read the table on every signal. A Room emission can be stale or, after a
@@ -534,7 +540,7 @@ class ClipboardViewModel(
         committedText: String,
     ): Boolean {
         if (entry.isLocked) return false
-        if (entry.contentType != ContentType.TEXT && entry.contentType != ContentType.URL) return false
+        if (!entry.contentType.isTextual) return false
         // Only non-empty, actually new content is persisted. Blank edits are left
         // to the explicit Save/Back flow (an existing clip keeps its content).
         if (text.isBlank() || text == committedText) return false
@@ -813,7 +819,14 @@ class ClipboardViewModel(
                             } else {
                                 entry
                             }
-                        repository.saveTextAsPdf(body, entryForPdf, fontSizePt, lineSpacing, pdfFont)
+                        repository.saveTextAsPdf(
+                            body,
+                            entryForPdf,
+                            fontSizePt,
+                            lineSpacing,
+                            pdfFont,
+                            markdown = entry.contentType == ContentType.MARKDOWN,
+                        )
                     }
                 if (newId > 0L) {
                     triggerScrollToTop()
@@ -836,37 +849,46 @@ class ClipboardViewModel(
         _navigateBack.value = false
     }
 
-    fun convertTextToFile(
-        text: String,
+    /**
+     * #127: turn a Plain Text clip into Markdown (or back) in place, keeping the
+     * same row and body. [body] carries unsaved editor text; the action sheet
+     * passes null and edits the stored clip.
+     */
+    fun setTextClipKind(
         entry: ClipboardEntry,
+        target: ContentType,
+        body: String? = null,
     ) {
-        if (_isConverting.value) return
+        if (target != ContentType.TEXT && target != ContentType.MARKDOWN) return
+        if (entry.isLocked) {
+            toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_is_locked))
+            return
+        }
         viewModelScope.launch {
-            _isConverting.value = true
-            try {
-                val body = text.ifBlank { repository.readTextBody(entry).orEmpty() }
-                if (body.isBlank()) {
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
-                    return@launch
+            if (pendingNewDraft.value?.id == entry.id) {
+                pendingNewDraft.value = entry.copy(contentType = target)
+                toast(localizedString(kindChangedToast(target)))
+                return@launch
+            }
+            val ok =
+                withContext(ioDispatcher) {
+                    repository.setTextClipKind(entry, target, body?.takeIf { it.isNotBlank() })
                 }
-                val newId =
-                    withContext(ioDispatcher) {
-                        val effectivePreview = persistText(entry, body)
-                        repository.saveTextAsFile(body, effectivePreview)
-                    }
-                if (newId > 0L) {
-                    triggerScrollToTop()
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.text_to_txt))
-                } else {
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
-                }
-            } catch (_: Exception) {
+            if (ok) {
+                triggerScrollToTop()
+                toast(localizedString(kindChangedToast(target)))
+            } else {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
-            } finally {
-                _isConverting.value = false
             }
         }
     }
+
+    private fun kindChangedToast(target: ContentType): Int =
+        if (target == ContentType.MARKDOWN) {
+            com.phaprodevelop.klipsilo.R.string.converted_to_markdown
+        } else {
+            com.phaprodevelop.klipsilo.R.string.converted_to_plain_text
+        }
 
     private suspend fun persistText(
         entry: ClipboardEntry,
@@ -877,7 +899,7 @@ class ClipboardViewModel(
             return base.previewText
         }
         val preview =
-            if (base.contentType == ContentType.TEXT &&
+            if (base.contentType.isPlainOrMarkdown &&
                 (base.previewText.isBlank() || textTitleLooksAutomatic(base.previewText))
             ) {
                 textClipTitle(text).ifBlank { base.previewText }
@@ -917,50 +939,6 @@ class ClipboardViewModel(
                 } else {
                     createTextSnip(text)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_to_text))
-                }
-            } catch (_: Exception) {
-                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
-            } finally {
-                _isConverting.value = false
-            }
-        }
-    }
-
-    fun convertPdfToHtml(entry: ClipboardEntry) {
-        if (_isConverting.value) return
-        viewModelScope.launch {
-            _isConverting.value = true
-            try {
-                val filePath = requireFilePath(entry) ?: return@launch
-                val html =
-                    withContext(ioDispatcher) {
-                        repository.pdfToHtml(filePath)
-                    }
-                if (html.isNullOrBlank()) {
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
-                } else {
-                    val id = System.nanoTime()
-                    val stem = entry.previewText.replace(Regex("[_\\-]+"), " ").trim()
-                    val preview =
-                        localizedString(
-                            com.phaprodevelop.klipsilo.R.string.html_from,
-                            stem.take(60),
-                        ).take(100)
-                    val newEntry =
-                        ClipboardEntry(
-                            id = id,
-                            contentType = ContentType.TEXT,
-                            textContent = html,
-                            filePath = null,
-                            previewText = preview,
-                            timestamp = System.currentTimeMillis(),
-                        )
-                    withContext(ioDispatcher) {
-                        repository.insertEntry(newEntry)
-                    }
-                    _navigateToNewClip.value = id
-                    triggerScrollToTop()
-                    toast(localizedString(com.phaprodevelop.klipsilo.R.string.html_created))
                 }
             } catch (_: Exception) {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1112,9 +1090,10 @@ class ClipboardViewModel(
         fontSizePt: Float,
         lineSpacing: Float,
         pdfFont: PdfFont? = null,
+        markdown: Boolean = false,
     ): List<Bitmap> {
         return withContext(ioDispatcher) {
-            repository.previewTextAsPdf(text, fontSizePt, lineSpacing, pdfFont)
+            repository.previewTextAsPdf(text, fontSizePt, lineSpacing, pdfFont, markdown)
         }
     }
 
@@ -1154,12 +1133,13 @@ class ClipboardViewModel(
     private suspend fun createTextSnip(
         text: String,
         navigate: Boolean = true,
+        contentType: ContentType = ContentType.TEXT,
     ): Long {
         val id = System.nanoTime()
         val entry =
             ClipboardEntry(
                 id = id,
-                contentType = ContentType.TEXT,
+                contentType = contentType,
                 textContent = text,
                 filePath = null,
                 previewText = textClipTitle(text),
@@ -1497,7 +1477,7 @@ class ClipboardViewModel(
         viewModelScope.launch {
             try {
                 val toSave =
-                    if (entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL) {
+                    if (entry.contentType.isTextual) {
                         val full = repository.getClip(entry.id) ?: entry
                         full.copy(
                             textContent = entry.textContent ?: full.textContent,
@@ -1526,7 +1506,7 @@ class ClipboardViewModel(
     ): String {
         val body = incoming.textContent ?: stored.textContent.orEmpty()
         val requested = incoming.previewText
-        if (incoming.contentType == ContentType.TEXT) {
+        if (incoming.contentType.isPlainOrMarkdown) {
             if (requested.isNotBlank() &&
                 requested != stored.previewText &&
                 !textTitleLooksAutomatic(requested)
@@ -1863,7 +1843,17 @@ class ClipboardViewModel(
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
                 return@launch
             }
-            createTextSnip(combined, navigate = false)
+            // #127: mixed Plain + Markdown combines to Markdown, all plain stays plain.
+            createTextSnip(
+                combined,
+                navigate = false,
+                contentType =
+                    if (entries.any { it.contentType == ContentType.MARKDOWN }) {
+                        ContentType.MARKDOWN
+                    } else {
+                        ContentType.TEXT
+                    },
+            )
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.texts_combined))
         }
     }
@@ -1972,6 +1962,12 @@ class ClipboardViewModel(
 
     fun shareClip(entry: ClipboardEntry) {
         if (!repository.shareClip(entry)) {
+            toast(localizedString(com.phaprodevelop.klipsilo.R.string.file_cannot_open))
+        }
+    }
+
+    fun shareClipAsFile(entry: ClipboardEntry) {
+        if (!repository.shareTextClipAsFile(entry)) {
             toast(localizedString(com.phaprodevelop.klipsilo.R.string.file_cannot_open))
         }
     }

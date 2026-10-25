@@ -15,13 +15,7 @@ private const val READER_STYLE_BLOCK =
     "<style>body{margin:0;padding:16px;font-size:1rem;line-height:1.45;-webkit-text-size-adjust:100%}</style>"
 
 /** True when the text is an HTML document (or a body fragment) rather than plain text. */
-internal fun looksLikeHtmlDocument(text: String?): Boolean {
-    val trimmed = text.orEmpty().trimStart()
-    if (trimmed.isEmpty()) return false
-    val head = trimmed.take(64).lowercase(Locale.ROOT)
-    if (head.startsWith("<!doctype html") || head.startsWith("<html")) return true
-    return trimmed.contains("<body", ignoreCase = true)
-}
+internal fun looksLikeHtmlDocument(text: String?): Boolean = com.phaprodevelop.klipsilo.data.looksLikeHtmlDocument(text)
 
 /**
  * Prepares an HTML clip for the reader WebView: injects the viewport meta and the

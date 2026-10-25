@@ -134,6 +134,34 @@ class LargeTextPersistenceTest {
         }
 
     @Test
+    fun insertEntry_300KiB_markdown_spillsToMdFile() =
+        runTest {
+            // Arrange (#127): Markdown spilled bodies live in clip.md.
+            val text = "# Heading\n\n" + "e".repeat(300 * 1024)
+            val entry =
+                ClipboardEntry(
+                    id = 4L,
+                    contentType = ContentType.MARKDOWN,
+                    textContent = text,
+                    filePath = null,
+                    previewText = "Heading",
+                    timestamp = 40L,
+                )
+
+            // Act
+            repo.insertEntry(entry)
+            val stored = dao.getAllOnce().single()
+            val listRow = repo.getAllClips().first().single()
+
+            // Assert
+            assertEquals(ContentType.MARKDOWN, stored.contentType)
+            assertNull(stored.textContent)
+            assertNotNull(stored.filePath)
+            assertTrue(stored.filePath!!.endsWith(".md"))
+            assertEquals(text, repo.readTextBody(listRow))
+        }
+
+    @Test
     fun insertEntry_300KiB_fileBackedKeepsTextType() =
         runTest {
             // Arrange

@@ -9,6 +9,7 @@
     <string name="filter_no_results">No %1$s clips yet</string>
     <string name="empty_list_hint">Clear the search or filter to see all clips</string>
     <string name="filter_text_hint">Copy text or tap +.</string>
+    <string name="filter_markdown_hint">Make a clip Markdown from the editor or its action sheet.</string>
     <string name="filter_url_hint">Copy a link to save it here.</string>
     <string name="filter_image_hint">Copy an image to save it here.</string>
     <string name="filter_pdf_hint">Copy a PDF to save it here.</string>
@@ -19,11 +20,13 @@
     <string name="clip_deleted">Clip deleted</string>
     <string name="all_deleted">All clips deleted</string>
     <string name="text">Text</string>
+    <string name="markdown">Markdown</string>
     <string name="image">Image</string>
     <string name="url">URL</string>
     <string name="pdf">PDF</string>
     <string name="file">File</string>
     <string name="file_name_text">text</string>
+    <string name="file_name_markdown">markdown</string>
     <string name="file_name_image">image</string>
     <string name="file_name_file">file</string>
     <string name="image_placeholder">[image]</string>
@@ -33,6 +36,9 @@
     <string name="hours_ago">%d h ago</string>
     <string name="days_ago">%d d ago</string>
     <string name="share">Share</string>
+    <string name="share_as_text">Share as text</string>
+    <string name="share_as_file">Share as file</string>
+    <string name="download_as_file">Download as file</string>
     <string name="copy">Copy</string>
     <string name="delete">Delete</string>
     <string name="clip_restored">Clip restored</string>
@@ -131,6 +137,10 @@
     <string name="file_to_text">File → Text</string>
     <string name="text_to_pdf">Text → PDF</string>
     <string name="text_to_txt">Text → TXT</string>
+    <string name="make_markdown">Make this Markdown</string>
+    <string name="make_plain_text">Make this Plain Text</string>
+    <string name="converted_to_markdown">Converted to Markdown</string>
+    <string name="converted_to_plain_text">Converted to Plain Text</string>
     <string name="save_to_downloads">Save to Downloads</string>
     <string name="saved_to_downloads">Saved to Downloads</string>
     <string name="download_url">Download from URL</string>

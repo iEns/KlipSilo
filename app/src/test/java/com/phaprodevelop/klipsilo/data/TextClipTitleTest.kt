@@ -49,8 +49,9 @@ class TextClipTitleTest {
     }
 
     @Test
-    fun clipListTitle_stripsTextAndLeavesOtherTypes() {
+    fun clipListTitle_stripsTextAndMarkdownAndLeavesOtherTypes() {
         assertEquals("Lemon Garlic Pasta", clipListTitle(ContentType.TEXT, "# Lemon Garlic Pasta"))
+        assertEquals("Lemon Garlic Pasta", clipListTitle(ContentType.MARKDOWN, "# Lemon Garlic Pasta"))
         assertEquals("notes.pdf", clipListTitle(ContentType.PDF, "notes.pdf"))
     }
 

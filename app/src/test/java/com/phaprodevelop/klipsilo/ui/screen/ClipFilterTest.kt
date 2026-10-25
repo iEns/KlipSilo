@@ -26,17 +26,20 @@ class ClipFilterTest {
     }
 
     @Test
-    fun text_excludesUrl() {
+    fun text_excludesUrlAndMarkdown() {
         // Arrange
         val text = entry(id = 1, contentType = ContentType.TEXT, previewText = "note")
-        val url = entry(id = 2, contentType = ContentType.URL, previewText = "https://example.com")
-        val clips = listOf(text, url)
+        val markdown = entry(id = 2, contentType = ContentType.MARKDOWN, previewText = "# note")
+        val url = entry(id = 3, contentType = ContentType.URL, previewText = "https://example.com")
+        val clips = listOf(text, markdown, url)
 
         // Act
-        val result = filterClips(clips, query = "", filter = ClipFilter.TEXT)
+        val textResult = filterClips(clips, query = "", filter = ClipFilter.TEXT)
+        val markdownResult = filterClips(clips, query = "", filter = ClipFilter.MARKDOWN)
 
         // Assert
-        assertEquals(listOf(text), result)
+        assertEquals(listOf(text), textResult)
+        assertEquals(listOf(markdown), markdownResult)
     }
 
     @Test
@@ -94,6 +97,8 @@ class ClipFilterTest {
         val clips = allContentTypes()
         val expected =
             mapOf(
+                ClipFilter.TEXT to ContentType.TEXT,
+                ClipFilter.MARKDOWN to ContentType.MARKDOWN,
                 ClipFilter.IMAGE to ContentType.IMAGE,
                 ClipFilter.PDF to ContentType.PDF,
                 ClipFilter.FILE to ContentType.FILE,
@@ -193,6 +198,7 @@ class ClipFilterTest {
         val expectedHints =
             mapOf(
                 ClipFilter.TEXT to EmptyListHint.TEXT,
+                ClipFilter.MARKDOWN to EmptyListHint.MARKDOWN,
                 ClipFilter.URL to EmptyListHint.URL,
                 ClipFilter.IMAGE to EmptyListHint.IMAGE,
                 ClipFilter.PDF to EmptyListHint.PDF,
@@ -222,11 +228,12 @@ class ClipFilterTest {
     private fun allContentTypes(): List<ClipboardEntry> =
         listOf(
             entry(id = 1, contentType = ContentType.TEXT, previewText = "text"),
-            entry(id = 2, contentType = ContentType.URL, previewText = "https://example.com"),
-            entry(id = 3, contentType = ContentType.IMAGE, previewText = "image"),
-            entry(id = 4, contentType = ContentType.PDF, previewText = "pdf"),
-            entry(id = 5, contentType = ContentType.FILE, previewText = "file"),
-            entry(id = 6, contentType = ContentType.LOCATION, previewText = "location"),
+            entry(id = 2, contentType = ContentType.MARKDOWN, previewText = "# markdown"),
+            entry(id = 3, contentType = ContentType.URL, previewText = "https://example.com"),
+            entry(id = 4, contentType = ContentType.IMAGE, previewText = "image"),
+            entry(id = 5, contentType = ContentType.PDF, previewText = "pdf"),
+            entry(id = 6, contentType = ContentType.FILE, previewText = "file"),
+            entry(id = 7, contentType = ContentType.LOCATION, previewText = "location"),
         )
 
     private fun entry(

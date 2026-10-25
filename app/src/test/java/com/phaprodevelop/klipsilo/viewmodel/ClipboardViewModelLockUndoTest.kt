@@ -313,7 +313,7 @@ class ClipboardViewModelLockUndoTest {
     }
 
     @Test
-    fun convertTextToFile_locked_doesNotOverwriteText() {
+    fun setTextClipKind_locked_doesNotChangeTextOrKind() {
         // Arrange
         val original = "locked-body"
         val locked = vm.clips.value.single { it.id == 1L }
@@ -321,11 +321,13 @@ class ClipboardViewModelLockUndoTest {
         assertEquals(original, item(1L).textContent)
 
         // Act
-        vm.convertTextToFile("should-not-overwrite", locked)
+        vm.setTextClipKind(locked, ContentType.MARKDOWN, "should-not-overwrite")
         mainDispatcherRule.scheduler.advanceUntilIdle()
 
         // Assert
         assertEquals(original, item(1L).textContent)
+        assertEquals(ContentType.TEXT, item(1L).contentType)
+        assertEquals(string(R.string.clip_is_locked), vm.toastMessage.value)
     }
 
     private fun string(resId: Int): String = LocaleHelper.applyLocale(application).getString(resId)

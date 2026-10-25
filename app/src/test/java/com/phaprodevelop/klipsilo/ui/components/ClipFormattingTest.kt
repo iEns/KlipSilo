@@ -2,6 +2,7 @@
 
 package com.phaprodevelop.klipsilo.ui.components
 
+import com.phaprodevelop.klipsilo.data.db.ContentType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,6 +10,32 @@ import org.junit.Test
 import java.util.Locale
 
 class ClipFormattingTest {
+    @Test
+    fun clipInfoTypeLabel_spilledPlainText_usesTypeNameNotTxt() {
+        // #127: a large Plain Text clip is stored in clip.txt; the list must
+        // say "Text", never the storage extension.
+        assertEquals(
+            "Text",
+            clipInfoTypeLabel(ContentType.TEXT, "/data/files/clip.txt", "Text"),
+        )
+    }
+
+    @Test
+    fun clipInfoTypeLabel_spilledMarkdown_usesTypeNameNotMd() {
+        assertEquals(
+            "Markdown",
+            clipInfoTypeLabel(ContentType.MARKDOWN, "/data/files/clip.md", "Markdown"),
+        )
+    }
+
+    @Test
+    fun clipInfoTypeLabel_fileClip_keepsExtension() {
+        assertEquals(
+            "DOCX",
+            clipInfoTypeLabel(ContentType.FILE, "/data/files/report.docx", "File"),
+        )
+    }
+
     @Test
     fun formatSize_zero() {
         // Arrange

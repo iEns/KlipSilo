@@ -7,6 +7,7 @@ import com.phaprodevelop.klipsilo.withoutSoftHyphens
 internal enum class ClipFilter {
     ALL,
     TEXT,
+    MARKDOWN,
     URL,
     IMAGE,
     PDF,
@@ -19,6 +20,7 @@ internal fun ClipFilter.matches(entry: ClipboardEntry): Boolean =
     when (this) {
         ClipFilter.ALL -> true
         ClipFilter.TEXT -> entry.contentType == ContentType.TEXT
+        ClipFilter.MARKDOWN -> entry.contentType == ContentType.MARKDOWN
         ClipFilter.URL -> entry.contentType == ContentType.URL
         ClipFilter.IMAGE -> entry.contentType == ContentType.IMAGE
         ClipFilter.PDF -> entry.contentType == ContentType.PDF
@@ -57,6 +59,7 @@ internal enum class EmptyListHint {
     NO_CLIPS,
     CLEAR_SEARCH_OR_FILTER,
     TEXT,
+    MARKDOWN,
     URL,
     IMAGE,
     PDF,
@@ -93,6 +96,7 @@ internal fun emptyListState(
             filter != ClipFilter.ALL ->
                 when (filter) {
                     ClipFilter.TEXT -> EmptyListHint.TEXT
+                    ClipFilter.MARKDOWN -> EmptyListHint.MARKDOWN
                     ClipFilter.URL -> EmptyListHint.URL
                     ClipFilter.IMAGE -> EmptyListHint.IMAGE
                     ClipFilter.PDF -> EmptyListHint.PDF

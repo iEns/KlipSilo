@@ -60,6 +60,7 @@ import androidx.core.content.ContextCompat
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.db.isPlainOrMarkdown
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -76,17 +77,19 @@ internal enum class ClipSheetAction(val section: SheetSection) {
     VIEW(SheetSection.PRIMARY),
     PRESENT(SheetSection.PRIMARY),
     SHARE(SheetSection.PRIMARY),
+    SHARE_AS_FILE(SheetSection.PRIMARY),
     SAVE_TO_DOWNLOADS(SheetSection.PRIMARY),
+    DOWNLOAD_AS_FILE(SheetSection.PRIMARY),
     DOWNLOAD_FROM_URL(SheetSection.PRIMARY),
     OPEN_IN_BROWSER(SheetSection.PRIMARY),
     TEXT_TO_PDF(SheetSection.CONVERT),
-    TEXT_TO_TXT(SheetSection.CONVERT),
+    MAKE_MARKDOWN(SheetSection.CONVERT),
+    MAKE_PLAIN_TEXT(SheetSection.CONVERT),
     IMAGE_TO_PDF(SheetSection.CONVERT),
     PDF_TO_IMAGE(SheetSection.CONVERT),
     PDF_TO_TEXT(SheetSection.CONVERT),
     FILE_TO_TEXT(SheetSection.CONVERT),
     CONVERT_TO_PDF(SheetSection.CONVERT),
-    CONVERT_TO_HTML(SheetSection.CONVERT),
     CONVERT_HTML_TO_PDF(SheetSection.CONVERT),
     TRY_AS_TEXT(SheetSection.CONVERT),
     OCR_IMAGE(SheetSection.CONVERT),
@@ -124,7 +127,6 @@ fun ClipActionSheet(
     onDownloadUrl: (() -> Unit)? = null,
     onOpenInBrowser: (() -> Unit)? = null,
     onConvertToPdf: (() -> Unit)? = null,
-    onConvertToHtml: (() -> Unit)? = null,
     onConvertHtmlToPdf: (() -> Unit)? = null,
     onTryAsText: (() -> Unit)? = null,
     onOcrImage: (() -> Unit)? = null,
@@ -204,7 +206,7 @@ fun ClipActionSheet(
 
             val actions =
                 buildList {
-                    if (entry.contentType == ContentType.TEXT) {
+                    if (entry.contentType.isPlainOrMarkdown) {
                         add(
                             SheetItem(
                                 action = ClipSheetAction.VIEW,
@@ -243,12 +245,40 @@ fun ClipActionSheet(
                         SheetItem(
                             action = ClipSheetAction.SHARE,
                             icon = Icons.Filled.Share,
-                            label = context.getString(R.string.share),
+                            label =
+                                context.getString(
+                                    if (entry.contentType.isPlainOrMarkdown) {
+                                        R.string.share_as_text
+                                    } else {
+                                        R.string.share
+                                    },
+                                ),
                         ) {
                             onDismiss()
                             viewModel.shareClip(entry)
                         },
                     )
+                    if (entry.contentType.isPlainOrMarkdown) {
+                        add(
+                            SheetItem(
+                                action = ClipSheetAction.SHARE_AS_FILE,
+                                icon = Icons.Filled.InsertDriveFile,
+                                label = context.getString(R.string.share_as_file),
+                            ) {
+                                onDismiss()
+                                viewModel.shareClipAsFile(entry)
+                            },
+                        )
+                        add(
+                            SheetItem(
+                                action = ClipSheetAction.DOWNLOAD_AS_FILE,
+                                icon = Icons.Filled.Download,
+                                label = context.getString(R.string.download_as_file),
+                            ) {
+                                saveToDownloads(entry)
+                            },
+                        )
+                    }
                     if (
                         entry.contentType == ContentType.FILE ||
                         entry.contentType == ContentType.PDF ||
@@ -298,17 +328,6 @@ fun ClipActionSheet(
                                 label = context.getString(R.string.convert_to_pdf),
                             ) {
                                 // The Convert section wrapper dismisses the sheet (#128).
-                                convert()
-                            },
-                        )
-                    }
-                    onConvertToHtml?.let { convert ->
-                        add(
-                            SheetItem(
-                                action = ClipSheetAction.CONVERT_TO_HTML,
-                                icon = Icons.Filled.Html,
-                                label = context.getString(R.string.pdf_to_html),
-                            ) {
                                 convert()
                             },
                         )
@@ -594,6 +613,28 @@ internal fun fileConvertToPdfAction(
         else -> null
     }
 
+/** The shared Text/Markdown conversion rows; the kind toggle is appended by the caller. */
+private fun textConversionRows(
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
+    context: android.content.Context,
+): List<SheetItem> =
+    listOf(
+        SheetItem(
+            action = ClipSheetAction.TEXT_TO_PDF,
+            icon = Icons.Filled.PictureAsPdf,
+            label = context.getString(R.string.text_to_pdf),
+        ) {
+            // #126: read the Settings font when the action runs, so a
+            // change made in Settings is picked up without a restart.
+            viewModel.convertTextToPdf(
+                entry.textContent.orEmpty(),
+                entry,
+                pdfFont = PdfSettingsStore.load(context).pdfFont,
+            )
+        },
+    )
+
 private fun conversionRows(
     entry: ClipboardEntry,
     viewModel: ClipboardViewModel,
@@ -601,28 +642,23 @@ private fun conversionRows(
 ): List<SheetItem> =
     when (entry.contentType) {
         ContentType.TEXT ->
-            listOf(
+            textConversionRows(entry, viewModel, context) +
                 SheetItem(
-                    action = ClipSheetAction.TEXT_TO_PDF,
-                    icon = Icons.Filled.PictureAsPdf,
-                    label = context.getString(R.string.text_to_pdf),
+                    action = ClipSheetAction.MAKE_MARKDOWN,
+                    icon = Icons.Filled.Transform,
+                    label = context.getString(R.string.make_markdown),
                 ) {
-                    // #126: read the Settings font when the action runs, so a
-                    // change made in Settings is picked up without a restart.
-                    viewModel.convertTextToPdf(
-                        entry.textContent.orEmpty(),
-                        entry,
-                        pdfFont = PdfSettingsStore.load(context).pdfFont,
-                    )
-                },
+                    viewModel.setTextClipKind(entry, ContentType.MARKDOWN)
+                }
+        ContentType.MARKDOWN ->
+            textConversionRows(entry, viewModel, context) +
                 SheetItem(
-                    action = ClipSheetAction.TEXT_TO_TXT,
-                    icon = Icons.Filled.InsertDriveFile,
-                    label = context.getString(R.string.text_to_txt),
+                    action = ClipSheetAction.MAKE_PLAIN_TEXT,
+                    icon = Icons.Filled.Transform,
+                    label = context.getString(R.string.make_plain_text),
                 ) {
-                    viewModel.convertTextToFile(entry.textContent.orEmpty(), entry)
-                },
-            )
+                    viewModel.setTextClipKind(entry, ContentType.TEXT)
+                }
         ContentType.IMAGE ->
             listOf(
                 SheetItem(
