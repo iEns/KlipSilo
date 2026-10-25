@@ -135,7 +135,7 @@ class ConvertFileToTextTest {
         }
 
     @Test
-    fun convertTextToFile_blankText_readsStoredBody() =
+    fun setTextClipKind_textToMarkdown_keepsSameRowAndBody() =
         runTest(mainDispatcherRule.dispatcher) {
             // Arrange
             val stored =
@@ -151,15 +151,15 @@ class ConvertFileToTextTest {
             val listRow = stored.copy(textContent = null)
 
             // Act
-            viewModel.convertTextToFile("", listRow)
+            viewModel.setTextClipKind(listRow, ContentType.MARKDOWN)
             mainDispatcherRule.scheduler.advanceUntilIdle()
 
             // Assert
-            val fileItem = dao.getAllOnce().single { it.contentType == ContentType.FILE }
-            assertNotNull(fileItem.filePath)
-            assertEquals("stored body", File(fileItem.filePath!!).readText())
-            assertEquals(string(R.string.text_to_txt), viewModel.toastMessage.value)
-            assertFalse(viewModel.isConverting.value)
+            val item = dao.getAllOnce().single { it.id == 21L }
+            assertEquals(ContentType.MARKDOWN, item.contentType)
+            assertEquals("stored body", item.textContent)
+            assertEquals(string(R.string.converted_to_markdown), viewModel.toastMessage.value)
+            assertEquals(1, dao.getAllOnce().size)
         }
 
     @Test
@@ -187,15 +187,15 @@ class ConvertFileToTextTest {
         }
 
     @Test
-    fun convertTextToFile_doesNotRequestNavigateBack() =
+    fun setTextClipKind_markdownToPlain_doesNotRequestNavigateBack() =
         runTest(mainDispatcherRule.dispatcher) {
-            // Arrange (#129): Text → TXT runs from the Clips action sheet. A
-            // pending "navigate back" would make the next clip tap open a
+            // Arrange (#129): the kind toggle runs from the Clips action sheet.
+            // A pending "navigate back" would make the next clip tap open a
             // detail screen and immediately close it again.
             val stored =
                 ClipboardEntry(
                     id = 24L,
-                    contentType = ContentType.TEXT,
+                    contentType = ContentType.MARKDOWN,
                     textContent = "body",
                     filePath = null,
                     previewText = "body",
@@ -204,11 +204,12 @@ class ConvertFileToTextTest {
             ClipboardRepository(dao, app).insertEntry(stored)
 
             // Act
-            viewModel.convertTextToFile("body", stored)
+            viewModel.setTextClipKind(stored, ContentType.TEXT)
             mainDispatcherRule.scheduler.advanceUntilIdle()
 
             // Assert
-            assertNotNull(dao.getAllOnce().single { it.contentType == ContentType.FILE }.filePath)
+            assertEquals(ContentType.TEXT, dao.getAllOnce().single { it.id == 24L }.contentType)
+            assertEquals(string(R.string.converted_to_plain_text), viewModel.toastMessage.value)
             assertFalse(viewModel.navigateBack.value)
         }
 

@@ -43,7 +43,10 @@ import com.phaprodevelop.klipsilo.data.db.ClipboardItem
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemListRow
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.db.isPlainOrMarkdown
+import com.phaprodevelop.klipsilo.data.db.isTextual
 import com.phaprodevelop.klipsilo.data.formKeyboardKind
+import com.phaprodevelop.klipsilo.data.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.data.markdownHeadingFactor
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearbyFieldText
@@ -138,7 +141,6 @@ import java.util.zip.ZipOutputStream
 import kotlin.coroutines.resume
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 /** Outcome of combining clips into a new PDF clip. */
 sealed interface PdfCombineResult {
@@ -167,6 +169,10 @@ class ClipboardRepository(
 
         private const val TITLE_RECOMPUTE_PREFS = "data_migration_prefs"
         private const val KEY_TEXT_TITLE_RECOMPUTE_DONE = "text_titles_recomputed"
+
+        // #127: one-shot text-kind migration, same prefs file as the other data migrations.
+        internal const val TEXT_KIND_MIGRATION_PREFS = "data_migration_prefs"
+        internal const val KEY_TEXT_KIND_MIGRATION_DONE = "text_kinds_migrated"
     }
 
     private val restoreMutex = Mutex()
@@ -216,6 +222,70 @@ class ClipboardRepository(
             }
             prefs.edit().putBoolean(KEY_TEXT_TITLE_RECOMPUTE_DONE, true).apply()
         } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * #127 one-shot migration to the Plain Text + Markdown model. Runs once per
+     * install on first open, never from a user action:
+     * - `TEXT` clips stay Plain Text; no `#`/`*` heuristics are applied.
+     * - `FILE` clips ending in `.txt` / `.md` become Plain Text / Markdown.
+     * - old HTML `TEXT` clips become `FILE` clips with an `.html` file on disk.
+     * - DOCX/RTF/XLSX and all other files stay `FILE`.
+     */
+    suspend fun migrateTextKinds() {
+        try {
+            val prefs = context.getSharedPreferences(TEXT_KIND_MIGRATION_PREFS, Context.MODE_PRIVATE)
+            if (prefs.getBoolean(KEY_TEXT_KIND_MIGRATION_DONE, false)) return
+            dao.getAllOnce().forEach { item ->
+                when (item.contentType) {
+                    ContentType.FILE -> migrateTextFileKind(item)
+                    ContentType.TEXT -> migrateHtmlTextClip(item)
+                    else -> Unit
+                }
+            }
+            prefs.edit().putBoolean(KEY_TEXT_KIND_MIGRATION_DONE, true).apply()
+        } catch (_: Exception) {
+        }
+    }
+
+    private suspend fun migrateTextFileKind(item: ClipboardItem) {
+        val newType =
+            when (item.filePath?.substringAfterLast('.', "")?.lowercase(Locale.ROOT)) {
+                "txt" -> ContentType.TEXT
+                "md" -> ContentType.MARKDOWN
+                else -> return
+            }
+        try {
+            dao.update(item.copy(contentType = newType))
+        } catch (_: Exception) {
+        }
+    }
+
+    private suspend fun migrateHtmlTextClip(item: ClipboardItem) {
+        val body = item.textContent ?: item.filePath?.let { readCappedUtf8File(it) }
+        if (!looksLikeHtmlDocument(body)) return
+        val html = body ?: return
+        val previewName = sanitizeFileName("${extractBaseName(item.previewText).ifBlank { "clip" }}.html")
+        val dest = ensureUniqueFile(File(filesDir, previewName)) ?: return
+        try {
+            dest.writeText(html, Charsets.UTF_8)
+            dao.update(
+                item.copy(
+                    contentType = ContentType.FILE,
+                    textContent = null,
+                    filePath = dest.absolutePath,
+                ),
+            )
+            // Drop the old spilled body once the HTML file owns the content.
+            item.filePath?.let { oldPath ->
+                val oldFile = File(oldPath)
+                if (oldFile.parentFile?.canonicalPath == filesDir.canonicalPath) {
+                    oldFile.delete()
+                }
+            }
+        } catch (_: Exception) {
+            dest.delete()
         }
     }
 
@@ -532,6 +602,81 @@ class ClipboardRepository(
         dao.updateLocked(entry.id, locked)
     }
 
+    /**
+     * #127: change a Plain Text clip to Markdown (or back) in place. The body is
+     * kept; a spilled body moves from `clip.txt` to `clip.md` (or back). When
+     * [body] is given (editor with unsaved edits) it is persisted first.
+     */
+    suspend fun setTextClipKind(
+        entry: ClipboardEntry,
+        target: ContentType,
+        body: String? = null,
+    ): Boolean {
+        if (target != ContentType.TEXT && target != ContentType.MARKDOWN) return false
+        val full = dao.getById(entry.id)?.toEntry() ?: entry
+        if (full.isLocked || !full.contentType.isPlainOrMarkdown) return false
+        var textContent = full.textContent
+        var filePath = full.filePath
+        if (body != null) {
+            when (val persisted = persistTextBody(body, target)) {
+                PersistTextResult.TooLarge, PersistTextResult.Failed -> return false
+                is PersistTextResult.Ok -> {
+                    if (filePath != null && filePath != persisted.filePath && isSpilledTextPath(filePath)) {
+                        File(filePath).delete()
+                    }
+                    textContent = persisted.textContent
+                    filePath = persisted.filePath
+                }
+            }
+        } else if (filePath != null) {
+            filePath = renameTextBodyExtension(filePath, target) ?: filePath
+        }
+        return try {
+            dao.update(
+                ClipboardItem(
+                    id = full.id,
+                    contentType = target,
+                    textContent = textContent,
+                    filePath = filePath,
+                    previewText = full.previewText,
+                    timestamp = full.timestamp,
+                    isPinned = full.isPinned,
+                    isLocked = full.isLocked,
+                    latitude = full.latitude,
+                    longitude = full.longitude,
+                ),
+            )
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isSpilledTextPath(path: String): Boolean =
+        try {
+            File(path).parentFile?.canonicalPath == filesDir.canonicalPath
+        } catch (_: Exception) {
+            false
+        }
+
+    private fun renameTextBodyExtension(
+        path: String,
+        target: ContentType,
+    ): String? {
+        return try {
+            val file = File(path)
+            if (!file.exists()) return null
+            val desiredExt = if (target == ContentType.MARKDOWN) "md" else "txt"
+            if (file.extension.equals(desiredExt, ignoreCase = true)) return path
+            val parent = file.parentFile ?: return null
+            val desired = File(parent, "${file.nameWithoutExtension}.$desiredExt")
+            val dest = takeUniqueRenameTarget(desired) ?: return null
+            if (file.renameTo(dest)) dest.absolutePath else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun renameFileClip(
         entry: ClipboardEntry,
         newName: String,
@@ -689,9 +834,7 @@ class ClipboardRepository(
                 id = id,
                 contentType = source.contentType,
                 textContent =
-                    if (newFilePath != null &&
-                        (source.contentType == ContentType.TEXT || source.contentType == ContentType.URL)
-                    ) {
+                    if (newFilePath != null && source.contentType.isTextual) {
                         null
                     } else {
                         source.textContent
@@ -1654,10 +1797,11 @@ class ClipboardRepository(
         fontSizePt: Float? = null,
         lineSpacing: Float? = null,
         pdfFont: PdfFont? = null,
+        markdown: Boolean = false,
     ): Long {
         return try {
             if (text.isBlank()) return 0L
-            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, pdfFont = pdfFont)
+            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, pdfFont = pdfFont, markdown = markdown)
             if (pdfBytes.isEmpty()) return 0L
             writePdfClip(
                 pdfBytes,
@@ -1673,10 +1817,19 @@ class ClipboardRepository(
         fontSizePt: Float,
         lineSpacing: Float,
         pdfFont: PdfFont? = null,
+        markdown: Boolean = false,
     ): List<Bitmap> {
         return try {
             if (text.isBlank()) return emptyList()
-            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, forPreview = true, pdfFont = pdfFont)
+            val pdfBytes =
+                renderTextPdfBytes(
+                    text,
+                    fontSizePt,
+                    lineSpacing,
+                    forPreview = true,
+                    pdfFont = pdfFont,
+                    markdown = markdown,
+                )
             if (pdfBytes.isEmpty()) return emptyList()
             val tempFile = File(context.cacheDir, "preview_${System.nanoTime()}.pdf")
             FileOutputStream(tempFile).use { it.write(pdfBytes) }
@@ -1703,6 +1856,7 @@ class ClipboardRepository(
         lineSpacing: Float?,
         forPreview: Boolean = false,
         pdfFont: PdfFont? = null,
+        markdown: Boolean = false,
     ): ByteArray {
         // A soft hyphen must not leak into the PDF output (#62).
         val text = text.withoutSoftHyphens()
@@ -1715,29 +1869,23 @@ class ClipboardRepository(
                 lineSpacing != null -> baseLayout.copy(lineSpacing = lineSpacing)
                 else -> baseLayout
             }
-        return when {
-            looksLikeHtml(text) -> renderHtmlPdf(text, layout)
-            looksLikeMarkdown(text) -> {
-                val mdLayout =
-                    if (forPreview) {
-                        layout.copy(
-                            marginTopBottomPt = MARKDOWN_PREVIEW_MARGIN_PT,
-                            fontSizePt = layout.fontSizePt * MARKDOWN_PREVIEW_FONT_SCALE,
-                        )
-                    } else {
-                        layout
-                    }
-                renderMarkdownPdf(text, mdLayout, compactHeadings = forPreview)
-            }
-            else -> renderPlainPdf(text, layout)
+        // #127: the clip kind decides the renderer. Plain Text is never
+        // heuristic-detected as Markdown; old HTML-as-text is no longer rendered
+        // here (HTML lives as a File clip).
+        return if (markdown) {
+            val mdLayout =
+                if (forPreview) {
+                    layout.copy(
+                        marginTopBottomPt = MARKDOWN_PREVIEW_MARGIN_PT,
+                        fontSizePt = layout.fontSizePt * MARKDOWN_PREVIEW_FONT_SCALE,
+                    )
+                } else {
+                    layout
+                }
+            renderMarkdownPdf(text, mdLayout, compactHeadings = forPreview)
+        } else {
+            renderPlainPdf(text, layout)
         }
-    }
-
-    private fun looksLikeHtml(text: String): Boolean {
-        if (text.isBlank()) return false
-        val trimmed = text.trimStart()
-        return trimmed.startsWith("<html", ignoreCase = true) ||
-            text.contains("<body>", ignoreCase = true)
     }
 
     private fun pdfLayout(pdfFont: PdfFont? = null): PdfLayout {
@@ -1883,20 +2031,6 @@ class ClipboardRepository(
             }
         }
         return lines
-    }
-
-    private fun looksLikeMarkdown(text: String): Boolean {
-        if (text.contains("**") || text.contains("__") || text.contains("~~") || text.contains("`")) return true
-        if (Regex("""(?m)^\s*#{1,6}\s""").containsMatchIn(text)) return true
-        if (Regex("""(?m)^\s*```""").containsMatchIn(text)) return true
-        if (Regex("""(?m)^\s*([-*_])\1{2,}\s*$""").containsMatchIn(text)) return true
-        if (Regex("""(?m)^\s*>""").containsMatchIn(text)) return true
-        if (Regex("""(?m)^\s*[-*+]\s""").containsMatchIn(text)) return true
-        if (Regex("""(?m)^\s*\d+\.\s""").containsMatchIn(text)) return true
-        if (Regex("""\*[^*\n]+\*""").containsMatchIn(text)) return true
-        if (Regex("""_[^_\n]+_""").containsMatchIn(text)) return true
-        if (Regex(""" {2}\n""").containsMatchIn(text)) return true
-        return false
     }
 
     private class MdRun(
@@ -2722,43 +2856,6 @@ class ClipboardRepository(
         }
     }
 
-    suspend fun saveTextAsFile(
-        text: String,
-        originalName: String,
-    ): Long {
-        return try {
-            if (text.isBlank()) return 0L
-            val txtName =
-                buildTxtName(
-                    originalName.ifBlank { text },
-                    localizedString(R.string.file_name_text),
-                )
-            val txtFile = ensureUniqueFile(File(filesDir, txtName)) ?: return 0L
-            try {
-                FileOutputStream(txtFile).use { out ->
-                    out.write(text.toByteArray(Charsets.UTF_8))
-                }
-
-                val id = System.nanoTime()
-                val item =
-                    ClipboardItem(
-                        id = id,
-                        contentType = ContentType.FILE,
-                        filePath = txtFile.absolutePath,
-                        previewText = extractBaseName(txtName),
-                        isPinned = false,
-                    )
-                dao.insert(item)
-                id
-            } catch (_: Exception) {
-                txtFile.delete()
-                0L
-            }
-        } catch (_: Exception) {
-            0L
-        }
-    }
-
     suspend fun ocrPdfToText(pdfPath: String): String? {
         return try {
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -2787,176 +2884,6 @@ class ClipboardRepository(
             null
         }
     }
-
-    suspend fun pdfToHtml(pdfPath: String): String? {
-        val pdfboxHtml =
-            try {
-                extractPdfHtml(pdfPath)
-            } catch (_: Exception) {
-                null
-            }
-        if (!pdfboxHtml.isNullOrBlank()) return pdfboxHtml
-        val ocrText = ocrPdfToText(pdfPath) ?: return null
-        return plainTextToHtml(ocrText)
-    }
-
-    private fun extractPdfHtml(pdfPath: String): String? {
-        val file = File(pdfPath)
-        if (!file.exists()) return null
-        PDDocument.load(file).use { document ->
-            val extractor =
-                object : PDFTextStripper() {
-                    val lines = mutableListOf<PdfHtmlLine>()
-
-                    override fun writeString(
-                        text: String,
-                        textPositions: List<TextPosition>,
-                    ) {
-                        if (text.isBlank()) return
-                        var bold = 0
-                        var italic = 0
-                        var maxSize = 0f
-                        var count = 0
-                        for (tp in textPositions) {
-                            val name = tp.font?.name?.lowercase() ?: ""
-                            if (name.contains("bold")) bold++
-                            if (name.contains("italic") || name.contains("oblique")) italic++
-                            maxSize = max(maxSize, tp.fontSizeInPt)
-                            count++
-                        }
-                        if (count == 0) return
-                        lines.add(
-                            PdfHtmlLine(
-                                text = text,
-                                y = textPositions.firstOrNull()?.y ?: 0f,
-                                fontSize = maxSize,
-                                bold = bold * 2 >= count,
-                                italic = italic * 2 >= count,
-                            ),
-                        )
-                    }
-                }
-            extractor.sortByPosition = true
-            extractor.startPage = 1
-            extractor.endPage = document.numberOfPages
-            extractor.getText(document)
-            return buildPdfHtml(extractor.lines)
-        }
-    }
-
-    private fun buildPdfHtml(lines: List<PdfHtmlLine>): String {
-        if (lines.isEmpty()) return ""
-        val counts = lines.groupingBy { it.fontSize.roundToInt() }.eachCount()
-        val bodySize = (counts.maxByOrNull { it.value }?.key ?: lines.first().fontSize.roundToInt()).toFloat()
-        val unit = estimatePdfLineHeight(lines, bodySize)
-        val sb = StringBuilder()
-        sb.append("<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n")
-        val paragraph = StringBuilder()
-
-        fun flushParagraph() {
-            if (paragraph.isNotEmpty()) {
-                sb.append("<p>").append(paragraph).append("</p>\n")
-                paragraph.clear()
-            }
-        }
-
-        fun appendLine(
-            line: PdfHtmlLine,
-            level: Int,
-        ) {
-            if (level > 0) {
-                sb.append("<h").append(level).append(">")
-                    .append(escapeHtml(line.text))
-                    .append("</h").append(level).append(">\n")
-            } else {
-                if (paragraph.isNotEmpty()) paragraph.append("<br>")
-                var fragment = escapeHtml(line.text)
-                if (line.italic) fragment = "<i>$fragment</i>"
-                if (line.bold) fragment = "<b>$fragment</b>"
-                paragraph.append(fragment)
-            }
-        }
-
-        var lastY: Float? = null
-        for (line in lines) {
-            val level = pdfHeadingLevel(line.fontSize, bodySize)
-            val ratio =
-                if (lastY != null) {
-                    (line.y - lastY) / unit
-                } else {
-                    0f
-                }
-            lastY = line.y
-
-            if (ratio < 1.35f) {
-                if (level > 0) flushParagraph()
-                appendLine(line, level)
-            } else {
-                val blanks = ((ratio + 0.5f).toInt() - 1).coerceIn(1, MAX_PDF_BLANK_LINES)
-                flushParagraph()
-                repeat(blanks - 1) { sb.append("<p>&nbsp;</p>\n") }
-                appendLine(line, level)
-            }
-        }
-        flushParagraph()
-        sb.append("</body>\n</html>\n")
-        return sb.toString()
-    }
-
-    private fun estimatePdfLineHeight(
-        lines: List<PdfHtmlLine>,
-        fallback: Float,
-    ): Float {
-        val safeFallback = fallback.coerceAtLeast(1f)
-        val diffs =
-            lines.zipWithNext()
-                .mapNotNull { (a, b) -> (b.y - a.y).takeIf { it > 0.1f } }
-                .sorted()
-        if (diffs.isEmpty()) return safeFallback * 1.2f
-        val normal = diffs.filter { it < safeFallback * 1.8f }
-        val base = if (normal.isNotEmpty()) normal[normal.size / 2] else safeFallback * 1.2f
-        return base.coerceIn(safeFallback * 1.0f, safeFallback * 1.6f).coerceAtLeast(1f)
-    }
-
-    private fun pdfHeadingLevel(
-        size: Float,
-        bodySize: Float,
-    ): Int {
-        if (bodySize <= 0f) return 0
-        val ratio = size / bodySize
-        return when {
-            ratio >= 1.4f -> 1
-            ratio >= 1.2f -> 2
-            ratio >= 1.05f -> 3
-            else -> 0
-        }
-    }
-
-    private fun escapeHtml(text: String): String =
-        text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-
-    private fun plainTextToHtml(text: String): String {
-        val sb = StringBuilder()
-        sb.append("<html>\n<head>\n<meta charset=\"utf-8\">\n</head>\n<body>\n")
-        text.trim().split(Regex("\\n\\s*\\n")).forEach { block ->
-            if (block.isNotBlank()) {
-                sb.append("<p>").append(escapeHtml(block.trim().replace("\n", "<br>"))).append("</p>\n")
-            }
-        }
-        sb.append("</body>\n</html>\n")
-        return sb.toString()
-    }
-
-    private data class PdfHtmlLine(
-        val text: String,
-        val y: Float,
-        val fontSize: Float,
-        val bold: Boolean,
-        val italic: Boolean,
-    )
 
     suspend fun getPdfFormFields(pdfPath: String): List<FormFieldInfo> {
         return try {
@@ -3765,12 +3692,34 @@ class ClipboardRepository(
         )
     }
 
+    /**
+     * Share a Plain Text or Markdown clip as a `.txt` / `.md` attachment (#127).
+     * The temporary file lives in the share cache and is never a clip.
+     */
+    fun shareTextClipAsFile(entry: ClipboardEntry): Boolean {
+        if (!entry.contentType.isPlainOrMarkdown) return false
+        return try {
+            val file = writeTextExportFile(entry) ?: return false
+            val uri = fileProviderUri(file)
+            val intent =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = if (entry.contentType == ContentType.MARKDOWN) "text/markdown" else "text/plain"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            attachGrantClipData(intent, listOf(uri))
+            startShareChooser(intent)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun shareClip(entry: ClipboardEntry): Boolean {
         return try {
             val intent = Intent(Intent.ACTION_SEND)
             var sharedUri: Uri? = null
             when (entry.contentType) {
-                ContentType.TEXT, ContentType.URL -> {
+                ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL -> {
                     val body = textBodyBlocking(entry) ?: return false
                     intent.type = "text/plain"
                     intent.putExtra(Intent.EXTRA_TEXT, body.withoutSoftHyphens())
@@ -3818,7 +3767,7 @@ class ClipboardRepository(
             val firstType = entries.first().contentType
             val intent = Intent()
             when (firstType) {
-                ContentType.TEXT, ContentType.URL -> {
+                ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL -> {
                     val parts = entries.mapNotNull { textBodyBlocking(it) }
                     if (parts.isEmpty()) return false
                     intent.action = Intent.ACTION_SEND
@@ -3855,7 +3804,7 @@ class ClipboardRepository(
 
     private fun clipDataForCopy(entry: ClipboardEntry): ClipData? {
         return when (entry.contentType) {
-            ContentType.TEXT, ContentType.URL -> {
+            ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL -> {
                 val body = textBodyBlocking(entry) ?: return null
                 ClipData.newPlainText("snip", body.withoutSoftHyphens())
             }
@@ -4355,6 +4304,10 @@ class ClipboardRepository(
 
     suspend fun saveFileToDownloads(entry: ClipboardEntry): Boolean {
         return try {
+            if (entry.contentType.isPlainOrMarkdown) {
+                val file = writeTextExportFile(entry) ?: return false
+                return copyToPublicDownloads(file, textExportDisplayName(entry)) != null
+            }
             val file = entry.filePath?.let { File(it) }
             if (file?.exists() != true) return false
             val base = extractBaseName(entry.previewText).ifBlank { extractBaseName(file.name) }
@@ -4367,6 +4320,30 @@ class ClipboardRepository(
         } catch (_: Exception) {
             false
         }
+    }
+
+    /** A `.txt` / `.md` export file for a Plain Text or Markdown clip (#127). */
+    private fun writeTextExportFile(entry: ClipboardEntry): File? {
+        val body = textBodyBlocking(entry) ?: return null
+        val destDir = File(context.cacheDir, "share").apply { mkdirs() }
+        val file = ensureUniqueFile(File(destDir, textExportDisplayName(entry))) ?: return null
+        return try {
+            file.writeText(body, Charsets.UTF_8)
+            file
+        } catch (_: Exception) {
+            file.delete()
+            null
+        }
+    }
+
+    private fun textExportDisplayName(entry: ClipboardEntry): String {
+        val markdown = entry.contentType == ContentType.MARKDOWN
+        val ext = if (markdown) "md" else "txt"
+        val fallback = if (markdown) R.string.file_name_markdown else R.string.file_name_text
+        val base =
+            sanitizeFileName(extractBaseName(entry.previewText))
+                .ifBlank { localizedString(fallback) }
+        return "$base.$ext"
     }
 
     suspend fun backupClipsToZip(
@@ -4626,10 +4603,7 @@ class ClipboardRepository(
         )
 
     private fun persistTextualEntry(entry: ClipboardEntry): ClipboardItem? {
-        val textual =
-            entry.contentType == ContentType.TEXT ||
-                entry.contentType == ContentType.URL
-        if (!textual || entry.filePath != null) {
+        if (!entry.contentType.isTextual || entry.filePath != null) {
             return ClipboardItem(
                 id = entry.id,
                 contentType = entry.contentType,
@@ -4658,7 +4632,7 @@ class ClipboardRepository(
                 longitude = entry.longitude,
             )
         }
-        return when (val persisted = persistTextBody(text)) {
+        return when (val persisted = persistTextBody(text, entry.contentType)) {
             PersistTextResult.TooLarge, PersistTextResult.Failed -> null
             is PersistTextResult.Ok ->
                 ClipboardItem(
@@ -4676,13 +4650,17 @@ class ClipboardRepository(
         }
     }
 
-    private fun persistTextBody(text: String): PersistTextResult {
+    private fun persistTextBody(
+        text: String,
+        contentType: ContentType = ContentType.TEXT,
+    ): PersistTextResult {
         val byteCount = text.toByteArray(Charsets.UTF_8).size.toLong()
         if (byteCount > MAX_TEXT_VIEW_BYTES) return PersistTextResult.TooLarge
         if (byteCount <= INLINE_TEXT_MAX_BYTES) {
             return PersistTextResult.Ok(textContent = text, filePath = null)
         }
-        val dest = ensureUniqueFile(File(filesDir, "clip.txt")) ?: return PersistTextResult.Failed
+        val name = if (contentType == ContentType.MARKDOWN) "clip.md" else "clip.txt"
+        val dest = ensureUniqueFile(File(filesDir, name)) ?: return PersistTextResult.Failed
         return try {
             dest.writeText(text, Charsets.UTF_8)
             PersistTextResult.Ok(textContent = null, filePath = dest.absolutePath)
@@ -4711,7 +4689,7 @@ class ClipboardRepository(
     ): Boolean {
         return when (contentType) {
             ContentType.IMAGE, ContentType.PDF, ContentType.FILE -> true
-            ContentType.TEXT, ContentType.URL -> filePath != null
+            ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL -> filePath != null
             ContentType.LOCATION -> false
         }
     }
@@ -4722,7 +4700,13 @@ class ClipboardRepository(
     ): Boolean {
         if (!fileName.startsWith("files/")) return false
         return when (contentType) {
-            ContentType.IMAGE, ContentType.PDF, ContentType.FILE, ContentType.TEXT, ContentType.URL -> true
+            ContentType.IMAGE,
+            ContentType.PDF,
+            ContentType.FILE,
+            ContentType.TEXT,
+            ContentType.MARKDOWN,
+            ContentType.URL,
+            -> true
             ContentType.LOCATION -> false
         }
     }
@@ -4761,7 +4745,6 @@ internal const val MAX_TEXT_VIEW_BYTES = 8L * 1024L * 1024L
 private const val A4_HEIGHT_PT = 842
 private const val EMU_PER_PT = 12700.0
 private const val OCR_RENDER_DIM = 2400
-private const val MAX_PDF_BLANK_LINES = 20
 
 private const val BACKUP_APP_NAME = "KlipSilo"
 private const val BACKUP_APP_NAME_LEGACY = "Snipdock"

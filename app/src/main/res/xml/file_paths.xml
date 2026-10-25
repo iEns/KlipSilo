@@ -3,4 +3,6 @@
     <files-path name="images" path="images/" />
     <files-path name="pdfs" path="pdfs/" />
     <files-path name="files" path="files/" />
+    <!-- #127: temporary .txt/.md files for Share as file. -->
+    <cache-path name="share" path="share/" />
 </paths>

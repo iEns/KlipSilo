@@ -211,7 +211,7 @@ internal fun clipListTitle(
     type: ContentType,
     preview: String,
 ): String {
-    if (type != ContentType.TEXT) return firstTitleLine(preview)
+    if (type != ContentType.TEXT && type != ContentType.MARKDOWN) return firstTitleLine(preview)
     val derived = textClipTitle(preview)
     if (derived.isNotBlank()) return derived
     // Nothing derivable (e.g. a stored raw preview): fall back to its first line.

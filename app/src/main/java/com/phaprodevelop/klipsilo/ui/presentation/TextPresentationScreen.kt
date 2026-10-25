@@ -54,6 +54,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -62,9 +63,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
+import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.ui.components.DisplayText
-import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
-import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.delay
@@ -89,8 +89,8 @@ fun TextPresentationScreen(
     }
     val entry = listEntry
     val text = fullText ?: entry?.previewText ?: ""
-    // Saved HTML clips render as a page here too, like a fresh PDF-to-HTML conversion (#32).
-    val isHtmlClip = looksLikeHtmlDocument(text)
+    // #127: Markdown clips render formatted; Plain Text is always literal.
+    val isMarkdown = entry?.contentType == ContentType.MARKDOWN
     val title =
         entry?.let {
             clipListTitle(it.contentType, it.previewText).ifBlank {
@@ -107,6 +107,15 @@ fun TextPresentationScreen(
 
     val bgColor = if (isDarkReader) Color(0xFF121212) else Color.White
     val textColor = if (isDarkReader) Color(0xFFE0E0E0) else Color(0xFF1C1B1F)
+    val linkColor = if (isDarkReader) Color(0xFF8AB4F8) else Color(0xFF1A73E8)
+    val displayText =
+        remember(text, isMarkdown, fontSize, textColor, linkColor) {
+            if (isMarkdown) {
+                markdownPresentationText(text, fontSize, textColor, linkColor)
+            } else {
+                AnnotatedString(text)
+            }
+        }
 
     var isAutoScrolling by remember { mutableStateOf(false) }
     val autoScrollTrigger = remember { mutableStateOf(0L) }
@@ -149,70 +158,66 @@ fun TextPresentationScreen(
                     }
                 },
                 actions = {
-                    if (!isHtmlClip) {
-                        var showThemeMenu by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { showThemeMenu = true }) {
-                                Icon(
-                                    when {
-                                        isDarkReader && isFullBrightness -> Icons.Default.DarkMode
-                                        !isDarkReader && isFullBrightness -> Icons.Default.LightMode
-                                        isDarkReader -> Icons.Default.DarkMode
-                                        else -> Icons.Default.LightMode
-                                    },
-                                    contentDescription = stringResource(R.string.reader_theme).withoutSoftHyphens(),
-                                )
-                            }
-                            DropdownMenu(expanded = showThemeMenu, onDismissRequest = { showThemeMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.reader_dark)) },
-                                    onClick = {
-                                        showThemeMenu = false
-                                        presentationViewModel.setTheme(dark = true, fullBrightness = false)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.reader_dark_full)) },
-                                    onClick = {
-                                        showThemeMenu = false
-                                        presentationViewModel.setTheme(dark = true, fullBrightness = true)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.reader_light)) },
-                                    onClick = {
-                                        showThemeMenu = false
-                                        presentationViewModel.setTheme(dark = false, fullBrightness = false)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.reader_light_full)) },
-                                    onClick = {
-                                        showThemeMenu = false
-                                        presentationViewModel.setTheme(dark = false, fullBrightness = true)
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    if (!isHtmlClip) {
-                        IconButton(onClick = { presentationViewModel.togglePageMode() }) {
+                    var showThemeMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showThemeMenu = true }) {
                             Icon(
-                                if (isPageMode) Icons.Default.UnfoldMore else Icons.Default.AutoStories,
-                                contentDescription =
-                                    (
-                                        if (isPageMode) {
-                                            stringResource(
-                                                R.string.reader_scroll,
-                                            )
-                                        } else {
-                                            stringResource(R.string.reader_page_turn)
-                                        }
-                                    ).withoutSoftHyphens(),
+                                when {
+                                    isDarkReader && isFullBrightness -> Icons.Default.DarkMode
+                                    !isDarkReader && isFullBrightness -> Icons.Default.LightMode
+                                    isDarkReader -> Icons.Default.DarkMode
+                                    else -> Icons.Default.LightMode
+                                },
+                                contentDescription = stringResource(R.string.reader_theme).withoutSoftHyphens(),
+                            )
+                        }
+                        DropdownMenu(expanded = showThemeMenu, onDismissRequest = { showThemeMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reader_dark)) },
+                                onClick = {
+                                    showThemeMenu = false
+                                    presentationViewModel.setTheme(dark = true, fullBrightness = false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reader_dark_full)) },
+                                onClick = {
+                                    showThemeMenu = false
+                                    presentationViewModel.setTheme(dark = true, fullBrightness = true)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reader_light)) },
+                                onClick = {
+                                    showThemeMenu = false
+                                    presentationViewModel.setTheme(dark = false, fullBrightness = false)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reader_light_full)) },
+                                onClick = {
+                                    showThemeMenu = false
+                                    presentationViewModel.setTheme(dark = false, fullBrightness = true)
+                                },
                             )
                         }
                     }
-                    if (!isPageMode && !isHtmlClip) {
+                    IconButton(onClick = { presentationViewModel.togglePageMode() }) {
+                        Icon(
+                            if (isPageMode) Icons.Default.UnfoldMore else Icons.Default.AutoStories,
+                            contentDescription =
+                                (
+                                    if (isPageMode) {
+                                        stringResource(
+                                            R.string.reader_scroll,
+                                        )
+                                    } else {
+                                        stringResource(R.string.reader_page_turn)
+                                    }
+                                ).withoutSoftHyphens(),
+                        )
+                    }
+                    if (!isPageMode) {
                         val speedNames =
                             listOf(R.string.speed_2 to 1.0f, R.string.speed_3 to 0.25f, R.string.speed_4 to 0.12f)
                         var showSpeedMenu by remember { mutableStateOf(false) }
@@ -260,15 +265,13 @@ fun TextPresentationScreen(
         bottomBar = {
             Surface(tonalElevation = 3.dp, modifier = Modifier.navigationBarsPadding()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (!isHtmlClip) {
-                        Slider(
-                            value = fontSize,
-                            onValueChange = { presentationViewModel.updateFontSize(it) },
-                            valueRange = 16f..40f,
-                            steps = 23,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        )
-                    }
+                    Slider(
+                        value = fontSize,
+                        onValueChange = { presentationViewModel.updateFontSize(it) },
+                        valueRange = 16f..40f,
+                        steps = 23,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    )
                 }
             }
         },
@@ -276,28 +279,19 @@ fun TextPresentationScreen(
         Box(
             modifier = Modifier.fillMaxSize().padding(padding).background(bgColor),
         ) {
-            when {
-                isHtmlClip -> {
-                    HtmlClipPane(
-                        html = text,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                isPageMode -> {
-                    PresentationPageMode(text = text, fontSize = fontSize, textColor = textColor)
-                }
-                else -> {
-                    PresentationScrollMode(
-                        text = text,
-                        fontSize = fontSize,
-                        textColor = textColor,
-                        isAutoScrolling = isAutoScrolling,
-                        autoScrollTrigger = autoScrollTrigger,
-                        onAutoScrollStopped = { isAutoScrolling = false },
-                        bgColor = bgColor,
-                        speedLevel = speedLevel.intValue,
-                    )
-                }
+            if (isPageMode) {
+                PresentationPageMode(text = displayText, fontSize = fontSize, textColor = textColor)
+            } else {
+                PresentationScrollMode(
+                    text = displayText,
+                    fontSize = fontSize,
+                    textColor = textColor,
+                    isAutoScrolling = isAutoScrolling,
+                    autoScrollTrigger = autoScrollTrigger,
+                    onAutoScrollStopped = { isAutoScrolling = false },
+                    bgColor = bgColor,
+                    speedLevel = speedLevel.intValue,
+                )
             }
         }
     }
@@ -307,7 +301,7 @@ private const val PRESENTATION_LINE_SPACING = 1.2f
 
 @Composable
 private fun PresentationScrollMode(
-    text: String,
+    text: AnnotatedString,
     fontSize: Float,
     textColor: Color,
     isAutoScrolling: Boolean,
@@ -347,9 +341,10 @@ private fun PresentationScrollMode(
     }
 
     val gradientHeight = 60.dp
+    val readerEmpty = stringResource(R.string.reader_empty)
     Box(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = text.ifEmpty { stringResource(R.string.reader_empty) },
+            text = if (text.isEmpty()) AnnotatedString(readerEmpty) else text,
             fontSize = fontSize.sp,
             lineHeight = (fontSize * PRESENTATION_LINE_SPACING).sp,
             modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
@@ -376,7 +371,7 @@ private fun PresentationScrollMode(
 
 @Composable
 private fun PresentationPageMode(
-    text: String,
+    text: AnnotatedString,
     fontSize: Float,
     textColor: Color,
 ) {
@@ -386,7 +381,7 @@ private fun PresentationPageMode(
 
 @Composable
 private fun PresentationPageModeContent(
-    text: String,
+    text: AnnotatedString,
     fontSize: Float,
     textColor: Color,
     readerEmpty: String,
@@ -459,7 +454,7 @@ private fun PresentationPageModeContent(
                     if (startLine < layout.lineCount) {
                         val startOffset = layout.getLineStart(startLine)
                         val endOffset = if (endLine < layout.lineCount) layout.getLineStart(endLine) else text.length
-                        val pageText = text.substring(startOffset, endOffset)
+                        val pageText = text.subSequence(startOffset, endOffset)
                         Text(
                             text = pageText,
                             fontSize = fontSizeSp,

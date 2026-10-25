@@ -11,6 +11,7 @@ class ClipOpenTargetTest {
     @Test
     fun defaultClipOpen_routesEachType() {
         assertEquals(ClipOpenTarget.DETAIL, defaultClipOpen(ContentType.TEXT))
+        assertEquals(ClipOpenTarget.DETAIL, defaultClipOpen(ContentType.MARKDOWN))
         assertEquals(ClipOpenTarget.DETAIL, defaultClipOpen(ContentType.PDF))
         assertEquals(ClipOpenTarget.DETAIL, defaultClipOpen(ContentType.IMAGE))
         assertEquals(ClipOpenTarget.DETAIL, defaultClipOpen(ContentType.FILE))

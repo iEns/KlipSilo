@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Description
@@ -90,6 +91,7 @@ import coil.compose.AsyncImage
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.db.isPlainOrMarkdown
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.withDisplayBreaks
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
@@ -217,7 +219,11 @@ fun KlipScreen(
                     }
                 },
             onFindLinks =
-                if (entry.contentType == ContentType.TEXT || entry.contentType == ContentType.PDF) {
+                if (
+                    entry.contentType == ContentType.TEXT ||
+                    entry.contentType == ContentType.MARKDOWN ||
+                    entry.contentType == ContentType.PDF
+                ) {
                     {
                         linksEntry = entry
                         showLinksDialog = true
@@ -243,14 +249,11 @@ fun KlipScreen(
                 } else {
                     null
                 },
-            onConvertToHtml =
-                if (entry.contentType == ContentType.PDF) {
-                    { viewModel.convertPdfToHtml(entry) }
-                } else {
-                    null
-                },
             onConvertHtmlToPdf =
-                if (looksLikeHtml(entry.textContent)) {
+                if (
+                    entry.contentType == ContentType.FILE &&
+                    fileExt in setOf("html", "htm")
+                ) {
                     { viewModel.convertHtmlToPdf(entry) }
                 } else {
                     null
@@ -558,6 +561,7 @@ private fun EmptyListMessage(
             EmptyListHint.NO_CLIPS -> stringResource(R.string.no_clips_description)
             EmptyListHint.CLEAR_SEARCH_OR_FILTER -> stringResource(R.string.empty_list_hint)
             EmptyListHint.TEXT -> stringResource(R.string.filter_text_hint)
+            EmptyListHint.MARKDOWN -> stringResource(R.string.filter_markdown_hint)
             EmptyListHint.URL -> stringResource(R.string.filter_url_hint)
             EmptyListHint.IMAGE -> stringResource(R.string.filter_image_hint)
             EmptyListHint.PDF -> stringResource(R.string.filter_pdf_hint)
@@ -598,6 +602,7 @@ private fun filterChipLabel(
     when (filter) {
         ClipFilter.ALL -> context.getString(R.string.all)
         ClipFilter.TEXT -> context.getString(R.string.text)
+        ClipFilter.MARKDOWN -> context.getString(R.string.markdown)
         ClipFilter.URL -> context.getString(R.string.url)
         ClipFilter.IMAGE -> context.getString(R.string.image)
         ClipFilter.PDF -> context.getString(R.string.pdf)
@@ -619,6 +624,7 @@ private fun FilterRow(
                 when (filter) {
                     ClipFilter.ALL -> context.getString(R.string.all)
                     ClipFilter.TEXT -> context.getString(R.string.text)
+                    ClipFilter.MARKDOWN -> context.getString(R.string.markdown)
                     ClipFilter.URL -> context.getString(R.string.url)
                     ClipFilter.IMAGE -> context.getString(R.string.image)
                     ClipFilter.PDF -> context.getString(R.string.pdf)
@@ -711,7 +717,7 @@ internal enum class ClipOpenTarget {
 /** Where a single tap on a list row goes. The action sheet stays on long-press and ⋮. */
 internal fun defaultClipOpen(type: ContentType): ClipOpenTarget =
     when (type) {
-        ContentType.TEXT -> ClipOpenTarget.DETAIL
+        ContentType.TEXT, ContentType.MARKDOWN -> ClipOpenTarget.DETAIL
         ContentType.URL -> ClipOpenTarget.URL
         ContentType.LOCATION -> ClipOpenTarget.LOCATION
         ContentType.PDF, ContentType.IMAGE, ContentType.FILE -> ClipOpenTarget.DETAIL
@@ -987,6 +993,7 @@ private fun ClipItemRow(
 private fun typeIcon(type: ContentType) =
     when (type) {
         ContentType.TEXT -> Icons.Filled.TextFields
+        ContentType.MARKDOWN -> Icons.Filled.Code
         ContentType.URL -> Icons.Filled.Link
         ContentType.IMAGE -> Icons.Filled.Image
         ContentType.PDF -> Icons.Filled.Description
@@ -1006,7 +1013,7 @@ private fun LinksDialog(
     var textBody by remember(entry.id) { mutableStateOf<String?>(null) }
     val textItems =
         remember(entry.id, textBody) {
-            if (entry.contentType == ContentType.TEXT) {
+            if (entry.contentType.isPlainOrMarkdown) {
                 extractLinks(textBody.orEmpty(), callLabel, openLabel)
             } else {
                 emptyList()
@@ -1017,7 +1024,7 @@ private fun LinksDialog(
 
     LaunchedEffect(entry.id) {
         when (entry.contentType) {
-            ContentType.TEXT -> textBody = viewModel.readTextBody(entry)
+            ContentType.TEXT, ContentType.MARKDOWN -> textBody = viewModel.readTextBody(entry)
             ContentType.PDF -> viewModel.scanPdfLinks(entry)
             else -> Unit
         }
@@ -1096,13 +1103,6 @@ private fun extractLinks(
         result.add("$openLabel ${urlMatcher.group()}")
     }
     return result.distinct()
-}
-
-private fun looksLikeHtml(text: String?): Boolean {
-    if (text.isNullOrBlank()) return false
-    val trimmed = text.trimStart()
-    return trimmed.startsWith("<html", ignoreCase = true) ||
-        text.contains("<body>", ignoreCase = true)
 }
 
 @Preview(name = "clip rows - normal scale", widthDp = 360, showBackground = true)

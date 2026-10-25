@@ -419,7 +419,10 @@ fun VaerktøjerScreen(
     }
 
     if (showCombineTextsDialog) {
-        val textClips = clips.filter { it.contentType == ContentType.TEXT }
+        val textClips =
+            clips.filter {
+                it.contentType == ContentType.TEXT || it.contentType == ContentType.MARKDOWN
+            }
         CombineDialog(
             title = context.getString(R.string.tool_combine_texts),
             entries = textClips,
@@ -600,6 +603,7 @@ internal fun DeleteTypeDialog(
         listOf<Pair<ContentType?, String>>(
             null to context.getString(R.string.all),
             ContentType.TEXT to typeName(context, ContentType.TEXT),
+            ContentType.MARKDOWN to typeName(context, ContentType.MARKDOWN),
             ContentType.URL to typeName(context, ContentType.URL),
             ContentType.IMAGE to typeName(context, ContentType.IMAGE),
             ContentType.PDF to typeName(context, ContentType.PDF),
@@ -772,7 +776,9 @@ internal fun DeleteTypeDialog(
  * explains why instead of opening a picker where nothing can be selected.
  */
 internal fun hasTwoTextClips(clips: List<ClipboardEntry>): Boolean =
-    clips.count { it.contentType == ContentType.TEXT } >= 2
+    clips.count {
+        it.contentType == ContentType.TEXT || it.contentType == ContentType.MARKDOWN
+    } >= 2
 
 /**
  * #131: combining to PDF needs at least two image/PDF clips. With fewer, the

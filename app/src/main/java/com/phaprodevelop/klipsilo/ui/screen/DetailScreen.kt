@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -110,6 +111,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
+import com.phaprodevelop.klipsilo.data.db.isPlainOrMarkdown
+import com.phaprodevelop.klipsilo.data.db.isTextual
+import com.phaprodevelop.klipsilo.data.db.toggledTextKind
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.repository.textViewFileText
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
@@ -128,7 +132,6 @@ import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
-import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -171,7 +174,7 @@ fun DetailScreen(
     LaunchedEffect(entryId) {
         val loaded = viewModel.getClip(entryId) ?: return@LaunchedEffect
         val body =
-            if (loaded.contentType == ContentType.TEXT || loaded.contentType == ContentType.URL) {
+            if (loaded.contentType.isTextual) {
                 viewModel.readTextBody(loaded)
             } else {
                 loaded.textContent
@@ -198,8 +201,13 @@ fun DetailScreen(
 
     val isNewEmpty = viewModel.isNewEmptyDraft(entry)
     val canAutoDelete = isNewEmpty
-    val isEditableText =
-        entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL
+    // #127: the editor's current kind. Kept locally so a brand-new draft can be
+    // switched to Markdown before its first database row exists.
+    var editorKind by rememberSaveable(entryId) { mutableStateOf(entry.contentType) }
+    LaunchedEffect(entryId, listEntry?.contentType) {
+        listEntry?.let { editorKind = it.contentType }
+    }
+    val isEditableText = editorKind.isPlainOrMarkdown || editorKind == ContentType.URL
 
     var editedText by rememberSaveable(
         entryId,
@@ -223,11 +231,8 @@ fun DetailScreen(
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var fontSize by rememberSaveable { mutableStateOf(16) }
     // #130: the eye opens a full-screen preview overlay; the main pane always
-    // stays the editor. HTML clips edit their source and preview rendered (#69).
+    // stays the editor.
     var showPreview by remember { mutableStateOf(false) }
-    // Key on the loaded body: list rows carry no textContent, so a first-only key
-    // would leave HTML clips on the raw-source editor forever (#32).
-    val isHtmlDocument = remember(entryId, entry.textContent) { looksLikeHtmlDocument(entry.textContent) }
     var previewPages by remember { mutableStateOf<List<Bitmap>?>(null) }
     val previewRecycler = rememberBitmapRecycler()
     val previewGate = remember { AtomicInteger(0) }
@@ -253,8 +258,8 @@ fun DetailScreen(
             }
         }
     }
-    LaunchedEffect(showPreview, editedText.text, fontSize) {
-        if (showPreview && !isHtmlDocument && editedText.text.isNotBlank()) {
+    LaunchedEffect(showPreview, editedText.text, fontSize, editorKind) {
+        if (showPreview && editedText.text.isNotBlank()) {
             previewLoading = true
             val rendered =
                 produceLatest(
@@ -265,6 +270,7 @@ fun DetailScreen(
                             fontSize.toFloat(),
                             pdfSettings.lineSpacing,
                             pdfSettings.pdfFont,
+                            markdown = editorKind == ContentType.MARKDOWN,
                         )
                     },
                     discard = { pages -> pages.forEach { it.recycle() } },
@@ -474,7 +480,7 @@ fun DetailScreen(
     }
 
     val hasChanges =
-        (entry.contentType == ContentType.TEXT || entry.contentType == ContentType.URL) &&
+        isEditableText &&
             editedText.text != committedText
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
@@ -518,12 +524,14 @@ fun DetailScreen(
                         val updated =
                             if (isNewEmpty) {
                                 entry.copy(
+                                    contentType = editorKind,
                                     textContent = txt.ifBlank { null },
                                     previewText =
                                         com.phaprodevelop.klipsilo.data.textClipTitle(txt),
                                 )
                             } else {
                                 entry.copy(
+                                    contentType = editorKind,
                                     textContent = txt.ifBlank { null },
                                 )
                             }
@@ -572,7 +580,12 @@ fun DetailScreen(
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_STOP && hostActivity?.isChangingConfigurations != true) {
-                    if (viewModel.saveDraftOnLifecycleExit(entry, editedText.text, committedText)) {
+                    if (viewModel.saveDraftOnLifecycleExit(
+                            entry.copy(contentType = editorKind),
+                            editedText.text,
+                            committedText,
+                        )
+                    ) {
                         committedText = editedText.text
                     }
                 }
@@ -624,6 +637,15 @@ fun DetailScreen(
             onConvertToPdf =
                 if (entry.contentType == ContentType.FILE) {
                     fileConvertToPdfAction(entry, viewModel)
+                } else {
+                    null
+                },
+            onConvertHtmlToPdf =
+                if (
+                    entry.contentType == ContentType.FILE &&
+                    fileExt in setOf("html", "htm")
+                ) {
+                    { viewModel.convertHtmlToPdf(entry) }
                 } else {
                     null
                 },
@@ -710,8 +732,6 @@ fun DetailScreen(
     // it never replaces the editor pane while the edit toolbar stays visible.
     if (showPreview) {
         EditorPreviewOverlay(
-            isHtmlDocument = isHtmlDocument,
-            html = editedText.text,
             pages = previewPages,
             loading = previewLoading,
             onDismiss = { showPreview = false },
@@ -728,8 +748,9 @@ fun DetailScreen(
             // icon-only → ⋮ overflow so they stop crowding the title.
             FitActionBar(
                 title =
-                    when (entry.contentType) {
-                        ContentType.TEXT, ContentType.URL -> context.getString(R.string.text_editor)
+                    when (editorKind) {
+                        ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL ->
+                            context.getString(R.string.text_editor)
                         ContentType.PDF -> pdfFileTitle(entry)
                         // #66: image and file clips show their file name.
                         // An empty title used to crash [FitActionBar] here.
@@ -737,7 +758,33 @@ fun DetailScreen(
                     },
                 actions =
                     buildList {
-                        if (entry.contentType == ContentType.TEXT) {
+                        if (editorKind.isPlainOrMarkdown) {
+                            val targetKind = editorKind.toggledTextKind()
+                            add(
+                                TopBarIconAction(
+                                    icon = Icons.Filled.Transform,
+                                    label =
+                                        context.getString(
+                                            if (targetKind == ContentType.MARKDOWN) {
+                                                R.string.make_markdown
+                                            } else {
+                                                R.string.make_plain_text
+                                            },
+                                        ),
+                                    enabled = !entry.isLocked,
+                                ) {
+                                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                                    viewModel.setTextClipKind(
+                                        entry.copy(contentType = editorKind),
+                                        targetKind,
+                                        editedText.text,
+                                    )
+                                    editorKind = targetKind
+                                    committedText = editedText.text
+                                },
+                            )
+                        }
+                        if (editorKind.isPlainOrMarkdown) {
                             add(
                                 TopBarIconAction(
                                     icon =
@@ -770,7 +817,7 @@ fun DetailScreen(
                                     }
                                     viewModel.convertTextToPdf(
                                         txt,
-                                        entry,
+                                        entry.copy(contentType = editorKind),
                                         fontSizePt = fontSize.toFloat(),
                                         lineSpacing = pdfSettings.lineSpacing,
                                         pdfFont = pdfSettings.pdfFont,
@@ -798,11 +845,13 @@ fun DetailScreen(
                                                         com.phaprodevelop.klipsilo.data.textClipTitle(textToShare)
                                                     }
                                                 entry.copy(
+                                                    contentType = editorKind,
                                                     textContent = textToShare.ifBlank { null },
                                                     previewText = preview,
                                                 )
                                             } else {
                                                 entry.copy(
+                                                    contentType = editorKind,
                                                     textContent = textToShare.ifBlank { null },
                                                 )
                                             }
@@ -848,11 +897,13 @@ fun DetailScreen(
                                             com.phaprodevelop.klipsilo.data.textClipTitle(txt)
                                         }
                                     entry.copy(
+                                        contentType = editorKind,
                                         textContent = txt.ifBlank { null },
                                         previewText = preview,
                                     )
                                 } else {
                                     entry.copy(
+                                        contentType = editorKind,
                                         textContent = txt.ifBlank { null },
                                     )
                                 }
@@ -884,8 +935,8 @@ fun DetailScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (entry.contentType) {
-                ContentType.TEXT, ContentType.URL -> {
+            when (editorKind) {
+                ContentType.TEXT, ContentType.MARKDOWN, ContentType.URL -> {
                     Column(
                         modifier =
                             Modifier
@@ -915,7 +966,7 @@ fun DetailScreen(
                                 contentDescription = context.getString(R.string.redo).withoutSoftHyphens(),
                                 enabled = redoStack.isNotEmpty(),
                             ) { doRedo() }
-                            if (entry.contentType == ContentType.TEXT && !entry.isLocked) {
+                            if (editorKind == ContentType.MARKDOWN && !entry.isLocked) {
                                 Spacer(Modifier.weight(1f))
                                 IconButton(
                                     onClick = {
@@ -1636,15 +1687,20 @@ private fun FileViewer(
             )
         }
         is FileViewerState.Loaded -> {
-            Text(
-                text = current.text,
-                fontSize = 14.sp,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-            )
+            // #127: HTML is a File clip; show the rendered page read-only.
+            if (fileExtensionOf(filePath) in setOf("html", "htm")) {
+                HtmlClipPane(html = current.text, modifier = Modifier.fillMaxSize())
+            } else {
+                Text(
+                    text = current.text,
+                    fontSize = 14.sp,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                )
+            }
         }
     }
 }
@@ -1901,14 +1957,12 @@ private fun QrResultDialog(
 
 /**
  * #130: the editor preview is a full-screen overlay with an explicit close, so
- * the edit toolbar never sits under a preview-looking pane. Plain text renders
- * its PDF pages in one vertical scroll (no page picker, no tap-to-zoom); HTML
- * clips render through [HtmlClipPane], keeping the #69 source/rendered split.
+ * the edit toolbar never sits under a preview-looking pane. Plain Text and
+ * Markdown render their PDF pages in one vertical scroll (no page picker, no
+ * tap-to-zoom).
  */
 @Composable
 private fun EditorPreviewOverlay(
-    isHtmlDocument: Boolean,
-    html: String,
     pages: List<Bitmap>?,
     loading: Boolean,
     onDismiss: () -> Unit,
@@ -1941,47 +1995,43 @@ private fun EditorPreviewOverlay(
                     }
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
-                    if (isHtmlDocument) {
-                        HtmlClipPane(html = html, modifier = Modifier.fillMaxSize())
-                    } else {
-                        when {
-                            loading -> {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
-                                }
+                    when {
+                        loading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
                             }
-                            pages.isNullOrEmpty() -> {
-                                Text(
-                                    text = context.getString(R.string.no_content_preview),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.align(Alignment.Center),
-                                )
-                            }
-                            else -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    items(pages.size) { page ->
-                                        val bitmap = pages[page]
-                                        Image(
-                                            bitmap = bitmap.asImageBitmap(),
-                                            contentDescription =
-                                                context
-                                                    .getString(R.string.page_label, page + 1)
-                                                    .withoutSoftHyphens(),
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .aspectRatio(
-                                                        bitmap.width.toFloat() / bitmap.height.toFloat(),
-                                                    ),
-                                            contentScale = ContentScale.FillWidth,
-                                            filterQuality = FilterQuality.High,
-                                        )
-                                    }
+                        }
+                        pages.isNullOrEmpty() -> {
+                            Text(
+                                text = context.getString(R.string.no_content_preview),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.align(Alignment.Center),
+                            )
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                items(pages.size) { page ->
+                                    val bitmap = pages[page]
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription =
+                                            context
+                                                .getString(R.string.page_label, page + 1)
+                                                .withoutSoftHyphens(),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(
+                                                    bitmap.width.toFloat() / bitmap.height.toFloat(),
+                                                ),
+                                        contentScale = ContentScale.FillWidth,
+                                        filterQuality = FilterQuality.High,
+                                    )
                                 }
                             }
                         }

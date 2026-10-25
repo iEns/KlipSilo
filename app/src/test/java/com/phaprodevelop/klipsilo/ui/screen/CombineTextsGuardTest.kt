@@ -43,6 +43,30 @@ class CombineTextsGuardTest {
         )
     }
 
+    @Test
+    fun plainAndMarkdownCanCombineTexts() {
+        assertTrue(
+            hasTwoTextClips(
+                listOf(
+                    clip(1L, ContentType.TEXT),
+                    clip(2L, ContentType.MARKDOWN),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun twoMarkdownClipsCanCombineTexts() {
+        assertTrue(
+            hasTwoTextClips(
+                listOf(
+                    clip(1L, ContentType.MARKDOWN),
+                    clip(2L, ContentType.MARKDOWN),
+                ),
+            ),
+        )
+    }
+
     private fun clip(
         id: Long,
         type: ContentType,
