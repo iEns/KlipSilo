@@ -90,12 +90,15 @@ internal enum class ClipSheetAction(val section: SheetSection) {
     CONVERT_HTML_TO_PDF(SheetSection.CONVERT),
     TRY_AS_TEXT(SheetSection.CONVERT),
     OCR_IMAGE(SheetSection.CONVERT),
-    ANNOTATE_PDF(SheetSection.TOOLS),
-    FILL_FORM(SheetSection.TOOLS),
-    EDIT_PAGES(SheetSection.TOOLS),
-    FIND_LINKS(SheetSection.TOOLS),
-    PIN(SheetSection.TOOLS),
-    LOCK(SheetSection.TOOLS),
+
+    // #122: editing tools live with conversions under "Convert & Edit";
+    // Pin/Lock are management actions like Rename/Duplicate/Delete.
+    ANNOTATE_PDF(SheetSection.CONVERT),
+    FILL_FORM(SheetSection.CONVERT),
+    EDIT_PAGES(SheetSection.CONVERT),
+    FIND_LINKS(SheetSection.CONVERT),
+    PIN(SheetSection.MANAGE),
+    LOCK(SheetSection.MANAGE),
     RENAME(SheetSection.MANAGE),
     DUPLICATE(SheetSection.MANAGE),
     DELETE(SheetSection.MANAGE),

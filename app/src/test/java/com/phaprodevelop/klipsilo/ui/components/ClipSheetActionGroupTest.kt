@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.components
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ClipSheetActionGroupTest {
@@ -30,21 +31,20 @@ class ClipSheetActionGroupTest {
                         ClipSheetAction.CONVERT_HTML_TO_PDF,
                         ClipSheetAction.TRY_AS_TEXT,
                         ClipSheetAction.OCR_IMAGE,
-                    ),
-                SheetSection.TOOLS to
-                    setOf(
+                        // #122: PDF editing tools sit in Convert & Edit.
                         ClipSheetAction.ANNOTATE_PDF,
                         ClipSheetAction.FILL_FORM,
                         ClipSheetAction.EDIT_PAGES,
                         ClipSheetAction.FIND_LINKS,
-                        ClipSheetAction.PIN,
-                        ClipSheetAction.LOCK,
                     ),
                 SheetSection.MANAGE to
                     setOf(
                         ClipSheetAction.RENAME,
                         ClipSheetAction.DUPLICATE,
                         ClipSheetAction.DELETE,
+                        // #122: Pin/Lock moved under Manage.
+                        ClipSheetAction.PIN,
+                        ClipSheetAction.LOCK,
                     ),
             )
 
@@ -54,5 +54,7 @@ class ClipSheetActionGroupTest {
                 .mapValues { (_, actions) -> actions.toSet() }
 
         assertEquals(expected, actual)
+        // #122: the sheet omits an empty section; nothing lives in TOOLS now.
+        assertTrue(ClipSheetAction.entries.none { it.section == SheetSection.TOOLS })
     }
 }

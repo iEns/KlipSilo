@@ -181,9 +181,9 @@
     <string name="open_settings">Abrir configurações</string>
     <string name="pdf_setting_font_family">Tipo de fonte</string>
     <string name="pdf_font_system">Sistema</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">Margem superior/inferior</string>
     <string name="pdf_setting_margin_left_right">Margem esquerda/direita</string>
     <string name="pdf_setting_font_size">Tamanho da fonte</string>

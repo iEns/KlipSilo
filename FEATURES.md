@@ -14,15 +14,15 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
 | Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
 | Open a clip | Tap a row: text opens the editor with its content (read/edit), a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
-| Action sheet (share, save, present, convert, and more) | Long-press a row, or tap the ⋮ button on the row; primary actions sit on top, conversions under **Convert** (collapsed by default), and Rename/Duplicate/Delete under **Manage**; the sheet closes when an action runs | 1.1.0 | [C3](docs/regression-checklist.md#C3), [C6](docs/regression-checklist.md#C6) | no |
+| Action sheet (share, save, present, convert, and more) | Long-press a row, or tap the ⋮ button on the row; primary actions sit on top, conversions and PDF editing tools under **Convert & Edit** (collapsed by default), and Rename/Duplicate/Pin/Lock/Delete under **Manage**; the sheet closes when an action runs | 1.1.0 | [C3](docs/regression-checklist.md#C3), [C6](docs/regression-checklist.md#C6) | no |
 | Search clips | Search field above the list | 1.1.0 | [B1](docs/regression-checklist.md#B1) | no |
-| Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips; the row fades at the edge when more types are off screen | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
-| Pin / unpin | Pin icon on a pinned row, or the action sheet | 1.1.0 | [B3](docs/regression-checklist.md#B3) | no |
-| Lock / unlock (blocks edit and delete) | Action sheet | 1.1.0 | [B5](docs/regression-checklist.md#B5) | no |
+| Filter by type (All, Text, URL, Image, PDF, File, Location, Locked) | Filter chips; `<` and `>` cues at the row edges show which way more types can be swiped into view | 1.1.0 | [B2](docs/regression-checklist.md#B2) | no |
+| Pin / unpin | Pin icon on a pinned row, or the action sheet → **Manage** | 1.1.0 | [B3](docs/regression-checklist.md#B3) | no |
+| Lock / unlock (blocks edit and delete) | Action sheet → **Manage** | 1.1.0 | [B5](docs/regression-checklist.md#B5) | no |
 | Rename | Action sheet | 1.1.0 | [B6](docs/regression-checklist.md#B6) | no |
 | Duplicate | Action sheet | 1.1.0 | [B6](docs/regression-checklist.md#B6) | no |
 | Delete with undo | Action sheet → confirm, or swipe a row away | 1.1.0 | [B4](docs/regression-checklist.md#B4) | no |
-| Find links and phone numbers in text or PDF, then tap to open or call | Action sheet → Find links | 1.1.0 | [C5](docs/regression-checklist.md#C5) | no |
+| Find links and phone numbers in text or PDF, then tap to open or call | Action sheet → **Convert & Edit** → Find links | 1.1.0 | [C5](docs/regression-checklist.md#C5) | no |
 | Link clip: open the URL | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
 | Location clip: open in maps | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
 | File info card for files the viewer can't show | Tap a file clip the viewer can't display (e.g. APK, ZIP): name, type and size with Share, Save to Downloads, Convert to PDF and Try as text; **More** opens the full action sheet (rename, pin, lock, duplicate, delete and conversions) without returning to the list (1.3.0) | 1.2.0 | [C4](docs/regression-checklist.md#C4) | no |
@@ -54,24 +54,24 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 
 ## Conversions
 
-Each conversion creates a new clip. In the action sheet they are grouped under **Convert** (tap to expand; collapsed by default).
+Each conversion creates a new clip. In the action sheet they are grouped under **Convert & Edit** (tap to expand; collapsed by default).
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| DOCX → PDF (Title and Heading styles, images, tables, lists) | File clip → action sheet → Convert → Convert to PDF; or the file info card, if the viewer can't show the file. Word's `Title` style becomes a heading, List Bullet / List Number keep their markers even when the numbering lives on the style, and text after a table starts below it (1.3.0) | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
+| DOCX → PDF (Title and Heading styles, images, tables, lists) | File clip → action sheet → **Convert & Edit** → Convert to PDF; or the file info card, if the viewer can't show the file. Word's `Title` style becomes a heading, List Bullet / List Number keep their markers even when the numbering lives on the style, and text after a table starts below it (1.3.0) | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
 | XLSX → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | RTF → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | TXT → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | DOCX/XLSX/RTF/TXT shown as readable text | Tap the file clip | 1.1.0 | [C4](docs/regression-checklist.md#C4) | no |
-| File → text for unknown formats | Action sheet → Convert → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
-| Text → PDF (Markdown-aware) | Text clip → action sheet → Convert → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
-| Text → .txt file | Text clip → action sheet → Convert → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
-| HTML text → PDF | Text clip that looks like HTML → action sheet → Convert → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
-| Image → PDF | Image clip → action sheet → Convert → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
-| PDF → images | PDF clip → action sheet → Convert → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
-| PDF → text (OCR of the whole PDF) | PDF clip → action sheet → Convert → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
-| PDF → HTML | PDF clip → action sheet → Convert → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (directly under Display mode; the row shows the current font and expands on tap); the chosen font is embedded in plain Text → PDF output | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
+| File → text for unknown formats | Action sheet → **Convert & Edit** → Try as text; also offered on the file info card | 1.1.0 | [E6](docs/regression-checklist.md#E6) | no |
+| Text → PDF (Markdown-aware) | Text clip → action sheet → **Convert & Edit** → Text to PDF, or the editor | 1.1.0 | [E1](docs/regression-checklist.md#E1) | no |
+| Text → .txt file | Text clip → action sheet → **Convert & Edit** → Text to .txt | 1.1.0 | [E8](docs/regression-checklist.md#E8) | no |
+| HTML text → PDF | Text clip that looks like HTML → action sheet → **Convert & Edit** → HTML to PDF | 1.1.0 | [E9](docs/regression-checklist.md#E9) | no |
+| Image → PDF | Image clip → action sheet → **Convert & Edit** → Image to PDF | 1.1.0 | [E2](docs/regression-checklist.md#E2) | no |
+| PDF → images | PDF clip → action sheet → **Convert & Edit** → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
+| PDF → text (OCR of the whole PDF) | PDF clip → action sheet → **Convert & Edit** → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
+| PDF → HTML | PDF clip → action sheet → **Convert & Edit** → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
+| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (directly under Display mode; the row shows the current font and expands on tap); font buttons read System / Sans Serif / Serif / Mono, are centered and are drawn in the family they select; the chosen font is embedded in plain Text → PDF output | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
 
@@ -86,8 +86,8 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs; needs two or more image/PDF clips, otherwise a hint says so instead of opening a picker | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Combine text clips | Tools → Combine texts; needs two or more text clips, otherwise a hint offers Create another | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
-| Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
-| Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
+| Edit pages (reorder/delete) | PDF clip → action sheet → **Convert & Edit** → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
+| Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → **Convert & Edit** → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: field labels and a live page preview | Fill form screen | 1.2.0 | [G1](docs/regression-checklist.md#G1) | no |
 | Fill form: radio options show their printed labels; the group header is the printed group name (omitted when unknown) | Fill form screen, radio groups | 1.3.0 | [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: password masking with a show toggle | Fill form screen, password fields | 1.2.0 | [G4](docs/regression-checklist.md#G4) | no |
@@ -96,7 +96,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Text box on a page | PDF clip → action sheet → Annotate PDF → Text | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
+| Text box on a page | PDF clip → action sheet → **Convert & Edit** → Annotate PDF → Text | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Straight line | Annotate → Line | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Freehand drawing | Annotate → Draw | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Highlighter | Annotate → Highlight | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
@@ -114,7 +114,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 |---|---|---|---|---|
 | QR code scanner (camera) | Tools → QR scanner | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
-| OCR an image clip | Image clip → action sheet → Convert → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
+| OCR an image clip | Image clip → action sheet → **Convert & Edit** → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
 | QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
 | Save the current location as a clip (with address) | Tools → Location; current location only, with no typed address; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
 

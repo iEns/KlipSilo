@@ -180,9 +180,9 @@
     <string name="open_settings">설정 열기</string>
     <string name="pdf_setting_font_family">글꼴 종류</string>
     <string name="pdf_font_system">시스템</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">위/아래 여백</string>
     <string name="pdf_setting_margin_left_right">왼쪽/오른쪽 여백</string>
     <string name="pdf_setting_font_size">글자 크기</string>

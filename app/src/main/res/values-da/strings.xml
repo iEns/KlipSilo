@@ -163,6 +163,8 @@
     <string name="section_edit">Rediger</string>
     <string name="view_content">Se indhold</string>
     <string name="edit">Rediger</string>
+    <string name="action_convert">Konverter &amp; rediger</string>
+    <string name="action_manage">Håndter</string>
     <string name="pin_or_unpin">Fastgør / løsn</string>
     <string name="lock_or_unlock">Lås/lås op</string>
     <string name="clip_is_locked">Klippet er låst</string>
@@ -181,9 +183,9 @@
     <string name="create_text_title">Opret tekst-klip</string>
     <string name="pdf_setting_font_family">Skrifttype</string>
     <string name="pdf_font_system">System</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans Serif</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">Margen top/bund</string>
     <string name="pdf_setting_margin_left_right">Margen venstre/højre side</string>
     <string name="pdf_setting_font_size">Tekst&#173;størrelse</string>

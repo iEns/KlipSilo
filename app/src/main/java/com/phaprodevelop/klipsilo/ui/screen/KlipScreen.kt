@@ -2,6 +2,7 @@ package com.phaprodevelop.klipsilo.ui.screen
 
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -66,10 +67,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
@@ -79,6 +76,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -630,81 +628,77 @@ private fun FilterRow(
                 }
         }
     val scroll = rememberScrollState()
-    val fade = MaterialTheme.colorScheme.background
-    // #94: fade the row itself rather than drawing an overlay on top. The
-    // gradient never intercepts taps or the horizontal scroll gesture, and
-    // drawWithContent re-reads the scroll state on every frame so the fade
-    // follows the row as it moves.
-    val fadeWidthPx = with(LocalDensity.current) { 32.dp.toPx() }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .drawWithContent {
-                    drawContent()
-                    val position = scroll.value
-                    val maxPosition = scroll.maxValue
-                    if (maxPosition <= 0) return@drawWithContent
-                    val width = minOf(fadeWidthPx, size.width)
-                    if (position > 0) {
-                        drawRect(
-                            brush =
-                                Brush.horizontalGradient(
-                                    colors = listOf(fade, Color.Transparent),
-                                    startX = 0f,
-                                    endX = width,
-                                ),
-                            size = Size(width, size.height),
-                        )
-                    }
-                    if (position < maxPosition) {
-                        drawRect(
-                            brush =
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color.Transparent, fade),
-                                    startX = size.width - width,
-                                    endX = size.width,
-                                ),
-                            topLeft = Offset(size.width - width, 0f),
-                            size = Size(width, size.height),
-                        )
-                    }
-                }
-                .horizontalScroll(scroll)
-                .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        options.forEach { (filter, label) ->
-            val active = selected == filter
-            Card(
-                onClick = {
-                    ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                    onSelect(if (active) ClipFilter.ALL else filter)
-                },
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
+    // #123: < and > cues at the edges replace the old gradient fade. They sit
+    // in a small gutter inside the scroll content and carry no pointer input,
+    // so they never take the tap or the horizontal scroll gesture. Each cue
+    // has a background pill so it stays legible over a clipped chip.
+    val canScrollLeft = scroll.value > 0
+    val canScrollRight = scroll.maxValue != Int.MAX_VALUE && scroll.value < scroll.maxValue
+    Box(Modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scroll)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            options.forEach { (filter, label) ->
+                val active = selected == filter
+                Card(
+                    onClick = {
+                        ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
+                        onSelect(if (active) ClipFilter.ALL else filter)
+                    },
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                if (active) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                        ),
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color =
                             if (active) {
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.onPrimary
                             } else {
-                                MaterialTheme.colorScheme.surfaceVariant
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                    ),
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color =
-                        if (active) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                )
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
             }
         }
+        if (canScrollLeft) {
+            FilterScrollCue("<", Modifier.align(Alignment.CenterStart))
+        }
+        if (canScrollRight) {
+            FilterScrollCue(">", Modifier.align(Alignment.CenterEnd))
+        }
     }
+}
+
+/** Decorative scroll cue for the filter pill row (#123); never read aloud. */
+@Composable
+private fun FilterScrollCue(
+    cue: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = cue,
+        modifier =
+            modifier
+                .background(MaterialTheme.colorScheme.background, CircleShape)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .clearAndSetSemantics { },
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 internal enum class ClipOpenTarget {
