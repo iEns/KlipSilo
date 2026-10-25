@@ -99,6 +99,7 @@ import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.DisplayText
+import com.phaprodevelop.klipsilo.ui.components.FILE_TO_PDF_EXTENSIONS
 import com.phaprodevelop.klipsilo.ui.components.LARGE_FONT_SCALE
 import com.phaprodevelop.klipsilo.ui.components.SwipeToDelete
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
@@ -259,7 +260,7 @@ fun KlipScreen(
             onTryAsText =
                 if (
                     entry.contentType == ContentType.FILE &&
-                    fileExt !in setOf("txt", "rtf", "docx", "xlsx")
+                    fileExt !in FILE_TO_PDF_EXTENSIONS
                 ) {
                     { viewModel.convertFileToText(entry) }
                 } else {

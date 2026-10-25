@@ -115,6 +115,29 @@ class ExtractOfficeTextTest {
     }
 
     @Test
+    fun docxToHtml_reproFixture_titleAndStyleBasedListMarkers() {
+        // Arrange: Word's Title style and List Bullet / List Number carry
+        // their numbering on the style, with no inline numPr (#75).
+        val file = copyOfficeFixture("docx-pdf-repro-75.docx")
+
+        // Act
+        val html = docxToHtml(file.absolutePath)
+
+        // Assert
+        assertNotNull(html)
+        val markup = html!!
+        assertTrue("Title style must become a heading", markup.contains("<h1>Repro document</h1>"))
+        assertTrue("Bullet A needs a bullet marker", markup.contains("•  Bullet A"))
+        assertTrue("Bullet B needs a bullet marker", markup.contains("•  Bullet B"))
+        assertTrue("Number 1 needs a number marker", markup.contains("1.  Number 1"))
+        assertTrue("Number 2 needs a number marker", markup.contains("2.  Number 2"))
+        assertTrue(
+            "Post-table paragraphs must follow the table",
+            markup.indexOf("Paragraph 1 after the table") > markup.indexOf("</table>"),
+        )
+    }
+
+    @Test
     fun extractDocxText_corruptZip_returnsNull() {
         // Arrange: PK local-file signature then truncated payload
         val file = File(tempDir, "corrupt.docx")
@@ -167,6 +190,15 @@ class ExtractOfficeTextTest {
     private fun writeRtf(content: String): File {
         val file = File(tempDir, "sample-${System.nanoTime()}.rtf")
         file.writeText(content)
+        return file
+    }
+
+    private fun copyOfficeFixture(name: String): File {
+        val file = File(tempDir, name)
+        javaClass.getResourceAsStream("/office/$name").use { stream ->
+            assertNotNull(stream)
+            file.outputStream().use { out -> stream!!.copyTo(out) }
+        }
         return file
     }
 
