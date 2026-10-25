@@ -134,7 +134,7 @@
     <string name="html_created">HTMLクリップを作成しました</string>
     <string name="html_from">%1$s のHTML</string>
     <string name="html_to_pdf_done">HTMLをPDFに変換しました</string>
-    <string name="ocr_page">OCRページ</string>
+    <string name="ocr_page">OCR</string>
     <string name="text_extracted">テキストを抽出しました</string>
     <string name="ocr_no_text">このページにテキストは見つかりません</string>
     <string name="snackbar_open">開く</string>
@@ -225,7 +225,7 @@
     <string name="clip_duplicated">クリップを複製しました</string>
     <string name="tool_combine_texts">テキストを結合</string>
     <string name="texts_combined">テキストを結合しました</string>
-    <string name="save_page_pdf">ページを保存</string>
+    <string name="save_page_pdf">保存</string>
     <string name="page_saved_as_pdf">ページをPDFとして保存しました</string>
     <string name="clip_renamed">クリップ名を変更しました</string>
     <string name="tool_group_maintenance">メンテナンス</string>

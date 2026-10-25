@@ -66,7 +66,7 @@ All conversions below are under the sheet's **Convert** row — tap it to expand
 
 ## F. PDF viewer and PDF tools
 - <a id="F1"></a>**F1 · PDF viewer:** tap a multi-page PDF, swipe horizontally through pages, pinch-zoom, pan while zoomed, and use go-to-page. → The pages render. While the page is not zoomed, a horizontal swipe flips to the next or previous page; once zoomed, pinch and one-finger pan move the page and do not flip it. The page buttons and go-to-page still work.
-- <a id="F2"></a>**F2 · Viewer actions:** in the viewer, run OCR page, Save page as PDF, Read QR (on a page with a QR code) and Extract images. → Each one gives a correct new clip or result. The bar's labels, including Japanese **OCRページ** / **ページを保存**, stay on one line: they shrink to fit, then become icon-only or move into the overflow menu rather than wrapping mid-word (#86).
+- <a id="F2"></a>**F2 · Viewer actions:** in the viewer, run OCR page, Save page as PDF, Read QR (on a page with a QR code) and Extract images. → Each one gives a correct new clip or result. The bar's labels stay on one line (no mid-word wrap), including Japanese **OCR** / **保存** (shortened bar strings) and other long locales: they shrink to fit, then become icon-only or move into the overflow menu (#86).
 - <a id="F3"></a>**F3 · Combine:** Tools → **Combine** two PDFs and an image, and **Combine texts** with two text clips. → You get one merged PDF clip in the chosen order, and one merged text clip. With fewer than two text clips, **Combine texts** shows a hint and **Create another** instead of opening an empty picker.
 - <a id="F4"></a>**F4 · Edit pages:** PDF sheet → **Edit pages**, reorder two pages, delete one, and save. → The new PDF has the expected page order and count.
 
