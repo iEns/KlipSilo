@@ -114,6 +114,8 @@ import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.ceil
+import kotlin.math.floor
 
 enum class ScanMode { QR, OCR }
 
@@ -121,6 +123,37 @@ private const val MAX_CAPTURE_DIM = 4000
 private const val FALLBACK_CAPTURE_DIM = 2000
 
 private enum class DragMode { RESIZE_LEFT, RESIZE_RIGHT, RESIZE_TOP, RESIZE_BOTTOM, MOVE }
+
+/** Pixel rectangle of a bitmap crop, already clamped to the bitmap. */
+internal data class CropBitmapRect(
+    val left: Int,
+    val top: Int,
+    val width: Int,
+    val height: Int,
+)
+
+/**
+ * Converts the fractional crop frame into a bitmap rectangle (#82). The right and bottom edges
+ * are rounded up and a small padding is added, both clamped to the image, so characters sitting
+ * on the fractional edge stay inside the crop instead of being cut off before OCR.
+ */
+internal fun cropBitmapRect(
+    imageWidth: Int,
+    imageHeight: Int,
+    cropX: Float,
+    cropY: Float,
+    cropWidth: Float,
+    cropHeight: Float,
+    padPx: Int = 4,
+): CropBitmapRect {
+    if (imageWidth <= 0 || imageHeight <= 0) return CropBitmapRect(0, 0, 0, 0)
+    val pad = padPx.coerceAtLeast(0)
+    val left = (floor(imageWidth * cropX).toInt() - pad).coerceIn(0, imageWidth - 1)
+    val top = (floor(imageHeight * cropY).toInt() - pad).coerceIn(0, imageHeight - 1)
+    val right = (ceil(imageWidth * (cropX + cropWidth)).toInt() + pad).coerceIn(left + 1, imageWidth)
+    val bottom = (ceil(imageHeight * (cropY + cropHeight)).toInt() + pad).coerceIn(top + 1, imageHeight)
+    return CropBitmapRect(left, top, right - left, bottom - top)
+}
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -390,32 +423,37 @@ fun CameraScanScreen(
                         val rh = dh * cropH
                         val rx = ox + dw * cropX
                         val ry = oy + dh * cropY
+                        // The stroke is drawn just outside the crop rectangle: its inner edge is the
+                        // crop edge, so every character that looks inside the frame is included in
+                        // the bitmap crop (#82).
+                        val frameHalf = 2f
                         drawRect(
                             Color.Black,
-                            Offset(rx, ry),
-                            Size(rw, rh),
-                            style = Stroke(width = 4f),
+                            Offset(rx - frameHalf, ry - frameHalf),
+                            Size(rw + frameHalf * 2f, rh + frameHalf * 2f),
+                            style = Stroke(width = frameHalf * 2f),
                         )
                         val cx = rx + rw / 2f
                         val cy = ry + rh / 2f
+                        // Handles sit outside the frame so they never hide text inside the crop.
                         drawRect(
                             Color.Gray,
-                            Offset(cx - handleVisualHalfW, ry - handleVisualHalfH),
+                            Offset(cx - handleVisualHalfW, ry - handleVisualHalfH * 2f),
                             Size(handleVisualHalfW * 2f, handleVisualHalfH * 2f),
                         )
                         drawRect(
                             Color.Gray,
-                            Offset(cx - handleVisualHalfW, ry + rh - handleVisualHalfH),
+                            Offset(cx - handleVisualHalfW, ry + rh),
                             Size(handleVisualHalfW * 2f, handleVisualHalfH * 2f),
                         )
                         drawRect(
                             Color.Gray,
-                            Offset(rx - handleVisualHalfH, cy - handleVisualHalfW),
+                            Offset(rx - handleVisualHalfH * 2f, cy - handleVisualHalfW),
                             Size(handleVisualHalfH * 2f, handleVisualHalfW * 2f),
                         )
                         drawRect(
                             Color.Gray,
-                            Offset(rx + rw - handleVisualHalfH, cy - handleVisualHalfW),
+                            Offset(rx + rw, cy - handleVisualHalfW),
                             Size(handleVisualHalfH * 2f, handleVisualHalfW * 2f),
                         )
                     }
@@ -452,21 +490,46 @@ fun CameraScanScreen(
                                 },
                                 onSaveCrop?.let {
                                     CropAction(saveCropLabel, enabled = !isCropSaved) {
-                                        val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
-                                        val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
-                                        val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
-                                        val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
-                                        onSaveCrop(Bitmap.createBitmap(rotated, left, top, w, h)) { ok ->
+                                        val crop =
+                                            cropBitmapRect(
+                                                rotated.width,
+                                                rotated.height,
+                                                cropX,
+                                                cropY,
+                                                cropW,
+                                                cropH,
+                                            )
+                                        onSaveCrop(
+                                            Bitmap.createBitmap(
+                                                rotated,
+                                                crop.left,
+                                                crop.top,
+                                                crop.width,
+                                                crop.height,
+                                            ),
+                                        ) { ok ->
                                             isCropSaved = ok
                                         }
                                     }
                                 },
                                 CropAction(stringResource(R.string.analyze)) {
-                                    val left = (rotated.width * cropX).toInt().coerceIn(0, rotated.width - 1)
-                                    val top = (rotated.height * cropY).toInt().coerceIn(0, rotated.height - 1)
-                                    val w = (rotated.width * cropW).toInt().coerceIn(1, rotated.width - left)
-                                    val h = (rotated.height * cropH).toInt().coerceIn(1, rotated.height - top)
-                                    val cropped = Bitmap.createBitmap(rotated, left, top, w, h)
+                                    val crop =
+                                        cropBitmapRect(
+                                            rotated.width,
+                                            rotated.height,
+                                            cropX,
+                                            cropY,
+                                            cropW,
+                                            cropH,
+                                        )
+                                    val cropped =
+                                        Bitmap.createBitmap(
+                                            rotated,
+                                            crop.left,
+                                            crop.top,
+                                            crop.width,
+                                            crop.height,
+                                        )
                                     val inputImage = InputImage.fromBitmap(cropped, 0)
                                     val recognizer =
                                         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)

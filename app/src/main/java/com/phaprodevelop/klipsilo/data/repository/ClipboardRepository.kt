@@ -51,6 +51,8 @@ import com.phaprodevelop.klipsilo.data.nearbyFieldTextRight
 import com.phaprodevelop.klipsilo.data.parseTextFieldFlags
 import com.phaprodevelop.klipsilo.data.refreshedTextClipTitle
 import com.phaprodevelop.klipsilo.data.resolveFormFieldLabel
+import com.phaprodevelop.klipsilo.data.resolveRadioGroupHeader
+import com.phaprodevelop.klipsilo.data.resolveRadioOptionLabel
 import com.phaprodevelop.klipsilo.data.resolveWidgetLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
@@ -3157,29 +3159,52 @@ class ClipboardRepository(
         }
         val nearby = nearbyLabel(field, document, runs)
         val tooltip = alternateName(field)
+        // One printed label per export value, resolved from that option's own widget (#72).
+        val optionLabels =
+            if (type == FormFieldType.RADIO && field.widgets.size > 1) {
+                radioOptionLabels(field, document, runs, pageWidgets, options)
+            } else {
+                emptyList()
+            }
         // Checkbox and radio widgets draw their option text to the right, which is what makes
         // even separate fields like s0/s1/s2 distinguishable (#57).
         val isCheckboxKid = field is PDCheckBox && sameNameCheckboxCount > 1
         val kidGroup = field.parent?.fullyQualifiedName ?: fqn
         val resolved =
-            if (type == FormFieldType.CHECKBOX || type == FormFieldType.RADIO) {
-                resolveWidgetLabel(
-                    nearbyRight = nearbyRightLabel(field, document, runs, pageWidgets),
-                    tooltip = tooltip,
-                    onState = hits.firstNotNullOfOrNull { hit -> hit.option?.takeIf { it.isNotBlank() } },
-                    partialName = partial,
-                    group = if (isCheckboxKid) kidGroup else null,
-                    type = type,
-                    fallbackNumber = 1,
-                )
-            } else {
-                resolveFormFieldLabel(
-                    partialName = partial,
-                    alternateName = tooltip,
-                    type = type,
-                    nearbyText = nearby,
-                    fallbackNumber = 1,
-                )
+            when {
+                // A radio group's own header is the printed group name, never its first option
+                // text or tooltip; with no trustworthy name the header is left empty (#78).
+                type == FormFieldType.RADIO && field.widgets.size > 1 -> {
+                    val header =
+                        resolveRadioGroupHeader(
+                            partialName = partial,
+                            fieldTooltip = tooltip,
+                            nearbyAbove = nearby,
+                            firstOptionLabel = optionLabels.firstOrNull(),
+                            firstOptionTip = firstWidgetTooltip(field),
+                        )
+                    ResolvedFieldLabel.Literal(header.orEmpty())
+                }
+                type == FormFieldType.CHECKBOX || type == FormFieldType.RADIO -> {
+                    resolveWidgetLabel(
+                        nearbyRight = nearbyRightLabel(field, document, runs, pageWidgets),
+                        tooltip = tooltip,
+                        onState = hits.firstNotNullOfOrNull { hit -> hit.option?.takeIf { it.isNotBlank() } },
+                        partialName = partial,
+                        group = if (isCheckboxKid) kidGroup else null,
+                        type = type,
+                        fallbackNumber = 1,
+                    )
+                }
+                else -> {
+                    resolveFormFieldLabel(
+                        partialName = partial,
+                        alternateName = tooltip,
+                        type = type,
+                        nearbyText = nearby,
+                        fallbackNumber = 1,
+                    )
+                }
             }
         val labelSource =
             if (resolved is ResolvedFieldLabel.Numbered) {
@@ -3222,6 +3247,7 @@ class ClipboardRepository(
                     field.valueAsString
                 },
             options = options,
+            optionLabels = optionLabels,
             label = label,
             hits = hits,
             multiline = multiline,
@@ -3297,19 +3323,59 @@ class ClipboardRepository(
         pageWidgets: Map<Int, List<Pair<PDField, PdfUserRect>>>,
     ): String? {
         val widget = field.widgets.firstOrNull() ?: return null
+        return nearbyRightLabelForWidget(widget, field, document, runs, pageWidgets)
+    }
+
+    /**
+     * Text right of one specific widget (#72). Sibling widgets of the same radio group bound the
+     * search too, so one option's label never runs into the next option's text.
+     */
+    private fun nearbyRightLabelForWidget(
+        widget: PDAnnotationWidget,
+        field: PDField,
+        document: PDDocument,
+        runs: Map<Int, List<PdfTextRun>>,
+        pageWidgets: Map<Int, List<Pair<PDField, PdfUserRect>>>,
+    ): String? {
         val rect = widget.rectangle ?: return null
         val self =
             PdfUserRect(rect.lowerLeftX, rect.lowerLeftY, rect.upperRightX, rect.upperRightY)
+        val pageIndex = pageIndexOf(document, widget)
         val otherWidgets =
-            pageWidgets[pageIndexOf(document, widget)].orEmpty()
-                .filter { (owner, other) -> owner !== field && other != self }
+            pageWidgets[pageIndex].orEmpty()
+                .filter { (owner, other) -> owner !== field || other != self }
                 .map { (_, other) -> other }
         return nearbyFieldTextRight(
             self,
-            runs[pageIndexOf(document, widget)].orEmpty(),
+            runs[pageIndex].orEmpty(),
             otherWidgets,
         )
     }
+
+    /** One printed option label per export value, in widget-kid order (#72). */
+    private fun radioOptionLabels(
+        field: PDField,
+        document: PDDocument,
+        runs: Map<Int, List<PdfTextRun>>,
+        pageWidgets: Map<Int, List<Pair<PDField, PdfUserRect>>>,
+        options: List<String>,
+    ): List<String> {
+        if (options.isEmpty()) return emptyList()
+        val widgets = field.widgets
+        return options.mapIndexed { index, option ->
+            val widget = widgets.getOrNull(index)
+            val nearby =
+                widget?.let { nearbyRightLabelForWidget(it, field, document, runs, pageWidgets) }
+            resolveRadioOptionLabel(
+                nearbyRight = nearby,
+                kidTooltip = widget?.cosObject?.getString(COSName.TU),
+                exportValue = option,
+            )
+        }
+    }
+
+    private fun firstWidgetTooltip(field: PDField): String? =
+        field.widgets.firstOrNull()?.cosObject?.getString(COSName.TU)?.takeIf { it.isNotBlank() }
 
     private fun fieldHits(
         document: PDDocument,
@@ -4667,6 +4733,12 @@ data class FormFieldInfo(
     val type: FormFieldType,
     val currentValue: String?,
     val options: List<String>,
+    /**
+     * Printed label for each entry of [options], same size and order (#72). For radio groups this
+     * is the text drawn beside each option, so the fill screen can show "Visa holder" while the
+     * export value stays "visa". Falls back to the export value when the PDF prints no text.
+     */
+    val optionLabels: List<String> = emptyList(),
     val label: String = name,
     val hits: List<FormFieldHit> = emptyList(),
     /** False when the PDF declares the text field multiline (Enter types a line break). */

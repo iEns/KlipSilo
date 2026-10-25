@@ -88,6 +88,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: field labels and a live page preview | Fill form screen | 1.2.0 | [G1](docs/regression-checklist.md#G1) | no |
+| Fill form: radio options show their printed labels; the group header is the printed group name (omitted when unknown) | Fill form screen, radio groups | 1.3.0 | [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: password masking with a show toggle | Fill form screen, password fields | 1.2.0 | [G4](docs/regression-checklist.md#G4) | no |
 
 ## Annotation editor (Mark up PDF)

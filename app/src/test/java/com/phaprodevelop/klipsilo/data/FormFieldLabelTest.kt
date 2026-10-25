@@ -344,6 +344,98 @@ class FormFieldLabelTest {
         assertEquals("Full option name", text)
     }
 
+    @Test
+    fun radioGroupHeader_prefersPrintedTextAboveAndStripsRequiredMarker() {
+        assertEquals(
+            "Work authorization",
+            resolveRadioGroupHeader(
+                partialName = "auth",
+                fieldTooltip = "Citizen/PR",
+                nearbyAbove = "Work authorization *",
+                firstOptionLabel = "Citizen / Permanent resident",
+                firstOptionTip = "Citizen/PR",
+            ),
+        )
+        assertEquals(
+            "T-shirt size",
+            resolveRadioGroupHeader(
+                partialName = "shirt",
+                fieldTooltip = "S",
+                nearbyAbove = "T-shirt size",
+                firstOptionLabel = "S",
+                firstOptionTip = "S",
+            ),
+        )
+    }
+
+    @Test
+    fun radioGroupHeader_neverUsesTheFirstOptionTextOrTip() {
+        // Without page text above, an option label or option tip is not a group name (#78).
+        assertNull(
+            resolveRadioGroupHeader(
+                partialName = "auth",
+                fieldTooltip = "Citizen/PR",
+                nearbyAbove = null,
+                firstOptionLabel = "Citizen / Permanent resident",
+                firstOptionTip = "Citizen/PR",
+            ),
+        )
+        assertNull(
+            resolveRadioGroupHeader(
+                partialName = "shirt",
+                fieldTooltip = "S",
+                nearbyAbove = null,
+                firstOptionLabel = "S",
+                firstOptionTip = null,
+            ),
+        )
+    }
+
+    @Test
+    fun radioGroupHeader_withoutAnyGroupName_isEmpty() {
+        // Cryptic field name, no printed heading and no tooltip: prefer no header over "Radio 1".
+        assertNull(
+            resolveRadioGroupHeader(
+                partialName = "radio0",
+                fieldTooltip = null,
+                nearbyAbove = null,
+                firstOptionLabel = "Yes",
+                firstOptionTip = null,
+            ),
+        )
+    }
+
+    @Test
+    fun radioGroupHeader_readablePartialName_isTheLastResort() {
+        assertEquals(
+            "Newsletter",
+            resolveRadioGroupHeader(
+                partialName = "newsletter",
+                fieldTooltip = null,
+                nearbyAbove = null,
+                firstOptionLabel = "Yes",
+                firstOptionTip = null,
+            ),
+        )
+    }
+
+    @Test
+    fun radioOptionLabel_prefersThePrintedTextRightOfThatWidget() {
+        assertEquals(
+            "Visa holder",
+            resolveRadioOptionLabel(nearbyRight = "Visa holder", kidTooltip = "visa", exportValue = "visa"),
+        )
+        assertEquals(
+            "Visa",
+            resolveRadioOptionLabel(nearbyRight = null, kidTooltip = "Visa", exportValue = "visa"),
+        )
+        // No printed text and no tooltip: the export value is prettified for display only.
+        assertEquals(
+            "Morning session",
+            resolveRadioOptionLabel(nearbyRight = null, kidTooltip = null, exportValue = "Morning_session"),
+        )
+    }
+
     private fun literal(
         name: String,
         type: FormFieldType,
