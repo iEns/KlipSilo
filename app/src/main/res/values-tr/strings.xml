@@ -149,6 +149,7 @@
     <string name="tool_group_create">Oluştur</string>
     <string name="tool_location">Konum</string>
     <string name="tool_create_text">Metin</string>
+    <string name="tool_create_blank_pdf">Boş PDF</string>
     <string name="create_text_title">Metin klibi oluştur</string>
     <string name="tool_group_convert">Dönüştür</string>
     <string name="tool_group_ocr">OCR ve tarama</string>

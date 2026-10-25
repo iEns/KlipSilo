@@ -86,6 +86,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs; needs two or more image/PDF clips, otherwise a hint says so instead of opening a picker | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Combine text clips | Tools → Combine texts; needs two or more text clips, otherwise a hint offers Create another | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
+| Create a blank A4 PDF and mark it up | Tools → Create → Blank PDF; creates a one-page white PDF clip and opens it straight in Mark up (#121) | 1.3.0 | [H6](docs/regression-checklist.md#H6) | no |
 | Edit pages (reorder/delete) | PDF clip → action sheet → **Convert & Edit** → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → **Convert & Edit** → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
 | Fill form: field labels and a live page preview | Fill form screen | 1.2.0 | [G1](docs/regression-checklist.md#G1) | no |
@@ -112,8 +113,8 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| QR code scanner (camera) | Tools → QR scanner | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
-| Camera OCR (live text) | Tools → OCR camera | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
+| QR code scanner (camera) | Tools → QR scanner; in landscape the title/hint header hides so the preview uses the full height, and the back arrow stays visible | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
+| Camera OCR (live text) | Tools → OCR camera; in landscape the title/hint header hides so the preview uses the full height, and the back arrow stays visible | 1.1.0 | [I1](docs/regression-checklist.md#I1) | no |
 | OCR an image clip | Image clip → action sheet → **Convert & Edit** → OCR image | 1.1.0 | [I2](docs/regression-checklist.md#I2) | no |
 | QR from an image clip | Image viewer → Scan QR | 1.1.0 | [I4](docs/regression-checklist.md#I4) | no |
 | Save the current location as a clip (with address) | Tools → Location; current location only, with no typed address; the "Getting location" dialog can be cancelled | 1.1.0 | [I3](docs/regression-checklist.md#I3) | no |
@@ -124,10 +125,10 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 |---|---|---|---|---|
 | Text editor (Save is labelled when the bar has room, otherwise a ✓ with a tooltip; leaving with unsaved edits asks "Save changes?") | Tap a text clip, or use the action sheet → Edit | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Save-changes prompt when leaving the editor | Editor → back with unsaved changes | 1.2.0 | [J1](docs/regression-checklist.md#J1) | no |
-| Markdown preview | Editor → preview | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
+| Markdown preview | Editor top bar → Preview; rendered pages open in a full-screen overlay with an X that returns to the editor (#130) | 1.1.0 | [J1](docs/regression-checklist.md#J1) | no |
 | Select word / sentence / paragraph | Editor toolbar → Select word / sentence / paragraph → Word / Sentence / Select paragraph | 1.1.0 | [J2](docs/regression-checklist.md#J2) | no |
 | Edit an HTML clip's source | HTML text clip (e.g. from PDF → HTML) → tap it, or action sheet → Edit | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| Rendered preview toggle for HTML clips in the editor | Editor top bar → Preview / Source | 1.2.0 | [J3](docs/regression-checklist.md#J3) | no |
+| Rendered preview for HTML clips in the editor | Editor top bar → Preview; the rendered page opens in a full-screen overlay with an X, while editing stays on the source (#130) | 1.2.0 | [J3](docs/regression-checklist.md#J3) | no |
 | Reader mode with dark/bright theme and auto-scroll | Text clip → action sheet → Present | 1.1.0 | [C1](docs/regression-checklist.md#C1) | no |
 
 ## Settings / languages

@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -29,8 +29,8 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -101,6 +101,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import androidx.lifecycle.Lifecycle
@@ -115,20 +116,16 @@ import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
 import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
-import com.phaprodevelop.klipsilo.ui.components.DetailEditorPane
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FILE_TO_PDF_EXTENSIONS
 import com.phaprodevelop.klipsilo.ui.components.FitActionBar
-import com.phaprodevelop.klipsilo.ui.components.HTML_SOURCE_SHOWN_BY_DEFAULT
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
-import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
 import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
 import com.phaprodevelop.klipsilo.ui.components.SheetRow
 import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
-import com.phaprodevelop.klipsilo.ui.components.detailEditorPane
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.looksLikeHtmlDocument
@@ -142,7 +139,6 @@ import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -226,10 +222,9 @@ fun DetailScreen(
     var undoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var fontSize by rememberSaveable { mutableStateOf(16) }
+    // #130: the eye opens a full-screen preview overlay; the main pane always
+    // stays the editor. HTML clips edit their source and preview rendered (#69).
     var showPreview by remember { mutableStateOf(false) }
-    // #69: HTML clips open as editable source again (v1.1.0 behaviour); the
-    // rendered view is reached only through the preview toggle.
-    var htmlSourceShown by rememberSaveable(entryId) { mutableStateOf(HTML_SOURCE_SHOWN_BY_DEFAULT) }
     // Key on the loaded body: list rows carry no textContent, so a first-only key
     // would leave HTML clips on the raw-source editor forever (#32).
     val isHtmlDocument = remember(entryId, entry.textContent) { looksLikeHtmlDocument(entry.textContent) }
@@ -237,7 +232,6 @@ fun DetailScreen(
     val previewRecycler = rememberBitmapRecycler()
     val previewGate = remember { AtomicInteger(0) }
     var previewLoading by remember { mutableStateOf(false) }
-    var previewZoomPage by remember { mutableStateOf<Int?>(null) }
     var selectStage by remember { mutableIntStateOf(0) }
     var showSelectMenu by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -260,7 +254,7 @@ fun DetailScreen(
         }
     }
     LaunchedEffect(showPreview, editedText.text, fontSize) {
-        if (showPreview && editedText.text.isNotBlank()) {
+        if (showPreview && !isHtmlDocument && editedText.text.isNotBlank()) {
             previewLoading = true
             val rendered =
                 produceLatest(
@@ -712,18 +706,16 @@ fun DetailScreen(
         )
     }
 
-    val zoomIndex = previewZoomPage
-    if (zoomIndex != null) {
-        val bitmap = previewPages?.getOrNull(zoomIndex)
-        if (bitmap != null) {
-            ZoomPreviewDialog(
-                bitmap = bitmap,
-                pageNumber = zoomIndex + 1,
-                onDismiss = { previewZoomPage = null },
-            )
-        } else {
-            previewZoomPage = null
-        }
+    // #130: preview is an overlay over the editor, with its own close control;
+    // it never replaces the editor pane while the edit toolbar stays visible.
+    if (showPreview) {
+        EditorPreviewOverlay(
+            isHtmlDocument = isHtmlDocument,
+            html = editedText.text,
+            pages = previewPages,
+            loading = previewLoading,
+            onDismiss = { showPreview = false },
+        )
     }
 
     Scaffold(
@@ -749,31 +741,16 @@ fun DetailScreen(
                             add(
                                 TopBarIconAction(
                                     icon =
-                                        if (isHtmlDocument && !htmlSourceShown) {
-                                            Icons.Filled.Visibility
-                                        } else if (showPreview) {
+                                        if (showPreview) {
                                             Icons.Filled.VisibilityOff
                                         } else {
                                             Icons.Filled.Visibility
                                         },
-                                    label =
-                                        if (isHtmlDocument) {
-                                            if (htmlSourceShown) {
-                                                context.getString(R.string.preview)
-                                            } else {
-                                                context.getString(R.string.source)
-                                            }
-                                        } else {
-                                            context.getString(R.string.preview)
-                                        },
+                                    label = context.getString(R.string.preview),
                                     enabled = editedText.text.isNotBlank(),
                                 ) {
                                     ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
-                                    if (isHtmlDocument) {
-                                        htmlSourceShown = !htmlSourceShown
-                                    } else {
-                                        showPreview = !showPreview
-                                    }
+                                    showPreview = !showPreview
                                 },
                             )
                             add(
@@ -914,9 +891,7 @@ fun DetailScreen(
                             Modifier
                                 .fillMaxSize()
                                 .then(
-                                    if (showPreview) {
-                                        Modifier
-                                    } else if (!imeVisible) {
+                                    if (!imeVisible) {
                                         Modifier.navigationBarsPadding()
                                     } else {
                                         Modifier
@@ -1058,48 +1033,33 @@ fun DetailScreen(
                                 enabled = fontSize < 28,
                             ) { fontSize++ }
                         }
-                        when (detailEditorPane(isHtmlDocument, htmlSourceShown, showPreview)) {
-                            DetailEditorPane.TEXT_PREVIEW ->
-                                TextPreviewPane(
-                                    pages = previewPages,
-                                    loading = previewLoading,
-                                    onPageTap = { previewZoomPage = it },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            DetailEditorPane.HTML_PREVIEW ->
-                                // Read in composition so a body that arrives after the first
-                                // frame (TEXT list rows store no textContent) still loads.
-                                HtmlClipPane(
-                                    html = editedText.text,
-                                    modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
-                                )
-                            DetailEditorPane.TEXT_SOURCE, DetailEditorPane.HTML_SOURCE ->
-                                OutlinedTextField(
-                                    value = editedText,
-                                    onValueChange = { new ->
-                                        if (new.text != editedText.text) {
-                                            undoStack = (undoStack + editedText).takeLast(50)
-                                            redoStack = emptyList()
-                                            editedText = new
-                                        } else {
-                                            editedText = new
-                                        }
-                                    },
-                                    readOnly = entry.isLocked,
-                                    modifier =
-                                        Modifier
-                                            .weight(1f)
-                                            .fillMaxWidth()
-                                            .imePadding()
-                                            .testTag("klips_editor_text_field"),
-                                    textStyle =
-                                        MaterialTheme.typography.bodyLarge.copy(
-                                            fontSize = fontSize.sp,
-                                            lineHeight = (fontSize * pdfSettings.lineSpacing).sp,
-                                            fontFamily = FontFamily(typefaceForPdfFont(context, pdfSettings.pdfFont)),
-                                        ),
-                                )
-                        }
+                        // #69/#130: the main pane is always the source editor,
+                        // including HTML clips; preview is the overlay above.
+                        OutlinedTextField(
+                            value = editedText,
+                            onValueChange = { new ->
+                                if (new.text != editedText.text) {
+                                    undoStack = (undoStack + editedText).takeLast(50)
+                                    redoStack = emptyList()
+                                    editedText = new
+                                } else {
+                                    editedText = new
+                                }
+                            },
+                            readOnly = entry.isLocked,
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .imePadding()
+                                    .testTag("klips_editor_text_field"),
+                            textStyle =
+                                MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = fontSize.sp,
+                                    lineHeight = (fontSize * pdfSettings.lineSpacing).sp,
+                                    fontFamily = FontFamily(typefaceForPdfFont(context, pdfSettings.pdfFont)),
+                                ),
+                        )
                     }
                 }
                 else -> {
@@ -1939,228 +1899,95 @@ private fun QrResultDialog(
     )
 }
 
+/**
+ * #130: the editor preview is a full-screen overlay with an explicit close, so
+ * the edit toolbar never sits under a preview-looking pane. Plain text renders
+ * its PDF pages in one vertical scroll (no page picker, no tap-to-zoom); HTML
+ * clips render through [HtmlClipPane], keeping the #69 source/rendered split.
+ */
 @Composable
-private fun TextPreviewPane(
+private fun EditorPreviewOverlay(
+    isHtmlDocument: Boolean,
+    html: String,
     pages: List<Bitmap>?,
     loading: Boolean,
-    onPageTap: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    Box(modifier.fillMaxSize()) {
-        when {
-            loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            pages.isNullOrEmpty() -> {
-                Text(
-                    text = context.getString(R.string.no_content_preview),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-            else -> {
-                val pagerState = rememberPagerState { pages.size }
-                val pageScales = remember { androidx.compose.runtime.mutableStateMapOf<Int, Float>() }
-                val currentScale = pageScales[pagerState.currentPage] ?: 1f
-                Box(Modifier.fillMaxSize()) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        userScrollEnabled = currentScale <= 1.01f,
-                        contentPadding = PaddingValues(horizontal = 0.dp),
-                        pageSpacing = 4.dp,
-                    ) { page ->
-                        val bmp = pages[page]
-                        PreviewPageItem(
-                            bitmap = bmp,
-                            pageIndex = page,
-                            onTap = { onPageTap(page) },
-                            onScaleChanged = { pageScales[page] = it },
-                        )
-                    }
-                    if (pages.size > 1) {
-                        val scope = androidx.compose.runtime.rememberCoroutineScope()
-                        PageSelector(
-                            pageIndex = pagerState.currentPage,
-                            pageCount = pages.size,
-                            onPrev = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
-                                }
-                            },
-                            onNext = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                }
-                            },
-                            onGoToPage = { target ->
-                                scope.launch {
-                                    pagerState.animateScrollToPage(target)
-                                }
-                            },
-                            modifier =
-                                Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .navigationBarsPadding()
-                                    .padding(bottom = 8.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                        RoundedCornerShape(8.dp),
-                                    )
-                                    .padding(horizontal = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewPageItem(
-    bitmap: Bitmap,
-    pageIndex: Int,
-    onTap: () -> Unit,
-    onScaleChanged: (Float) -> Unit = {},
-) {
-    var scale by remember(bitmap) { mutableFloatStateOf(1f) }
-    var offsetX by remember(bitmap) { mutableFloatStateOf(0f) }
-    var offsetY by remember(bitmap) { mutableFloatStateOf(0f) }
-    androidx.compose.runtime.LaunchedEffect(scale) { onScaleChanged(scale) }
-    Box(
-        contentAlignment = Alignment.TopCenter,
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .clipToBounds()
-                .pointerInput(bitmap) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        do {
-                            val event = awaitPointerEvent()
-                            val pressed = event.changes.count { it.pressed }
-                            val zoomChange = event.calculateZoom()
-                            val panChange = event.calculatePan()
-                            if (pressed >= 2) {
-                                val newScale = (scale * zoomChange).coerceIn(1f, 5f)
-                                if (newScale != scale) {
-                                    scale = newScale
-                                }
-                                if (scale > 1f) {
-                                    offsetX += panChange.x
-                                    offsetY += panChange.y
-                                }
-                                event.changes.forEach { it.consume() }
-                            } else if (pressed == 1 && scale > 1f) {
-                                offsetX += panChange.x
-                                offsetY += panChange.y
-                                event.changes.forEach { it.consume() }
-                            }
-                        } while (event.changes.any { it.pressed })
-                        if (scale <= 1.01f) {
-                            scale = 1f
-                            offsetX = 0f
-                            offsetY = 0f
-                        }
-                    }
-                },
-    ) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription =
-                LocalContext.current.getString(
-                    R.string.page_label,
-                    pageIndex + 1,
-                ).withoutSoftHyphens(),
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offsetX,
-                        translationY = offsetY,
-                    )
-                    .clickable { onTap() },
-            contentScale = ContentScale.Fit,
-            alignment = Alignment.TopCenter,
-        )
-    }
-}
-
-@Composable
-private fun ZoomPreviewDialog(
-    bitmap: Bitmap,
-    pageNumber: Int,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .clipToBounds()
-                    .background(Color.Black.copy(alpha = 0.9f)),
-        ) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = context.getString(R.string.page_label, pageNumber).withoutSoftHyphens(),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            translationX = offsetX,
-                            translationY = offsetY,
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = context.getString(R.string.preview),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
                         )
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                scale = (scale * zoom).coerceIn(1f, 6f)
-                                if (scale > 1f) {
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                } else {
-                                    offsetX = 0f
-                                    offsetY = 0f
+                    }
+                }
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    if (isHtmlDocument) {
+                        HtmlClipPane(html = html, modifier = Modifier.fillMaxSize())
+                    } else {
+                        when {
+                            loading -> {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
                                 }
                             }
-                        },
-                contentScale = ContentScale.Fit,
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.5f)),
-            ) {
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = context.getString(R.string.cancel).withoutSoftHyphens(),
-                    // #81: intentional White — full-screen image zoom dialog,
-                    // the close floats over the image on a black scrim.
-                    tint = Color.White,
-                )
+                            pages.isNullOrEmpty() -> {
+                                Text(
+                                    text = context.getString(R.string.no_content_preview),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.Center),
+                                )
+                            }
+                            else -> {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    items(pages.size) { page ->
+                                        val bitmap = pages[page]
+                                        Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription =
+                                                context
+                                                    .getString(R.string.page_label, page + 1)
+                                                    .withoutSoftHyphens(),
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(
+                                                        bitmap.width.toFloat() / bitmap.height.toFloat(),
+                                                    ),
+                                            contentScale = ContentScale.FillWidth,
+                                            filterQuality = FilterQuality.High,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            Text(
-                text = context.getString(R.string.page_label, pageNumber),
-                // #81: intentional White, same black scrim as the close above.
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),
-            )
         }
     }
 }

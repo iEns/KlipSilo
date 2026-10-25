@@ -180,6 +180,7 @@
     <string name="tool_group_create">Opret</string>
     <string name="tool_location">Lokation</string>
     <string name="tool_create_text">Tekst</string>
+    <string name="tool_create_blank_pdf">Tom PDF</string>
     <string name="create_text_title">Opret tekst-klip</string>
     <string name="pdf_setting_font_family">Skrifttype</string>
     <string name="pdf_font_system">System</string>

@@ -291,6 +291,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     viewModel = viewModel,
                     onNavigateToScanner = { navController.navigate("scanner/qr") },
                     onNavigateToOcr = { navController.navigate("scanner/ocr") },
+                    onNavigateToAnnotate = { id -> navController.navigate("annotate/$id") },
                     onNavigateToClips = {
                         navController.navigate(BottomNavItem.KLIP.route) {
                             popUpTo(navController.graph.findStartDestination().id) {

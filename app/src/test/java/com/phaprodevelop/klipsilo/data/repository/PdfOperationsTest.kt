@@ -76,6 +76,23 @@ class PdfOperationsTest {
     }
 
     @Test
+    fun createBlankPdfClip_makesOneA4Page() =
+        runTest {
+            val id = repo.createBlankPdfClip("Blank PDF")
+            assertTrue(id > 0L)
+            val item = dao.getById(id)
+            assertNotNull(item)
+            assertEquals(ContentType.PDF, item!!.contentType)
+            assertEquals("Blank PDF", item.previewText)
+            PDDocument.load(File(item.filePath!!)).use { document ->
+                assertEquals(1, document.numberOfPages)
+                val box = document.getPage(0).mediaBox
+                assertEquals(595f, box.width, 0.5f)
+                assertEquals(842f, box.height, 0.5f)
+            }
+        }
+
+    @Test
     fun saveTextAsPdf_blank_returns0_noDaoInsert() =
         runTest {
             // Arrange

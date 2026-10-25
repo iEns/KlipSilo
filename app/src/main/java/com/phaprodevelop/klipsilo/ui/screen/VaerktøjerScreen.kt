@@ -28,6 +28,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
@@ -91,6 +92,7 @@ fun VaerktøjerScreen(
     onNavigateToScanner: () -> Unit = {},
     onNavigateToOcr: () -> Unit = {},
     onNavigateToClips: () -> Unit = {},
+    onNavigateToAnnotate: (Long) -> Unit = {},
 ) {
     val context = LocalContext.current
     val clips by viewModel.clips.collectAsState()
@@ -205,6 +207,11 @@ fun VaerktøjerScreen(
             ToolGroup(title = context.getString(R.string.tool_group_create)) {
                 ToolRow(Icons.Filled.TextFields, context.getString(R.string.tool_create_text)) {
                     viewModel.createEmptyClip()
+                }
+                // #121: a blank A4 PDF clip opens straight in the Mark up editor,
+                // so writing/annotating needs no source document first.
+                ToolRow(Icons.AutoMirrored.Filled.NoteAdd, context.getString(R.string.tool_create_blank_pdf)) {
+                    viewModel.createBlankPdf { id -> onNavigateToAnnotate(id) }
                 }
                 ToolRow(Icons.Filled.MyLocation, context.getString(R.string.tool_location)) {
                     startLocationCapture()
