@@ -225,6 +225,7 @@
     <string name="duplicate">Duplikér</string>
     <string name="clip_duplicated">Klip duplikeret</string>
     <string name="tool_combine_texts">Sammensæt tekster</string>
+    <string name="combine_pdf_need_two">Der kræves to billeder eller PDF-filer</string>
     <string name="texts_combined">Tekster sammensat</string>
     <string name="save_page_pdf">Gem side</string>
     <string name="page_saved_as_pdf">Side gemt som PDF</string>

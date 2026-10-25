@@ -348,14 +348,18 @@ fun KlipScreen(
                     .fillMaxSize()
                     .padding(horizontal = 12.dp),
         ) {
-            // #93: lead with the empty state and the + FAB. The big clipboard
-            // button only earns its space once there is something to save.
-            if (clipboardHasContent) {
+            // #93: a truly empty library leads with the empty state and the +
+            // FAB, so the big clipboard button keeps its demotion there.
+            // #120: once there are clips, the button keeps its place even when
+            // the clipboard is empty; it is disabled and says why, instead of
+            // disappearing and shifting the list under the user.
+            if (showSaveClipboardButton(clipboardHasContent, clips.size)) {
                 Button(
                     onClick = {
                         ViewCompat.performHapticFeedback(view, HapticFeedbackConstantsCompat.CONFIRM)
                         viewModel.saveCurrentClipboard()
                     },
+                    enabled = clipboardHasContent,
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 ) {
                     Icon(Icons.Filled.ContentPaste, null, Modifier.size(20.dp))
@@ -363,6 +367,16 @@ fun KlipScreen(
                     // 3 lines at word boundaries instead of an ellipsis when even the
                     // floor font size cannot fit 2 lines at large font scales (#54, #45).
                     ButtonLabel(context.getString(R.string.save_current_clipboard), maxLines = 3)
+                }
+                if (!clipboardHasContent) {
+                    ButtonLabel(
+                        text = context.getString(R.string.clipboard_empty),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
 
@@ -443,6 +457,16 @@ fun KlipScreen(
         }
     }
 }
+
+/**
+ * #120: the Save clipboard button stays put once the library has clips, even
+ * with an empty clipboard, so the list does not jump between visits. A truly
+ * empty library keeps the #93 empty-state-first layout.
+ */
+internal fun showSaveClipboardButton(
+    clipboardHasContent: Boolean,
+    clipCount: Int,
+): Boolean = clipboardHasContent || clipCount > 0
 
 @Composable
 private fun CompactSearchField(

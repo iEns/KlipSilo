@@ -1,6 +1,7 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -192,6 +193,18 @@ fun IndstillingerScreen(
                 }
             }
 
+            // #119: PDF & export is a settings row, so it sits directly under
+            // the display-mode controls instead of at the very bottom below
+            // the Guide and About links.
+            Spacer(Modifier.size(24.dp))
+            PdfExportSection(
+                pdfSettings = pdfSettings,
+                onSettingsChange = { updated ->
+                    pdfSettings = updated
+                    PdfSettingsStore.save(context, updated)
+                },
+            )
+
             Spacer(Modifier.size(24.dp))
             ButtonLabel(
                 text = context.getString(R.string.tool_group_guide),
@@ -267,15 +280,6 @@ fun IndstillingerScreen(
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
             }
-
-            Spacer(Modifier.size(24.dp))
-            PdfExportSection(
-                pdfSettings = pdfSettings,
-                onSettingsChange = { updated ->
-                    pdfSettings = updated
-                    PdfSettingsStore.save(context, updated)
-                },
-            )
         }
 
         if (showLanguageSheet) {
@@ -300,8 +304,10 @@ fun IndstillingerScreen(
 
 /**
  * #96: the PDF font cards and sliders stay behind one collapsed row, so the
- * Guide and About links above them (#103) are reachable without scrolling past
- * every PDF knob first. Expanding shows the same settings as before.
+ * rest of Settings stays reachable without scrolling past every PDF knob.
+ * #119: the row sits directly under the display-mode controls and shows the
+ * current font, so it reads as a settings row rather than a bare label.
+ * Expanding shows the same settings as before.
  */
 @Composable
 internal fun PdfExportSection(
@@ -328,14 +334,25 @@ internal fun PdfExportSection(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.width(12.dp))
-            ButtonLabel(
-                text = context.getString(R.string.settings_pdf_export),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f),
-                maxLines = 2,
-                floorFraction = SETTINGS_LABEL_MIN_SCALE,
-            )
+            // #119: a title plus the current font makes this read like the
+            // other Settings rows (Language shows its current value too),
+            // instead of a bare section label above the PDF knobs.
+            Column(Modifier.weight(1f)) {
+                ButtonLabel(
+                    text = context.getString(R.string.settings_pdf_export),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 2,
+                    floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                )
+                ButtonLabel(
+                    text = pdfFontLabel(context, pdfSettings.pdfFont),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                )
+            }
             Text(
                 text = if (expanded) "▾" else "›",
                 style = MaterialTheme.typography.titleLarge,
@@ -430,13 +447,7 @@ private fun FontFamilyCards(
     onSelect: (PdfFont) -> Unit,
 ) {
     val context = LocalContext.current
-    val options =
-        listOf(
-            PdfFont.SYSTEM to context.getString(R.string.pdf_font_system),
-            PdfFont.SANS to context.getString(R.string.pdf_font_sans),
-            PdfFont.SERIF to context.getString(R.string.pdf_font_serif),
-            PdfFont.MONO to context.getString(R.string.pdf_font_mono),
-        )
+    val options = PdfFont.entries.map { it to pdfFontLabel(context, it) }
     if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val slotWidthPx =
@@ -513,6 +524,18 @@ private fun FontFamilyCards(
         }
     }
 }
+
+/** Localized name of [font], used by the PDF & export summary and font cards. */
+private fun pdfFontLabel(
+    context: Context,
+    font: PdfFont,
+): String =
+    when (font) {
+        PdfFont.SYSTEM -> context.getString(R.string.pdf_font_system)
+        PdfFont.SANS -> context.getString(R.string.pdf_font_sans)
+        PdfFont.SERIF -> context.getString(R.string.pdf_font_serif)
+        PdfFont.MONO -> context.getString(R.string.pdf_font_mono)
+    }
 
 @Composable
 private fun fontCardColors(selected: Boolean) =
