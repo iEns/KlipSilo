@@ -149,6 +149,7 @@
     <string name="tool_group_create">Erstellen</string>
     <string name="tool_location">Standort</string>
     <string name="tool_create_text">Text</string>
+    <string name="tool_create_blank_pdf">Leere PDF</string>
     <string name="create_text_title">Text-Clip erstellen</string>
     <string name="tool_group_convert">Konvertieren</string>
     <string name="tool_group_ocr">OCR und Scannen</string>

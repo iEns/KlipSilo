@@ -148,6 +148,7 @@
     <string name="tool_group_create">Buat</string>
     <string name="tool_location">Lokasi</string>
     <string name="tool_create_text">Teks</string>
+    <string name="tool_create_blank_pdf">PDF kosong</string>
     <string name="create_text_title">Buat klip teks</string>
     <string name="tool_group_convert">Konversi</string>
     <string name="tool_group_ocr">OCR &amp; pemindaian</string>

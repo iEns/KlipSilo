@@ -148,6 +148,7 @@
     <string name="tool_group_create">创建</string>
     <string name="tool_location">位置</string>
     <string name="tool_create_text">文本</string>
+    <string name="tool_create_blank_pdf">空白 PDF</string>
     <string name="create_text_title">创建文本剪贴</string>
     <string name="tool_group_convert">转换</string>
     <string name="tool_group_ocr">OCR 与扫描</string>

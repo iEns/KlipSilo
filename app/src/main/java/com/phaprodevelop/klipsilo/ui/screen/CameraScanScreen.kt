@@ -585,22 +585,27 @@ fun CameraScanScreen(
                 CameraCaptureLayout(
                     isLandscape = isLandscape,
                     header = {
-                        CameraScanHeader(
-                            title =
-                                stringResource(
-                                    if (mode == ScanMode.QR) R.string.tool_qr else R.string.tool_ocr_camera,
-                                ),
-                            hint =
-                                stringResource(
-                                    if (mode == ScanMode.QR) R.string.qr_hint else R.string.ocr_hint,
-                                ),
-                            hintIcon =
-                                if (mode == ScanMode.QR) {
-                                    Icons.Filled.QrCodeScanner
-                                } else {
-                                    Icons.Filled.DocumentScanner
-                                },
-                        )
+                        // #124: landscape hands the header's height to the preview;
+                        // the back arrow is a separate overlay and stays visible in
+                        // both orientations.
+                        if (!isLandscape) {
+                            CameraScanHeader(
+                                title =
+                                    stringResource(
+                                        if (mode == ScanMode.QR) R.string.tool_qr else R.string.tool_ocr_camera,
+                                    ),
+                                hint =
+                                    stringResource(
+                                        if (mode == ScanMode.QR) R.string.qr_hint else R.string.ocr_hint,
+                                    ),
+                                hintIcon =
+                                    if (mode == ScanMode.QR) {
+                                        Icons.Filled.QrCodeScanner
+                                    } else {
+                                        Icons.Filled.DocumentScanner
+                                    },
+                            )
+                        }
                     },
                     preview = {
                         Box(Modifier.fillMaxSize()) {
@@ -1255,13 +1260,9 @@ private fun CameraCaptureLayoutLandscapePreview() {
     MaterialTheme {
         CameraCaptureLayout(
             isLandscape = true,
-            header = {
-                CameraScanHeader(
-                    title = "OCR von der Kamera",
-                    hint = "Text fotografieren",
-                    hintIcon = Icons.Filled.DocumentScanner,
-                )
-            },
+            // #124: landscape hides the title/hint header so the preview uses
+            // the full height; only the back overlay remains.
+            header = {},
             preview = { Box(Modifier.fillMaxSize().background(Color.DarkGray)) },
             bar = {
                 CameraShutterBar(isLandscape = true) {

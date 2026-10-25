@@ -148,6 +148,7 @@
     <string name="tool_group_create">作成</string>
     <string name="tool_location">位置情報</string>
     <string name="tool_create_text">テキスト</string>
+    <string name="tool_create_blank_pdf">空白のPDF</string>
     <string name="create_text_title">テキストクリップを作成</string>
     <string name="tool_group_convert">変換</string>
     <string name="tool_group_ocr">OCRとスキャン</string>

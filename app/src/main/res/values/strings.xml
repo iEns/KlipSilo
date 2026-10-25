@@ -160,6 +160,7 @@
     <string name="tool_group_create">Create</string>
     <string name="tool_location">Location</string>
     <string name="tool_create_text">Text</string>
+    <string name="tool_create_blank_pdf">Blank PDF</string>
     <string name="create_text_title">Create text clip</string>
     <string name="tool_group_convert">Convert</string>
     <string name="tool_group_ocr">OCR &amp; scanning</string>

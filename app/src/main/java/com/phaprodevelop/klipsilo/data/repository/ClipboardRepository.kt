@@ -1138,6 +1138,32 @@ class ClipboardRepository(
         return safe.toString()
     }
 
+    /**
+     * Creates a one-page blank A4 PDF clip (#121) so the Mark up editor can start
+     * from an empty sheet. Returns the new clip id, or 0 when saving failed.
+     */
+    suspend fun createBlankPdfClip(previewText: String): Long {
+        return try {
+            val out = ByteArrayOutputStream()
+            PDDocument().use { document ->
+                document.addPage(PDPage(PDRectangle.A4))
+                document.save(out)
+            }
+            val entry =
+                ClipboardEntry(
+                    id = System.nanoTime(),
+                    contentType = ContentType.PDF,
+                    textContent = null,
+                    filePath = null,
+                    previewText = previewText,
+                    timestamp = System.currentTimeMillis(),
+                )
+            writePdfClip(out.toByteArray(), entry)
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
     suspend fun savePdfFromBitmap(
         bitmap: Bitmap,
         originalEntry: ClipboardEntry,

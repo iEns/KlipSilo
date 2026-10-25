@@ -491,6 +491,23 @@ class ClipboardViewModel(
         _navigateToNewClip.value = id
     }
 
+    /**
+     * #121: creates a one-page blank A4 PDF clip and hands its id back so the
+     * Tools entry point can open it straight in the Mark up editor.
+     */
+    fun createBlankPdf(onCreated: (Long) -> Unit = {}) {
+        viewModelScope.launch {
+            val displayName = localizedString(com.phaprodevelop.klipsilo.R.string.tool_create_blank_pdf)
+            val id = withContext(ioDispatcher) { repository.createBlankPdfClip(displayName) }
+            if (id > 0L) {
+                triggerScrollToTop()
+                onCreated(id)
+            } else {
+                toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
+            }
+        }
+    }
+
     /** True for a freshly created new text clip that is still an empty, unsaved draft (#39). */
     fun isNewEmptyDraft(entry: ClipboardEntry?): Boolean =
         entry != null &&
