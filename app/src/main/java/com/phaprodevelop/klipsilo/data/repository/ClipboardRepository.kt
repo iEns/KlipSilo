@@ -2620,8 +2620,12 @@ class ClipboardRepository(
             return
         }
         var x = layout.marginLeftRightPt
+        // #75: y is the top of the line box, like table rows and images.
+        // Drawing at y-treated-as-baseline put the first line after a table
+        // on the table's bottom edge, so its glyphs rose into the last row.
+        val baseline = y + (line.runs.maxOfOrNull { it.paint.textSize } ?: layout.fontSizePt)
         for (run in line.runs) {
-            canvas.drawText(run.text, x, y, run.paint)
+            canvas.drawText(run.text, x, baseline, run.paint)
             x += run.paint.measureText(run.text)
         }
     }
@@ -5096,7 +5100,7 @@ private fun rtfToHtml(rtf: String): String {
     return sb.toString()
 }
 
-private fun docxToHtml(filePath: String): String? {
+internal fun docxToHtml(filePath: String): String? {
     return try {
         val zip = ZipFile(filePath)
         try {
@@ -5104,7 +5108,8 @@ private fun docxToHtml(filePath: String): String? {
             val xml = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
             val rels = readDocxImageRels(zip)
             val numbering = readDocxNumbering(zip)
-            parseDocumentXml(xml, rels, zip, numbering)
+            val styleNumbering = readDocxStyleNumbering(zip)
+            parseDocumentXml(xml, rels, zip, numbering, styleNumbering)
         } finally {
             zip.close()
         }
@@ -5174,6 +5179,51 @@ private data class NumLevel(
     val lvlText: String,
     val start: Int,
 )
+
+/** Numbering a paragraph style carries in `word/styles.xml` (#75). */
+private data class StyleNumbering(
+    val numId: Int?,
+    val ilvl: Int?,
+)
+
+/**
+ * Style-level numbering from `word/styles.xml` (#75): Word's List Bullet /
+ * List Number paragraphs often carry only `pStyle`, with the `numPr` on the
+ * style. Follows `basedOn` one level when the style itself has no `numId`.
+ */
+private fun readDocxStyleNumbering(zip: ZipFile): Map<String, StyleNumbering> {
+    val entry = zip.getEntry("word/styles.xml") ?: return emptyMap()
+    val xml = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+    val styleRe =
+        Regex("""<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>(.*?)</w:style>""", RegexOption.DOT_MATCHES_ALL)
+    val basedOnRe = Regex("""<w:basedOn w:val="([^"]+)"""")
+    val numPrRe = Regex("""<w:numPr>(.*?)</w:numPr>""", RegexOption.DOT_MATCHES_ALL)
+    val numIdRe = Regex("""<w:numId w:val="(\d+)"""")
+    val ilvlRe = Regex("""<w:ilvl w:val="(\d+)"""")
+    val direct = mutableMapOf<String, Pair<String?, StyleNumbering>>()
+    for (match in styleRe.findAll(xml)) {
+        val styleId = match.groupValues[1]
+        val body = match.groupValues[2]
+        val basedOn = basedOnRe.find(body)?.groupValues?.get(1)
+        val numPr = numPrRe.find(body)?.groupValues?.get(1)
+        val numId = numPr?.let { numIdRe.find(it)?.groupValues?.get(1)?.toIntOrNull() }
+        val ilvl = numPr?.let { ilvlRe.find(it)?.groupValues?.get(1)?.toIntOrNull() }
+        direct[styleId] = basedOn to StyleNumbering(numId, ilvl)
+    }
+    return direct.mapValues { (_, value) ->
+        val (basedOn, style) = value
+        if (style.numId == null && basedOn != null) {
+            val parent = direct[basedOn]?.second
+            if (parent?.numId != null) {
+                StyleNumbering(parent.numId, style.ilvl ?: parent.ilvl)
+            } else {
+                style
+            }
+        } else {
+            style
+        }
+    }
+}
 
 private fun readDocxNumbering(zip: ZipFile): Map<Int, Map<Int, NumLevel>> {
     val entry = zip.getEntry("word/numbering.xml") ?: return emptyMap()
@@ -5320,6 +5370,7 @@ private fun parseDocumentXml(
     rels: Map<String, String>,
     zip: ZipFile,
     numbering: Map<Int, Map<Int, NumLevel>>,
+    styleNumbering: Map<String, StyleNumbering> = emptyMap(),
 ): String {
     val sb = StringBuilder()
     sb.append("<html><head><meta charset=\"utf-8\"></head><body>")
@@ -5437,15 +5488,29 @@ private fun parseDocumentXml(
             XmlPullParser.END_TAG -> {
                 when (parser.name.substringAfter(':')) {
                     "p" -> {
+                        val style = paraStyle
+                        // #75: style-based lists. Word puts the numPr on the
+                        // paragraph style (List Bullet, List Number), not on
+                        // the paragraph. An inline numId wins; numId 0 means
+                        // "no numbering" and suppresses the style fallback.
+                        val styleNum = style?.let { styleNumbering[it] }
+                        val styleNumId = styleNum?.numId?.takeIf { it > 0 }
+                        val marker =
+                            when {
+                                numId == 0 -> null
+                                numId != null -> numId to (ilvl ?: 0)
+                                styleNumId != null -> styleNumId to (styleNum.ilvl ?: 0)
+                                else -> null
+                            }
                         val prefix = StringBuilder()
-                        if (numId != null) {
-                            val level = ilvl ?: 0
+                        if (marker != null) {
+                            val (markerNumId, level) = marker
                             repeat(level * 2) { prefix.append("&nbsp;") }
-                            prefix.append(htmlEscape(listMarker(numbering, counters, numId, level)))
+                            prefix.append(htmlEscape(listMarker(numbering, counters, markerNumId, level)))
                         }
-                        val level = paraStyle?.removePrefix("Heading")?.toIntOrNull()
-                        if (level != null && level in 1..6) {
-                            sb.append("<h$level>").append(prefix).append(paraBuffer).append("</h$level>")
+                        val headingLevel = docxHeadingLevel(style)
+                        if (headingLevel != null) {
+                            sb.append("<h$headingLevel>").append(prefix).append(paraBuffer).append("</h$headingLevel>")
                         } else {
                             sb.append("<p>").append(prefix).append(paraBuffer).append("</p>")
                         }
@@ -5492,6 +5557,18 @@ private fun parseDocumentXml(
     sb.append("</body></html>")
     return sb.toString()
 }
+
+/**
+ * HTML heading level for a DOCX paragraph style (#75): Word's `Title` opens
+ * the document like a top heading, and `Heading1`–`Heading6` map directly.
+ */
+private fun docxHeadingLevel(style: String?): Int? =
+    when (style) {
+        null -> null
+        "Title" -> 1
+        "Subtitle" -> 2
+        else -> style.removePrefix("Heading").toIntOrNull()?.takeIf { it in 1..6 }
+    }
 
 private fun buildImageHtml(
     bytes: ByteArray,

@@ -379,6 +379,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     entryId = entryId,
                     viewModel = viewModel,
                     onNavigateBack = { navController.popBackStack() },
+                    onOcrImage = { id -> navController.navigate("scanner/image/$id") },
                 )
             }
             composable(

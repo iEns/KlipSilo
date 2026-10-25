@@ -52,10 +52,44 @@ internal data class PdfBarActionSpec(
 )
 
 /**
- * PDF viewer bottom bar (#45). Labels share one size and at most two lines
- * when the row fits. Otherwise each action becomes an icon with a tooltip,
- * and whatever still does not fit moves into the overflow menu. The menu
- * button is always placed on screen; the bar does not scroll.
+ * The viewer bar never wraps a label onto a second line (#86): a Japanese
+ * label has no spaces, so a two-line plan broke it mid-compound
+ * ("OCRペー"/"ジ"). A label that does not fit at the floor scale is shown
+ * icon-only or moved to the overflow menu instead.
+ */
+internal const val PDF_BAR_LABEL_MAX_LINES = 1
+
+/** Width a labelled bar action needs at [scale]; one line, never a wrap. */
+internal fun pdfBarLabelWidth(
+    label: String,
+    scale: Float,
+    widthOf: (String, Float) -> Float,
+): Float = minWidthForLines(label, scale, PDF_BAR_LABEL_MAX_LINES, widthOf).coerceAtLeast(1f)
+
+/**
+ * The label decision the viewer bar draws (#86): a single line at [scale],
+ * or an ellipsized fallback that planning rejects (the action then becomes
+ * icon-only / overflow).
+ */
+internal fun pdfBarLabelDecision(
+    label: String,
+    scale: Float,
+    widthOf: (String, Float) -> Float,
+): FitTextDecision =
+    resolveAtScale(
+        label,
+        pdfBarLabelWidth(label, scale, widthOf),
+        scale,
+        PDF_BAR_LABEL_MAX_LINES,
+        widthOf,
+    )
+
+/**
+ * PDF viewer bottom bar (#45). Labels share one size on a single line when
+ * the row fits (#86: never a second line, so a Japanese compound like
+ * "OCRページ" cannot wrap mid-word). Otherwise each action becomes an icon
+ * with a tooltip, and whatever still does not fit moves into the overflow
+ * menu. The menu button is always placed on screen; the bar does not scroll.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,10 +151,8 @@ internal fun PdfViewerActionBar(
                 fitScales(LABEL_FONT_FLOOR_FRACTION).mapNotNull { scale ->
                     val widths =
                         actions.map { action ->
-                            val wanted =
-                                minWidthForLines(action.label, scale, maxLines = 2, ::widthOf)
-                                    .coerceAtLeast(1f)
-                            val decision = resolveAtScale(action.label, wanted, scale, maxLines = 2, ::widthOf)
+                            val wanted = pdfBarLabelWidth(action.label, scale, ::widthOf)
+                            val decision = pdfBarLabelDecision(action.label, scale, ::widthOf)
                             if (decision.ellipsized) {
                                 null
                             } else {
@@ -150,9 +182,7 @@ internal fun PdfViewerActionBar(
             return when (mode) {
                 BarItemMode.Labelled -> {
                     val scale = plan.labelScale ?: 1f
-                    val wanted =
-                        minWidthForLines(action.label, scale, maxLines = 2, ::widthOf).coerceAtLeast(1f)
-                    val decision = resolveAtScale(action.label, wanted, scale, maxLines = 2, ::widthOf)
+                    val decision = pdfBarLabelDecision(action.label, scale, ::widthOf)
                     subcompose(slot) {
                         LabelledPdfAction(action, decision, labelStyle)
                     }.first().measure(Constraints())
@@ -266,8 +296,11 @@ private fun LabelledPdfAction(
             style = scaledLabelStyle(style, base * decision.scale, base),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
+            // #86: one line, always. The planner already rejected scales at
+            // which a label would need an ellipsis, so this never truncates
+            // mid-compound; it only guards against platform re-wrapping.
             softWrap = false,
-            maxLines = decision.maxLines,
+            maxLines = PDF_BAR_LABEL_MAX_LINES,
         )
     }
 }
@@ -348,6 +381,30 @@ private fun PdfViewerActionBarLargePreview() {
                 ),
             menu = emptyList(),
             moreLabel = "Mehr",
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 360, showBackground = true)
+@Composable
+private fun PdfViewerActionBarJapanesePreview() {
+    // #86: Japanese labels have no spaces; a two-line plan broke them
+    // mid-compound. They must stay on one line, shrink, or fall back to
+    // icons / the overflow menu.
+    MaterialTheme {
+        PdfViewerActionBar(
+            pageIndex = 0,
+            pageCount = 3,
+            onPrev = {},
+            onNext = {},
+            onGoToPage = {},
+            actions =
+                listOf(
+                    PdfBarActionSpec(Icons.Filled.PictureAsPdf, "ページを保存") {},
+                    PdfBarActionSpec(Icons.Filled.TextFields, "OCRページ") {},
+                ),
+            menu = emptyList(),
+            moreLabel = "その他",
         )
     }
 }

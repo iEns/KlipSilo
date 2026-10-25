@@ -236,6 +236,20 @@ class FitTextPolicyTest {
     }
 
     @Test
+    fun pdfBarLabelsNeverWrapOnASecondLine() {
+        // #86: "OCRページ" has no spaces. With a two-line plan the floor
+        // width allowed a break inside the compound ("OCRペー"/"ジ"); the
+        // bar's own width/decision helpers must ask for the full single line.
+        val label = "OCRページ"
+        val full = widthOf(label, 1f)
+        assertEquals(full, pdfBarLabelWidth(label, 1f, ::widthOf))
+        val decision = pdfBarLabelDecision(label, 1f, ::widthOf)
+        assertEquals(PDF_BAR_LABEL_MAX_LINES, decision.maxLines)
+        assertFalse(decision.text.contains('\n'))
+        assertEquals(label, decision.text)
+    }
+
+    @Test
     fun actionsBecomeIconOnlyWhenLabelsDoNotFit() {
         // Room after the pager and the overflow button is 140px. Two German
         // labels need 200px even at the floor; two icons need 80px (#45).

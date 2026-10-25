@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -113,8 +114,10 @@ import com.phaprodevelop.klipsilo.data.repository.textViewFileText
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.CLIP_TITLE_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.ClipActionSheet
 import com.phaprodevelop.klipsilo.ui.components.DetailEditorPane
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
+import com.phaprodevelop.klipsilo.ui.components.FILE_TO_PDF_EXTENSIONS
 import com.phaprodevelop.klipsilo.ui.components.FitActionBar
 import com.phaprodevelop.klipsilo.ui.components.HTML_SOURCE_SHOWN_BY_DEFAULT
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
@@ -154,6 +157,7 @@ fun DetailScreen(
     entryId: Long,
     viewModel: ClipboardViewModel,
     onNavigateBack: () -> Unit,
+    onOcrImage: (Long) -> Unit = {},
 ) {
     val clips by viewModel.clips.collectAsState()
     var fullEntry by remember(entryId) { mutableStateOf<ClipboardEntry?>(null) }
@@ -480,6 +484,11 @@ fun DetailScreen(
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
     var showMdDialog by remember { mutableStateOf(false) }
+    // #71: the file info card's More row opens the same full action sheet
+    // the clip list uses, so the user need not return to the list.
+    var showClipSheet by remember(entryId) { mutableStateOf(false) }
+    var showFileRenameDialog by remember(entryId) { mutableStateOf(false) }
+    var showFileDeleteConfirm by remember(entryId) { mutableStateOf(false) }
 
     if (showDiscardDialog) {
         AlertDialog(
@@ -595,6 +604,109 @@ fun DetailScreen(
             onPick = { before, after, prefixLine ->
                 insertMarkdown(before, after, prefixLine)
                 showMdDialog = false
+            },
+        )
+    }
+
+    // #71: full action sheet from the file info card. The View row has
+    // nothing new to show while the card itself is already the viewer's
+    // content, so it only dismisses the sheet.
+    if (showClipSheet) {
+        val fileExt = fileExtensionOf(entry.filePath)
+        ClipActionSheet(
+            entry = entry,
+            viewModel = viewModel,
+            onView = {},
+            onRename = {
+                showFileRenameDialog = true
+            },
+            onOpenInBrowser =
+                if (fileExt == "html" || fileExt == "htm") {
+                    { viewModel.openFileInBrowser(entry) }
+                } else {
+                    null
+                },
+            onConvertToPdf =
+                if (entry.contentType == ContentType.FILE) {
+                    fileConvertToPdfAction(entry, viewModel)
+                } else {
+                    null
+                },
+            onTryAsText =
+                if (entry.contentType == ContentType.FILE && fileExt !in FILE_TO_PDF_EXTENSIONS) {
+                    { viewModel.convertFileToText(entry) }
+                } else {
+                    null
+                },
+            onOcrImage =
+                if (entry.contentType == ContentType.IMAGE) {
+                    { onOcrImage(entry.id) }
+                } else {
+                    null
+                },
+            onDelete = {
+                showClipSheet = false
+                showFileDeleteConfirm = true
+            },
+            onDismiss = { showClipSheet = false },
+        )
+    }
+
+    if (showFileRenameDialog) {
+        val currentName = clipListTitle(entry.contentType, entry.previewText)
+        var renameText by remember(entry) { mutableStateOf(currentName) }
+        AlertDialog(
+            onDismissRequest = { showFileRenameDialog = false },
+            title = { DialogTitleLabel(context.getString(R.string.rename)) },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showFileRenameDialog = false
+                    viewModel.renameClip(entry, renameText)
+                }) {
+                    ButtonLabel(context.getString(R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFileRenameDialog = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (showFileDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showFileDeleteConfirm = false },
+            title = { DialogTitleLabel(context.getString(R.string.delete)) },
+            text = {
+                Text(context.resources.getQuantityString(R.plurals.delete_clip_count, 1, 1))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showFileDeleteConfirm = false
+                        viewModel.deleteClipWithUndo(entry)
+                        onNavigateBack()
+                    },
+                    colors =
+                        androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    ButtonLabel(context.getString(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFileDeleteConfirm = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
             },
         )
     }
@@ -999,6 +1111,7 @@ fun DetailScreen(
                                         showQrDialog = true
                                         viewModel.scanImageQr(entry)
                                     },
+                                    onMore = { showClipSheet = true },
                                 )
                             ContentType.PDF ->
                                 PdfViewer(
@@ -1024,6 +1137,7 @@ fun DetailScreen(
                                 FileViewer(
                                     entry = entry,
                                     viewModel = viewModel,
+                                    onMore = { showClipSheet = true },
                                 )
                             ContentType.LOCATION -> {
                                 Text(
@@ -1185,6 +1299,7 @@ private fun ImageViewer(
     entry: ClipboardEntry,
     viewModel: ClipboardViewModel,
     onScanQr: () -> Unit = {},
+    onMore: () -> Unit = {},
 ) {
     val filePath = entry.filePath
     if (filePath == null) {
@@ -1232,27 +1347,7 @@ private fun ImageViewer(
             FileInfoCard(
                 entry = entry,
                 infoLine = remember(entry.filePath) { clipInfo(context, entry) },
-                actions =
-                    buildList {
-                        add(
-                            FileInfoAction(
-                                Icons.Filled.Share,
-                                context.getString(R.string.share),
-                            ) { viewModel.shareClip(entry) },
-                        )
-                        add(
-                            FileInfoAction(
-                                Icons.Filled.Download,
-                                context.getString(R.string.save_to_downloads),
-                            ) { viewModel.saveFileToDownloads(entry) },
-                        )
-                        add(
-                            FileInfoAction(
-                                Icons.Filled.PictureAsPdf,
-                                context.getString(R.string.image_to_pdf),
-                            ) { viewModel.convertImageToPdf(entry) },
-                        )
-                    },
+                actions = fileInfoActions(entry, viewModel, onMore),
             )
         }
         else -> {
@@ -1549,6 +1644,7 @@ private fun loadFileViewerState(filePath: String): FileViewerState {
 private fun FileViewer(
     entry: ClipboardEntry,
     viewModel: ClipboardViewModel,
+    onMore: () -> Unit = {},
 ) {
     val filePath = entry.filePath
     if (filePath == null) {
@@ -1571,45 +1667,10 @@ private fun FileViewer(
         }
         FileViewerState.Missing -> MissingFilePane()
         FileViewerState.Info -> {
-            val fileExt = fileExtensionOf(entry.filePath)
             FileInfoCard(
                 entry = entry,
                 infoLine = remember(entry.filePath) { clipInfo(context, entry) },
-                actions =
-                    buildList {
-                        add(
-                            FileInfoAction(
-                                Icons.Filled.Share,
-                                context.getString(R.string.share),
-                            ) { viewModel.shareClip(entry) },
-                        )
-                        add(
-                            FileInfoAction(
-                                Icons.Filled.Download,
-                                context.getString(R.string.save_to_downloads),
-                            ) { viewModel.saveFileToDownloads(entry) },
-                        )
-                        fileConvertToPdfAction(entry, viewModel)?.let { convert ->
-                            add(
-                                FileInfoAction(
-                                    Icons.Filled.PictureAsPdf,
-                                    context.getString(R.string.convert_to_pdf),
-                                    convert,
-                                ),
-                            )
-                        }
-                        // The same rule as the action sheet: the extractable
-                        // types have their own conversions, everything else
-                        // can be tried as text.
-                        if (fileExt !in setOf("txt", "rtf", "docx", "xlsx")) {
-                            add(
-                                FileInfoAction(
-                                    Icons.Filled.TextFields,
-                                    context.getString(R.string.try_as_text),
-                                ) { viewModel.convertFileToText(entry) },
-                            )
-                        }
-                    },
+                actions = fileInfoActions(entry, viewModel, onMore),
             )
         }
         is FileViewerState.Loaded -> {
@@ -1626,12 +1687,97 @@ private fun FileViewer(
     }
 }
 
-/** One action row of the [FileInfoCard]; a reused action-sheet row. */
+/** One row of the file info card (#66); a reused action-sheet row. */
 internal data class FileInfoAction(
     val icon: ImageVector,
     val label: String,
     val onClick: () -> Unit,
 )
+
+/** The actions the file info card offers, in display order (#66, #71). */
+internal enum class FileInfoActionKind {
+    SHARE,
+    SAVE_TO_DOWNLOADS,
+    CONVERT_TO_PDF,
+    TRY_AS_TEXT,
+    MORE,
+}
+
+/**
+ * The file info card's action sequence (#66) plus the More row that opens
+ * the full action sheet (#71). Pure, so the presence and order of the rows
+ * are unit-testable without composition.
+ */
+internal fun fileInfoActionKinds(entry: ClipboardEntry): List<FileInfoActionKind> =
+    buildList {
+        add(FileInfoActionKind.SHARE)
+        add(FileInfoActionKind.SAVE_TO_DOWNLOADS)
+        when (entry.contentType) {
+            ContentType.IMAGE -> add(FileInfoActionKind.CONVERT_TO_PDF)
+            ContentType.FILE -> {
+                val fileExt = fileExtensionOf(entry.filePath)
+                if (fileExt in FILE_TO_PDF_EXTENSIONS) {
+                    add(FileInfoActionKind.CONVERT_TO_PDF)
+                } else {
+                    // The same rule as the action sheet: the extractable
+                    // types have their own conversions, everything else can
+                    // be tried as text.
+                    add(FileInfoActionKind.TRY_AS_TEXT)
+                }
+            }
+            else -> Unit
+        }
+        add(FileInfoActionKind.MORE)
+    }
+
+@Composable
+private fun fileInfoActions(
+    entry: ClipboardEntry,
+    viewModel: ClipboardViewModel,
+    onMore: () -> Unit,
+): List<FileInfoAction> {
+    val context = LocalContext.current
+    return fileInfoActionKinds(entry).mapNotNull { kind ->
+        when (kind) {
+            FileInfoActionKind.SHARE ->
+                FileInfoAction(
+                    Icons.Filled.Share,
+                    context.getString(R.string.share),
+                ) { viewModel.shareClip(entry) }
+            FileInfoActionKind.SAVE_TO_DOWNLOADS ->
+                FileInfoAction(
+                    Icons.Filled.Download,
+                    context.getString(R.string.save_to_downloads),
+                ) { viewModel.saveFileToDownloads(entry) }
+            FileInfoActionKind.CONVERT_TO_PDF ->
+                if (entry.contentType == ContentType.IMAGE) {
+                    FileInfoAction(
+                        Icons.Filled.PictureAsPdf,
+                        context.getString(R.string.image_to_pdf),
+                    ) { viewModel.convertImageToPdf(entry) }
+                } else {
+                    fileConvertToPdfAction(entry, viewModel)?.let { convert ->
+                        FileInfoAction(
+                            Icons.Filled.PictureAsPdf,
+                            context.getString(R.string.convert_to_pdf),
+                            convert,
+                        )
+                    }
+                }
+            FileInfoActionKind.TRY_AS_TEXT ->
+                FileInfoAction(
+                    Icons.Filled.TextFields,
+                    context.getString(R.string.try_as_text),
+                ) { viewModel.convertFileToText(entry) }
+            FileInfoActionKind.MORE ->
+                FileInfoAction(
+                    Icons.Filled.MoreVert,
+                    context.getString(R.string.clip_more_actions),
+                    onMore,
+                )
+        }
+    }
+}
 
 /**
  * File info card fallback (#66): what a clip's file is (name, type, size)
@@ -1717,6 +1863,7 @@ private fun FileInfoCardLargeScalePreview() {
                     FileInfoAction(Icons.Filled.Download, "Save to Downloads") {},
                     FileInfoAction(Icons.Filled.PictureAsPdf, "Convert to PDF") {},
                     FileInfoAction(Icons.Filled.TextFields, "Try as text") {},
+                    FileInfoAction(Icons.Filled.MoreVert, "More actions") {},
                 ),
         )
     }

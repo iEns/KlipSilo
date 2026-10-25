@@ -41,7 +41,7 @@
 - <a id="C1"></a>**C1 · Text clip:** tap it. → The editor opens with the full text, ready to read or edit. In the sheet, **Present** still opens the reader, where dark/bright theme and auto-scroll work.
 - <a id="C2"></a>**C2 · URL and location clips:** tap each. → The URL opens in the browser. The location opens in Maps.
 - <a id="C3"></a>**C3 · Image clip:** tap it, and also try long-press → **View content**. → The image shows, with no crash (#66).
-- <a id="C4"></a>**C4 · Non-text file clips:** tap the DOCX, the TXT and the APK/ZIP, and try **View content** on each. → DOCX and TXT show readable text. The APK/ZIP shows a file info card or message with its actions. None of them crash (#66).
+- <a id="C4"></a>**C4 · Non-text file clips:** tap the DOCX, the TXT and the APK/ZIP, and try **View content** on each. → DOCX and TXT show readable text. The APK/ZIP shows a file info card or message with its actions. Tap **More** on the file info card and use an action from the full sheet (e.g. Rename, Pin or Delete) without going back to the list (#71). None of them crash (#66).
 - <a id="C5"></a>**C5 · Find links:** on a text or PDF clip that contains a URL and a phone number, open the sheet → **Find links**. → Both are listed. Tapping one opens the browser or the dialer.
 - <a id="C6"></a>**C6 · Action sheet layout:** long-press a text clip (or tap ⋮). → **Edit**, **Present** and **Share** sit at the top; **Convert** is collapsed by default and expands to the conversion actions; **Manage** groups **Rename**, **Duplicate** and **Delete**. PDF tools (Annotate, Fill form, Edit pages), Find links, Pin and Lock sit between Convert and Manage. No action is missing.
 
@@ -55,7 +55,7 @@
 All conversions below are under the sheet's **Convert** row — tap it to expand (collapsed by default).
 - <a id="E1"></a>**E1 · Text → PDF:** use a Markdown text clip (with a heading and a list), then sheet → **Convert** → PDF. → A new PDF clip shows the formatted text.
 - <a id="E2"></a>**E2 · Image → PDF:** run it on the JPG. → A new one-page PDF clip holds the image.
-- <a id="E3"></a>**E3 · DOCX → PDF:** on the DOCX file clip, use the sheet (long-press or ⋮) → **Convert** → **Convert to PDF**. → A new PDF clip appears with the document's headings, text, lists, tables and images, and it opens in the PDF viewer.
+- <a id="E3"></a>**E3 · DOCX → PDF:** on the DOCX file clip, use the sheet (long-press or ⋮) → **Convert** → **Convert to PDF**. → A new PDF clip appears with the document's headings, text, lists, tables and images, and it opens in the PDF viewer. A Word `Title` style renders as a heading, List Bullet / List Number paragraphs keep their `•` / `1.` markers (including styles whose numbering lives on the style), and paragraphs after a table start below the table instead of overlapping its last row (#75).
 - <a id="E4"></a>**E4 · PDF → Image and PDF → Text:** run both on the text PDF. → You get image clip(s) per page, and a text clip with the PDF's text.
 - <a id="E5"></a>**E5 · PDF → HTML, then edit:** run PDF → HTML, open the result, and tap **Edit**. → The HTML clip is created. Edit shows the HTML **source**, not the preview (#69).
 - <a id="E6"></a>**E6 · Try as text:** use the sheet's **Convert** → **Try as text** on an unknown file. → You get a text result or a clear message, with no crash.
@@ -66,7 +66,7 @@ All conversions below are under the sheet's **Convert** row — tap it to expand
 
 ## F. PDF viewer and PDF tools
 - <a id="F1"></a>**F1 · PDF viewer:** tap a multi-page PDF, swipe horizontally through pages, pinch-zoom, pan while zoomed, and use go-to-page. → The pages render. While the page is not zoomed, a horizontal swipe flips to the next or previous page; once zoomed, pinch and one-finger pan move the page and do not flip it. The page buttons and go-to-page still work.
-- <a id="F2"></a>**F2 · Viewer actions:** in the viewer, run OCR page, Save page as PDF, Read QR (on a page with a QR code) and Extract images. → Each one gives a correct new clip or result.
+- <a id="F2"></a>**F2 · Viewer actions:** in the viewer, run OCR page, Save page as PDF, Read QR (on a page with a QR code) and Extract images. → Each one gives a correct new clip or result. The bar's labels stay on one line (no mid-word wrap), including Japanese **OCR** / **保存** (shortened bar strings) and other long locales: they shrink to fit, then become icon-only or move into the overflow menu (#86).
 - <a id="F3"></a>**F3 · Combine:** Tools → **Combine** two PDFs and an image, and **Combine texts** with two text clips. → You get one merged PDF clip in the chosen order, and one merged text clip. With fewer than two text clips, **Combine texts** shows a hint and **Create another** instead of opening an empty picker.
 - <a id="F4"></a>**F4 · Edit pages:** PDF sheet → **Edit pages**, reorder two pages, delete one, and save. → The new PDF has the expected page order and count.
 

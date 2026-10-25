@@ -25,7 +25,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 | Find links and phone numbers in text or PDF, then tap to open or call | Action sheet → Find links | 1.1.0 | [C5](docs/regression-checklist.md#C5) | no |
 | Link clip: open the URL | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
 | Location clip: open in maps | Tap the row | 1.1.0 | [C2](docs/regression-checklist.md#C2) | no |
-| File info card for files the viewer can't show | Tap a file clip the viewer can't display (e.g. APK, ZIP): name, type and size with Share, Save to Downloads, Convert to PDF and Try as text | 1.2.0 | [C4](docs/regression-checklist.md#C4) | no |
+| File info card for files the viewer can't show | Tap a file clip the viewer can't display (e.g. APK, ZIP): name, type and size with Share, Save to Downloads, Convert to PDF and Try as text; **More** opens the full action sheet (rename, pin, lock, duplicate, delete and conversions) without returning to the list (1.3.0) | 1.2.0 | [C4](docs/regression-checklist.md#C4) | no |
 
 ## Receiving / sharing in
 
@@ -58,7 +58,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| DOCX → PDF (headings, images, tables, lists) | File clip → action sheet → Convert → Convert to PDF; or the file info card, if the viewer can't show the file | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
+| DOCX → PDF (Title and Heading styles, images, tables, lists) | File clip → action sheet → Convert → Convert to PDF; or the file info card, if the viewer can't show the file. Word's `Title` style becomes a heading, List Bullet / List Number keep their markers even when the numbering lives on the style, and text after a table starts below it (1.3.0) | 1.1.0 | [E3](docs/regression-checklist.md#E3) | no |
 | XLSX → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | RTF → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
 | TXT → PDF | Same as DOCX → PDF | 1.1.0 | [E7](docs/regression-checklist.md#E7) | no |
@@ -80,6 +80,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | PDF viewer with page flipping and pinch zoom | Tap a PDF clip; a horizontal swipe flips pages when the page is not zoomed, and pinch-zoom/pan take over once zoomed in | 1.1.0 | [F1](docs/regression-checklist.md#F1) | no |
 | Page navigation and go-to-page | Viewer action bar: previous/next, or tap the page indicator to jump to a page | 1.2.0 | [F1](docs/regression-checklist.md#F1) | no |
 | OCR the current page to text | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
+| Viewer bar labels stay on one line | PDF viewer action bar: labels use a single line (no mid-word wrap). Japanese bar strings are short (`OCR`, `保存`); long labels in any locale shrink, then fall back to icons or the overflow menu (1.3.0) | 1.3.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Save one page as its own PDF | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Read a QR code on a page | Viewer action bar → Read QR | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |

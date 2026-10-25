@@ -568,6 +568,9 @@ private fun SheetDivider() {
 /** Lowercased file extension of [filePath], or "" (no path or extension). */
 internal fun fileExtensionOf(filePath: String?): String = filePath?.substringAfterLast('.', "")?.lowercase() ?: ""
 
+/** File extensions with a direct "Convert to PDF" action (#66, #75). */
+internal val FILE_TO_PDF_EXTENSIONS = setOf("txt", "rtf", "docx", "xlsx")
+
 /**
  * The "Convert to PDF" action for a file clip by its extension — the same
  * mapping the action sheet shows, reused by the viewer's file info card
