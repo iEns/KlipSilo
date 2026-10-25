@@ -10,7 +10,7 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
-| Save the current clipboard | Button at the top of the Clips tab, shown while the clipboard has content; a failed save says why and offers Retry when the clipboard still has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
+| Save the current clipboard | Button at the top of the Clips tab. With an empty library it appears once the clipboard has content (#93); once there are clips it stays in place, disabled and labelled "Clipboard is empty" when there is nothing to save (#120). A failed save says why and offers Retry when the clipboard still has content | 1.1.0 | [A1](docs/regression-checklist.md#A1) | no |
 | New empty text clip | + button (FAB) | 1.1.0 | [A2](docs/regression-checklist.md#A2) | no |
 | Clip types: text, link, image, PDF, file, location | Rows in the list | 1.1.0 | [A3](docs/regression-checklist.md#A3), [A4](docs/regression-checklist.md#A4), [A5](docs/regression-checklist.md#A5) | no |
 | Open a clip | Tap a row: text opens the editor with its content (read/edit), a link opens the browser, a location opens maps, a PDF, image or file opens the viewer | 1.2.0 | [C1](docs/regression-checklist.md#C1), [C2](docs/regression-checklist.md#C2), [C3](docs/regression-checklist.md#C3), [C4](docs/regression-checklist.md#C4) | no |
@@ -71,7 +71,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | PDF → images | PDF clip → action sheet → Convert → PDF to image | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → text (OCR of the whole PDF) | PDF clip → action sheet → Convert → PDF to text | 1.1.0 | [E4](docs/regression-checklist.md#E4) | no |
 | PDF → HTML | PDF clip → action sheet → Convert → PDF to HTML | 1.1.0 | [E5](docs/regression-checklist.md#E5) | no |
-| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (tap the row to expand); the chosen font is embedded in plain Text → PDF output | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
+| PDF output settings: font family, size, line spacing, margins, max output | Settings → PDF & export (directly under Display mode; the row shows the current font and expands on tap); the chosen font is embedded in plain Text → PDF output | 1.1.0 | [E10](docs/regression-checklist.md#E10) | no |
 
 ## PDF tools
 
@@ -84,7 +84,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Save one page as its own PDF | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Read a QR code on a page | Viewer action bar → Read QR | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Extract the images on a page | Viewer action bar → Extract images | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
-| Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
+| Combine clips into one PDF (images/PDFs) | Tools → Combine PDFs; needs two or more image/PDF clips, otherwise a hint says so instead of opening a picker | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Combine text clips | Tools → Combine texts; needs two or more text clips, otherwise a hint offers Create another | 1.1.0 | [F3](docs/regression-checklist.md#F3) | no |
 | Edit pages (reorder/delete) | PDF clip → action sheet → Edit pages | 1.1.0 | [F4](docs/regression-checklist.md#F4) | no |
 | Fill PDF form (text, checkbox, radio, choice) | PDF clip → action sheet → Fill form | 1.1.0 | [G1](docs/regression-checklist.md#G1), [G2](docs/regression-checklist.md#G2), [G3](docs/regression-checklist.md#G3) | no |
@@ -136,7 +136,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 |---|---|---|---|---|
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
 | 13 languages plus System default, synced with Android App Info | Settings → Language | 1.2.0 | [K1](docs/regression-checklist.md#K1) | no |
-| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy (all 13 app languages; paid-download wording matches the site; effective 25 Oct 2026) | Settings, above PDF & export | 1.3.0 | [K3](docs/regression-checklist.md#K3) | no |
+| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy (all 13 app languages; paid-download wording matches the site; effective 25 Oct 2026) | Settings → Guide and About, below PDF & export | 1.3.0 | [K3](docs/regression-checklist.md#K3) | no |
 
 ## Other / maintenance
 

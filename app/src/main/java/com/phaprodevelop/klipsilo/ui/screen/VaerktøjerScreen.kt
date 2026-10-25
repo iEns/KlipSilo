@@ -215,7 +215,18 @@ fun VaerktøjerScreen(
 
             ToolGroup(title = context.getString(R.string.tool_group_convert)) {
                 ToolRow(Icons.Filled.PictureAsPdf, context.getString(R.string.tool_combine)) {
-                    showCombineDialog = true
+                    if (hasTwoCombinableClips(clips)) {
+                        showCombineDialog = true
+                    } else {
+                        // #131: like Combine texts (#105), open no Cancel-only
+                        // picker when there is nothing that could be combined.
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.combine_pdf_need_two),
+                                duration = SnackbarDuration.Long,
+                            )
+                        }
+                    }
                 }
                 ToolRow(Icons.Filled.TextFields, context.getString(R.string.tool_combine_texts)) {
                     if (hasTwoTextClips(clips)) {
@@ -755,6 +766,16 @@ internal fun DeleteTypeDialog(
  */
 internal fun hasTwoTextClips(clips: List<ClipboardEntry>): Boolean =
     clips.count { it.contentType == ContentType.TEXT } >= 2
+
+/**
+ * #131: combining to PDF needs at least two image/PDF clips. With fewer, the
+ * screen explains why instead of opening a picker where nothing can be
+ * selected (same guard as Combine texts, #105).
+ */
+internal fun hasTwoCombinableClips(clips: List<ClipboardEntry>): Boolean =
+    clips.count {
+        it.contentType == ContentType.PDF || it.contentType == ContentType.IMAGE
+    } >= 2
 
 @Composable
 private fun CombineDialog(

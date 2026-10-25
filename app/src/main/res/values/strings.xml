@@ -240,6 +240,7 @@
     <string name="tool_combine_texts">Combine texts</string>
     <string name="combine_texts_need_two">Need two text clips</string>
     <string name="combine_texts_create_another">Create another</string>
+    <string name="combine_pdf_need_two">Need two images or PDFs</string>
     <string name="texts_combined">Texts combined</string>
     <string name="save_page_pdf">Save page</string>
     <string name="page_saved_as_pdf">Page saved as PDF</string>
