@@ -6,6 +6,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
+import com.phaprodevelop.klipsilo.data.settings.pdfFontAsset
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -81,9 +82,5 @@ internal fun typefaceForPdfFont(
     context: Context,
     font: PdfFont,
 ): Typeface =
-    when (font) {
-        PdfFont.SYSTEM -> Typeface.DEFAULT
-        PdfFont.SANS -> Typeface.createFromAsset(context.assets, "fonts/LiberationSans-Regular.ttf")
-        PdfFont.SERIF -> Typeface.createFromAsset(context.assets, "fonts/LiberationSerif-Regular.ttf")
-        PdfFont.MONO -> Typeface.createFromAsset(context.assets, "fonts/LiberationMono-Regular.ttf")
-    }
+    pdfFontAsset(font, bold = false)?.let { Typeface.createFromAsset(context.assets, it) }
+        ?: Typeface.DEFAULT

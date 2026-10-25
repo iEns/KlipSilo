@@ -9,6 +9,23 @@ enum class PdfFont {
     MONO,
 }
 
+/**
+ * Asset-backed font file for [font], or null for the platform default.
+ *
+ * One mapping for both the editor preview and the PDF writer, so the PDF can
+ * never drift from what the Settings cards promise (#126).
+ */
+internal fun pdfFontAsset(
+    font: PdfFont,
+    bold: Boolean,
+): String? =
+    when (font) {
+        PdfFont.SYSTEM -> null
+        PdfFont.SANS -> "fonts/LiberationSans-${if (bold) "Bold" else "Regular"}.ttf"
+        PdfFont.SERIF -> "fonts/LiberationSerif-${if (bold) "Bold" else "Regular"}.ttf"
+        PdfFont.MONO -> "fonts/LiberationMono-${if (bold) "Bold" else "Regular"}.ttf"
+    }
+
 data class PdfSettings(
     val marginTopBottomCm: Float = 2f,
     val marginLeftRightCm: Float = 2f,

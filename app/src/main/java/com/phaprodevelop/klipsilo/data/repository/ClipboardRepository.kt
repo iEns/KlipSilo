@@ -56,6 +56,7 @@ import com.phaprodevelop.klipsilo.data.resolveRadioOptionLabel
 import com.phaprodevelop.klipsilo.data.resolveWidgetLabel
 import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
+import com.phaprodevelop.klipsilo.data.settings.pdfFontAsset
 import com.phaprodevelop.klipsilo.data.widgetVisualFractions
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
@@ -1626,10 +1627,11 @@ class ClipboardRepository(
         originalEntry: ClipboardEntry,
         fontSizePt: Float? = null,
         lineSpacing: Float? = null,
+        pdfFont: PdfFont? = null,
     ): Long {
         return try {
             if (text.isBlank()) return 0L
-            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing)
+            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, pdfFont = pdfFont)
             if (pdfBytes.isEmpty()) return 0L
             writePdfClip(
                 pdfBytes,
@@ -1644,10 +1646,11 @@ class ClipboardRepository(
         text: String,
         fontSizePt: Float,
         lineSpacing: Float,
+        pdfFont: PdfFont? = null,
     ): List<Bitmap> {
         return try {
             if (text.isBlank()) return emptyList()
-            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, forPreview = true)
+            val pdfBytes = renderTextPdfBytes(text, fontSizePt, lineSpacing, forPreview = true, pdfFont = pdfFont)
             if (pdfBytes.isEmpty()) return emptyList()
             val tempFile = File(context.cacheDir, "preview_${System.nanoTime()}.pdf")
             FileOutputStream(tempFile).use { it.write(pdfBytes) }
@@ -1673,10 +1676,11 @@ class ClipboardRepository(
         fontSizePt: Float?,
         lineSpacing: Float?,
         forPreview: Boolean = false,
+        pdfFont: PdfFont? = null,
     ): ByteArray {
         // A soft hyphen must not leak into the PDF output (#62).
         val text = text.withoutSoftHyphens()
-        val baseLayout = pdfLayout()
+        val baseLayout = pdfLayout(pdfFont)
         val layout =
             when {
                 fontSizePt != null && lineSpacing != null ->
@@ -1710,14 +1714,16 @@ class ClipboardRepository(
             text.contains("<body>", ignoreCase = true)
     }
 
-    private fun pdfLayout(): PdfLayout {
+    private fun pdfLayout(pdfFont: PdfFont? = null): PdfLayout {
         val settings = PdfSettingsStore.load(context)
         return PdfLayout(
             marginTopBottomPt = settings.marginTopBottomPt,
             marginLeftRightPt = settings.marginLeftRightPt,
             fontSizePt = settings.fontSizePt,
             lineSpacing = settings.lineSpacing,
-            font = settings.pdfFont,
+            // #126: callers that already hold the Settings value pass it in;
+            // otherwise read the stored preference (never a hard-coded font).
+            font = pdfFont ?: settings.pdfFont,
         )
     }
 
@@ -1727,70 +1733,130 @@ class ClipboardRepository(
         mono: Boolean = false,
     ): android.graphics.Typeface {
         val family = if (mono) PdfFont.MONO else font
-        return when (family) {
-            PdfFont.SYSTEM ->
-                if (bold) {
-                    android.graphics.Typeface.DEFAULT_BOLD
-                } else {
-                    android.graphics.Typeface.DEFAULT
-                }
-            PdfFont.SANS -> assetTypeface("LiberationSans", bold)
-            PdfFont.SERIF -> assetTypeface("LiberationSerif", bold)
-            PdfFont.MONO -> assetTypeface("LiberationMono", bold)
+        val asset = pdfFontAsset(family, bold)
+        return if (asset == null) {
+            if (bold) {
+                android.graphics.Typeface.DEFAULT_BOLD
+            } else {
+                android.graphics.Typeface.DEFAULT
+            }
+        } else {
+            android.graphics.Typeface.createFromAsset(context.assets, asset)
         }
     }
 
-    private fun assetTypeface(
-        name: String,
-        bold: Boolean,
-    ): android.graphics.Typeface =
-        android.graphics.Typeface.createFromAsset(
-            context.assets,
-            "fonts/$name-${if (bold) "Bold" else "Regular"}.ttf",
-        )
-
+    /**
+     * Plain Text → PDF (#126).
+     *
+     * Android's [PdfDocument] + Canvas path does not reliably embed the
+     * Liberation typeface selected in Settings, so the PDF looked the same for
+     * SANS/SERIF/MONO. PDFBox embeds the exact TTF asset as a Type0 font, the
+     * same files the annotation path uses, which makes the setting verifiable.
+     */
     private fun renderPlainPdf(
         text: String,
         layout: PdfLayout,
     ): ByteArray {
-        val document = PdfDocument()
-        val paint =
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = layout.fontSizePt
-                color = Color.BLACK
-                typeface = pdfTypeface(layout.font, bold = false)
-            }
-        val textWidth = layout.textWidth
-        val lineHeight = layout.baseLineHeight
+        PDDocument().use { document ->
+            // SYSTEM has no asset of its own; Liberation Sans is the embedded
+            // stand-in, matching the Sans card.
+            val fontAsset = pdfFontAsset(layout.font, bold = false) ?: "fonts/LiberationSans-Regular.ttf"
+            val font =
+                context.assets.open(fontAsset).use { stream ->
+                    PDType0Font.load(document, stream)
+                }
+            val lines = wrapPdfText(pdfSafeText(text, font), font, layout.fontSizePt, layout.textWidth)
+            val lineHeight = layout.baseLineHeight
+            val maxLinesPerPage =
+                ((A4_HEIGHT_PT - 2 * layout.marginTopBottomPt) / lineHeight).toInt().coerceAtLeast(1)
+            val firstBaseline = A4_HEIGHT_PT - layout.marginTopBottomPt - layout.fontSizePt
 
-        val lines = wrapText(text, paint, textWidth)
-        val maxLinesPerPage = ((A4_HEIGHT_PT - 2 * layout.marginTopBottomPt) / lineHeight).toInt().coerceAtLeast(1)
-
-        var pageNumber = 1
-        var y = layout.marginTopBottomPt
-        var page =
-            document.startPage(
-                PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, pageNumber).create(),
-            )
-        lines.forEachIndexed { i, line ->
-            if (i > 0 && i % maxLinesPerPage == 0) {
-                document.finishPage(page)
-                pageNumber++
-                page =
-                    document.startPage(
-                        PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, pageNumber).create(),
-                    )
-                y = layout.marginTopBottomPt
+            var start = 0
+            while (start < lines.size) {
+                val pageLines = lines.subList(start, minOf(start + maxLinesPerPage, lines.size))
+                val page = PDPage(PDRectangle(A4_WIDTH_PT.toFloat(), A4_HEIGHT_PT.toFloat()))
+                document.addPage(page)
+                PDPageContentStream(document, page).use { stream ->
+                    stream.beginText()
+                    stream.setFont(font, layout.fontSizePt)
+                    stream.setLeading(lineHeight)
+                    stream.newLineAtOffset(layout.marginLeftRightPt, firstBaseline)
+                    pageLines.forEachIndexed { i, line ->
+                        if (i > 0) stream.newLine()
+                        if (line.isNotEmpty()) stream.showText(line)
+                    }
+                    stream.endText()
+                }
+                start += pageLines.size
             }
-            page.canvas.drawText(line, layout.marginLeftRightPt, y, paint)
-            y += lineHeight
+
+            val out = ByteArrayOutputStream()
+            document.save(out)
+            return out.toByteArray()
         }
-        document.finishPage(page)
+    }
 
-        val out = ByteArrayOutputStream()
-        document.writeTo(out)
-        document.close()
-        return out.toByteArray()
+    /** Replaces characters the embedded font has no glyph for, so showText cannot throw. */
+    private fun pdfSafeText(
+        text: String,
+        font: PDType0Font,
+    ): String {
+        val safe = StringBuilder(text.length)
+        var i = 0
+        while (i < text.length) {
+            val codePoint = text.codePointAt(i)
+            i += Character.charCount(codePoint)
+            when {
+                codePoint == '\n'.code || codePoint == '\r'.code -> safe.append('\n')
+                codePoint == '\t'.code -> safe.append("    ")
+                codePoint == ' '.code || codePoint == '\u00A0'.code -> safe.append(' ')
+                font.hasGlyph(codePoint) -> safe.appendCodePoint(codePoint)
+                else -> safe.append('?')
+            }
+        }
+        return safe.toString()
+    }
+
+    private fun wrapPdfText(
+        text: String,
+        font: PDFont,
+        fontSize: Float,
+        maxWidth: Float,
+    ): List<String> {
+        val lines = mutableListOf<String>()
+        text.split('\n').forEachIndexed { index, paragraph ->
+            if (paragraph.isBlank()) {
+                if (index > 0) lines.add("")
+                return@forEachIndexed
+            }
+            var start = 0
+            while (start < paragraph.length) {
+                var end = start
+                var lastSpace = -1
+                var width = 0f
+                while (end < paragraph.length) {
+                    val charCount = Character.charCount(paragraph.codePointAt(end))
+                    val chunk = paragraph.substring(end, end + charCount)
+                    val chunkWidth = font.getStringWidth(chunk) / 1000f * fontSize
+                    if (width + chunkWidth > maxWidth && end > start) break
+                    width += chunkWidth
+                    if (chunk == " ") lastSpace = end
+                    end += charCount
+                }
+                if (end == start) {
+                    end = start + Character.charCount(paragraph.codePointAt(start))
+                }
+                val cut = if (end < paragraph.length && lastSpace > start) lastSpace else end
+                lines.add(paragraph.substring(start, cut))
+                start =
+                    if (cut < paragraph.length && paragraph[cut] == ' ') {
+                        cut + 1
+                    } else {
+                        cut.coerceAtLeast(start + 1)
+                    }
+            }
+        }
+        return lines
     }
 
     private fun looksLikeMarkdown(text: String): Boolean {

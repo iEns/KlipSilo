@@ -61,6 +61,7 @@ import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.clipListTitle
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 
 internal enum class SheetSection {
@@ -293,7 +294,7 @@ fun ClipActionSheet(
                                 icon = Icons.Filled.PictureAsPdf,
                                 label = context.getString(R.string.convert_to_pdf),
                             ) {
-                                onDismiss()
+                                // The Convert section wrapper dismisses the sheet (#128).
                                 convert()
                             },
                         )
@@ -305,7 +306,6 @@ fun ClipActionSheet(
                                 icon = Icons.Filled.Html,
                                 label = context.getString(R.string.pdf_to_html),
                             ) {
-                                onDismiss()
                                 convert()
                             },
                         )
@@ -317,7 +317,6 @@ fun ClipActionSheet(
                                 icon = Icons.Filled.PictureAsPdf,
                                 label = context.getString(R.string.html_to_pdf),
                             ) {
-                                onDismiss()
                                 convert()
                             },
                         )
@@ -329,7 +328,6 @@ fun ClipActionSheet(
                                 icon = Icons.Filled.TextFields,
                                 label = context.getString(R.string.try_as_text),
                             ) {
-                                onDismiss()
                                 convert()
                             },
                         )
@@ -341,7 +339,6 @@ fun ClipActionSheet(
                                 icon = Icons.Filled.Image,
                                 label = context.getString(R.string.tool_ocr_image),
                             ) {
-                                onDismiss()
                                 ocr()
                             },
                         )
@@ -482,7 +479,13 @@ fun ClipActionSheet(
                                 icon = item.icon,
                                 label = item.label,
                                 enabled = item.enabled,
-                                onClick = item.onClick,
+                                // #128: every conversion shows a toast when it
+                                // finishes, and a modal sheet would hide it.
+                                // Close the sheet before the action runs.
+                                onClick = {
+                                    onDismiss()
+                                    item.onClick()
+                                },
                             )
                         }
                     }
@@ -601,7 +604,13 @@ private fun conversionRows(
                     icon = Icons.Filled.PictureAsPdf,
                     label = context.getString(R.string.text_to_pdf),
                 ) {
-                    viewModel.convertTextToPdf(entry.textContent.orEmpty(), entry)
+                    // #126: read the Settings font when the action runs, so a
+                    // change made in Settings is picked up without a restart.
+                    viewModel.convertTextToPdf(
+                        entry.textContent.orEmpty(),
+                        entry,
+                        pdfFont = PdfSettingsStore.load(context).pdfFont,
+                    )
                 },
                 SheetItem(
                     action = ClipSheetAction.TEXT_TO_TXT,
