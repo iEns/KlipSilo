@@ -180,9 +180,9 @@
     <string name="open_settings">打开设置</string>
     <string name="pdf_setting_font_family">字体</string>
     <string name="pdf_font_system">系统</string>
-    <string name="pdf_font_sans">无衬线 (≈Arial)</string>
-    <string name="pdf_font_serif">衬线 (≈Times)</string>
-    <string name="pdf_font_mono">等宽 (≈Courier)</string>
+    <string name="pdf_font_sans">无衬线</string>
+    <string name="pdf_font_serif">衬线</string>
+    <string name="pdf_font_mono">等宽</string>
     <string name="pdf_setting_margin_top_bottom">上下页边距</string>
     <string name="pdf_setting_margin_left_right">左右页边距</string>
     <string name="pdf_setting_font_size">字号</string>

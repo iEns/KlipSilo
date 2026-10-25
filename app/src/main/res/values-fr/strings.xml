@@ -182,9 +182,9 @@
     <string name="open_settings">Ouvrir les paramètres</string>
     <string name="pdf_setting_font_family">Type de police</string>
     <string name="pdf_font_system">Système</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">Marge haut/bas</string>
     <string name="pdf_setting_margin_left_right">Marge gauche/droite</string>
     <string name="pdf_setting_font_size">Taille de police</string>

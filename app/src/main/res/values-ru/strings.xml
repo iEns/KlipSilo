@@ -183,9 +183,9 @@
     <string name="open_settings">Открыть настройки</string>
     <string name="pdf_setting_font_family">Тип шрифта</string>
     <string name="pdf_font_system">Системный</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">Поле сверху/снизу</string>
     <string name="pdf_setting_margin_left_right">Поле слева/справа</string>
     <string name="pdf_setting_font_size">Размер шрифта</string>

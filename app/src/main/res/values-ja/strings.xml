@@ -180,9 +180,9 @@
     <string name="open_settings">設定を開く</string>
     <string name="pdf_setting_font_family">フォントの種類</string>
     <string name="pdf_font_system">システム</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">上下の余白</string>
     <string name="pdf_setting_margin_left_right">左右の余白</string>
     <string name="pdf_setting_font_size">文字サイズ</string>

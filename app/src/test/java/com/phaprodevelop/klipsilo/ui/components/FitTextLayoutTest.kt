@@ -224,8 +224,8 @@ class FitTextLayoutTest {
         // #62: the 2×2 card group at large font scales. One slot is half the
         // screen minus the 12dp screen padding and the 8dp gap.
         val style = TextStyle(fontSize = 10.sp, lineHeight = 14.sp)
-        val labels =
-            listOf("System", "Sans (≈Arial)", "Serif (≈Times)", "Mono (≈Courier)")
+        // #125: the buttons are named System / Sans Serif / Serif / Mono.
+        val labels = listOf("System", "Sans Serif", "Serif", "Mono")
         for (windowDp in listOf(294f, 320f)) {
             val slot = (windowDp - 24f - 8f) / 2f
             val decisions =

@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -188,6 +189,7 @@ fun IndstillingerScreen(
                                 },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                             textAlign = TextAlign.Center,
+                            contentAlignment = Alignment.Center,
                         )
                     }
                 }
@@ -437,9 +439,9 @@ internal fun PdfExportSection(
 /**
  * The four PDF font cards (#62). At large font scales they reflow into a 2×2
  * grid, and the four cards are ONE uniform group: a shared label scale from
- * [rememberUniformLabelDecisions], the policy wrapping "Serif (≈Times)" and
- * "Mono (≈Courier)" at the space, never inside a word and never clipped. The
- * old one-row layout truncated them to "Serif (≈Tim…" at font scale 2.0.
+ * [rememberUniformLabelDecisions], the policy wrapping each label at the
+ * space, never inside a word and never clipped. Each label is drawn in the
+ * family it selects (#125).
  */
 @Composable
 private fun FontFamilyCards(
@@ -476,7 +478,7 @@ private fun FontFamilyCards(
                                     text = decision.text,
                                     style =
                                         scaledLabelStyle(
-                                            style,
+                                            style.copy(fontFamily = font.composeFontFamily()),
                                             style.fontSize.value * decision.scale,
                                             style.fontSize.value,
                                         ),
@@ -514,10 +516,14 @@ private fun FontFamilyCards(
                 ) {
                     ButtonLabel(
                         text = label,
-                        style = MaterialTheme.typography.labelSmall,
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = font.composeFontFamily(),
+                            ),
                         color = fontCardLabelColor(selectedFont),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                         textAlign = TextAlign.Center,
+                        contentAlignment = Alignment.Center,
                     )
                 }
             }
@@ -535,6 +541,18 @@ private fun pdfFontLabel(
         PdfFont.SANS -> context.getString(R.string.pdf_font_sans)
         PdfFont.SERIF -> context.getString(R.string.pdf_font_serif)
         PdfFont.MONO -> context.getString(R.string.pdf_font_mono)
+    }
+
+/**
+ * #125: the font card label is drawn in the family it selects, so the choice
+ * is visible before converting a clip.
+ */
+private fun PdfFont.composeFontFamily(): FontFamily =
+    when (this) {
+        PdfFont.SYSTEM -> FontFamily.Default
+        PdfFont.SANS -> FontFamily.SansSerif
+        PdfFont.SERIF -> FontFamily.Serif
+        PdfFont.MONO -> FontFamily.Monospace
     }
 
 @Composable
@@ -716,8 +734,8 @@ private fun PdfSettingSlider(
 @Preview(widthDp = 320, showBackground = true)
 @Composable
 private fun FontFamilyCardsLargeScalePreview() {
-    // #62: "Serif (≈Times)"/"Mono (≈Courier)" used to truncate at font scale
-    // 2.0; in the 2×2 group they wrap at the space and share one size.
+    // #62: the font labels used to truncate at font scale 2.0; in the 2×2
+    // group they wrap at the space and share one size. #125: short names.
     MaterialTheme {
         Column(Modifier.padding(12.dp)) {
             FontFamilyCards(selected = PdfFont.SANS, onSelect = {})

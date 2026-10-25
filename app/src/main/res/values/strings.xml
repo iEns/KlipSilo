@@ -178,7 +178,7 @@
     <string name="section_edit">Edit</string>
     <string name="view_content">View content</string>
     <string name="edit">Edit</string>
-    <string name="action_convert">Convert</string>
+    <string name="action_convert">Convert &amp; Edit</string>
     <string name="action_manage">Manage</string>
     <string name="pin_or_unpin">Pin / unpin</string>
     <string name="lock_or_unlock">Lock/unlock</string>
@@ -194,9 +194,9 @@
     <string name="open_settings">Open settings</string>
     <string name="pdf_setting_font_family">Font type</string>
     <string name="pdf_font_system">System</string>
-    <string name="pdf_font_sans">Sans (≈Arial)</string>
-    <string name="pdf_font_serif">Serif (≈Times)</string>
-    <string name="pdf_font_mono">Mono (≈Courier)</string>
+    <string name="pdf_font_sans">Sans Serif</string>
+    <string name="pdf_font_serif">Serif</string>
+    <string name="pdf_font_mono">Mono</string>
     <string name="pdf_setting_margin_top_bottom">Top/bottom margin</string>
     <string name="pdf_setting_margin_left_right">Left/right margin</string>
     <string name="pdf_setting_font_size">Font size</string>
