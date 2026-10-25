@@ -6,6 +6,9 @@ import android.graphics.Typeface
 import androidx.test.core.app.ApplicationProvider
 import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
+import com.phaprodevelop.klipsilo.data.settings.PdfFont
+import com.phaprodevelop.klipsilo.data.settings.PdfSettings
+import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.fakes.FakeClipboardItemDao
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
@@ -66,6 +69,7 @@ class PdfOperationsTest {
     @After
     fun tearDown() {
         if (!::context.isInitialized) return
+        PdfSettingsStore.save(context, PdfSettings())
         listOf("images", "pdfs", "files").forEach { name ->
             File(context.filesDir, name).deleteRecursively()
         }
@@ -102,19 +106,45 @@ class PdfOperationsTest {
 
             // Assert
             assertEquals(original.copy(textContent = null), kept)
-            if (newId == 0L) {
-                // PdfDocument.nativeCreateDocument is unimplemented on Robolectric, so the
-                // document is already "closed" and saveTextAsPdf swallows IllegalStateException.
-                assertEquals(1, clips.size)
-            } else {
-                assertNotEquals(original.id, newId)
-                val created = clips.single { it.id == newId }
+            assertNotEquals(original.id, newId)
+            val created = clips.single { it.id == newId }
+            val pdfFile = File(created.filePath!!)
+            assertEquals(ContentType.PDF, created.contentType)
+            assertTrue(pdfFile.exists())
+            assertTrue(pdfFile.length() > 0L)
+            assertTrue(pdfFile.readBytes().copyOfRange(0, 4).contentEquals("%PDF".toByteArray()))
+            assertTrue(pdfBoxPageCount(pdfFile.absolutePath) >= 1)
+        }
+
+    @Test
+    fun saveTextAsPdf_embedsFontFromSettings() =
+        runTest {
+            // #126: Text → PDF must embed the font selected under Settings → PDF & export.
+            val original = textEntry(id = 3L, text = "hello", preview = "hello")
+            repo.insertEntry(original)
+            val expectedByFont =
+                listOf(
+                    PdfFont.SANS to "LiberationSans",
+                    PdfFont.SERIF to "LiberationSerif",
+                    PdfFont.MONO to "LiberationMono",
+                )
+
+            expectedByFont.forEachIndexed { index, (pdfFont, expectedName) ->
+                PdfSettingsStore.save(context, PdfSettings(pdfFont = pdfFont))
+
+                val newId = repo.saveTextAsPdf("hello $expectedName", original.copy(id = 3L + index))
+
+                assertNotEquals("no PDF for $pdfFont", 0L, newId)
+                val created = repo.getAllClips().first().single { it.id == newId }
                 val pdfFile = File(created.filePath!!)
-                assertEquals(ContentType.PDF, created.contentType)
-                assertTrue(pdfFile.exists())
-                assertTrue(pdfFile.length() > 0L)
-                assertTrue(pdfFile.readBytes().copyOfRange(0, 4).contentEquals("%PDF".toByteArray()))
-                assertTrue(pdfBoxPageCount(pdfFile.absolutePath) >= 1)
+                PDDocument.load(pdfFile).use { document ->
+                    val page = document.getPage(0)
+                    val embedded = page.resources.fontNames.map { page.resources.getFont(it) }
+                    assertTrue(
+                        "$pdfFont should embed $expectedName, got ${embedded.map { it.name }}",
+                        embedded.any { it.isEmbedded && it.name.contains(expectedName) },
+                    )
+                }
             }
         }
 

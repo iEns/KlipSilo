@@ -270,6 +270,7 @@ fun DetailScreen(
                             editedText.text,
                             fontSize.toFloat(),
                             pdfSettings.lineSpacing,
+                            pdfSettings.pdfFont,
                         )
                     },
                     discard = { pages -> pages.forEach { it.recycle() } },
@@ -795,6 +796,7 @@ fun DetailScreen(
                                         entry,
                                         fontSizePt = fontSize.toFloat(),
                                         lineSpacing = pdfSettings.lineSpacing,
+                                        pdfFont = pdfSettings.pdfFont,
                                         navigateBack = false,
                                     )
                                 },

@@ -186,6 +186,32 @@ class ConvertFileToTextTest {
             assertFalse(viewModel.isConverting.value)
         }
 
+    @Test
+    fun convertTextToFile_doesNotRequestNavigateBack() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // Arrange (#129): Text → TXT runs from the Clips action sheet. A
+            // pending "navigate back" would make the next clip tap open a
+            // detail screen and immediately close it again.
+            val stored =
+                ClipboardEntry(
+                    id = 24L,
+                    contentType = ContentType.TEXT,
+                    textContent = "body",
+                    filePath = null,
+                    previewText = "body",
+                    timestamp = 1L,
+                )
+            ClipboardRepository(dao, app).insertEntry(stored)
+
+            // Act
+            viewModel.convertTextToFile("body", stored)
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            // Assert
+            assertNotNull(dao.getAllOnce().single { it.contentType == ContentType.FILE }.filePath)
+            assertFalse(viewModel.navigateBack.value)
+        }
+
     private fun storedFile(
         name: String,
         bytes: ByteArray,

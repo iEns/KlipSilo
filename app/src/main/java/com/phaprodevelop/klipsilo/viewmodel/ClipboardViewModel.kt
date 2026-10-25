@@ -26,6 +26,7 @@ import com.phaprodevelop.klipsilo.data.repository.extractDocxText
 import com.phaprodevelop.klipsilo.data.repository.extractRtfText
 import com.phaprodevelop.klipsilo.data.repository.extractXlsxText
 import com.phaprodevelop.klipsilo.data.repository.isProbablyBinary
+import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.ThemeMode
 import com.phaprodevelop.klipsilo.data.settings.ThemeModeStore
 import com.phaprodevelop.klipsilo.data.textClipTitle
@@ -772,7 +773,8 @@ class ClipboardViewModel(
         entry: ClipboardEntry,
         fontSizePt: Float? = null,
         lineSpacing: Float? = null,
-        navigateBack: Boolean = true,
+        pdfFont: PdfFont? = null,
+        navigateBack: Boolean = false,
     ) {
         if (_isConverting.value) return
         viewModelScope.launch {
@@ -794,7 +796,7 @@ class ClipboardViewModel(
                             } else {
                                 entry
                             }
-                        repository.saveTextAsPdf(body, entryForPdf, fontSizePt, lineSpacing)
+                        repository.saveTextAsPdf(body, entryForPdf, fontSizePt, lineSpacing, pdfFont)
                     }
                 if (newId > 0L) {
                     triggerScrollToTop()
@@ -838,7 +840,6 @@ class ClipboardViewModel(
                 if (newId > 0L) {
                     triggerScrollToTop()
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.text_to_txt))
-                    _navigateBack.value = true
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
                 }
@@ -1093,9 +1094,10 @@ class ClipboardViewModel(
         text: String,
         fontSizePt: Float,
         lineSpacing: Float,
+        pdfFont: PdfFont? = null,
     ): List<Bitmap> {
         return withContext(ioDispatcher) {
-            repository.previewTextAsPdf(text, fontSizePt, lineSpacing)
+            repository.previewTextAsPdf(text, fontSizePt, lineSpacing, pdfFont)
         }
     }
 

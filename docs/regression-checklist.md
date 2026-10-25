@@ -43,7 +43,7 @@
 - <a id="C3"></a>**C3 · Image clip:** tap it, and also try long-press → **View content**. → The image shows, with no crash (#66).
 - <a id="C4"></a>**C4 · Non-text file clips:** tap the DOCX, the TXT and the APK/ZIP, and try **View content** on each. → DOCX and TXT show readable text. The APK/ZIP shows a file info card or message with its actions. Tap **More** on the file info card and use an action from the full sheet (e.g. Rename, Pin or Delete) without going back to the list (#71). None of them crash (#66).
 - <a id="C5"></a>**C5 · Find links:** on a text or PDF clip that contains a URL and a phone number, open the sheet → **Find links**. → Both are listed. Tapping one opens the browser or the dialer.
-- <a id="C6"></a>**C6 · Action sheet layout:** long-press a text clip (or tap ⋮). → **Edit**, **Present** and **Share** sit at the top; **Convert** is collapsed by default and expands to the conversion actions; **Manage** groups **Rename**, **Duplicate** and **Delete**. PDF tools (Annotate, Fill form, Edit pages), Find links, Pin and Lock sit between Convert and Manage. No action is missing.
+- <a id="C6"></a>**C6 · Action sheet layout:** long-press a text clip (or tap ⋮). → **Edit**, **Present** and **Share** sit at the top; **Convert** is collapsed by default and expands to the conversion actions; **Manage** groups **Rename**, **Duplicate** and **Delete**. PDF tools (Annotate, Fill form, Edit pages), Find links, Pin and Lock sit between Convert and Manage. No action is missing. Running any action closes the sheet before it runs, so its toast/snackbar is visible and the next tap works immediately (#128, #129).
 
 ## D. Sharing out and export
 - <a id="D1"></a>**D1 · Share out:** sheet → **Share** on a text, an image and a file clip. → The system share sheet carries the right content or file. For example, it pastes correctly into Gmail.
@@ -53,7 +53,7 @@
 
 ## E. Conversions (each one creates a new clip)
 All conversions below are under the sheet's **Convert** row — tap it to expand (collapsed by default).
-- <a id="E1"></a>**E1 · Text → PDF:** use a Markdown text clip (with a heading and a list), then sheet → **Convert** → PDF. → A new PDF clip shows the formatted text.
+- <a id="E1"></a>**E1 · Text → PDF:** use a Markdown text clip (with a heading and a list), then sheet → **Convert** → PDF. → A new PDF clip shows the formatted text. The sheet closes before the toast appears, and the next clip tap works immediately (#128, #129).
 - <a id="E2"></a>**E2 · Image → PDF:** run it on the JPG. → A new one-page PDF clip holds the image.
 - <a id="E3"></a>**E3 · DOCX → PDF:** on the DOCX file clip, use the sheet (long-press or ⋮) → **Convert** → **Convert to PDF**. → A new PDF clip appears with the document's headings, text, lists, tables and images, and it opens in the PDF viewer. A Word `Title` style renders as a heading, List Bullet / List Number paragraphs keep their `•` / `1.` markers (including styles whose numbering lives on the style), and paragraphs after a table start below the table instead of overlapping its last row (#75).
 - <a id="E4"></a>**E4 · PDF → Image and PDF → Text:** run both on the text PDF. → You get image clip(s) per page, and a text clip with the PDF's text.
@@ -62,7 +62,7 @@ All conversions below are under the sheet's **Convert** row — tap it to expand
 - <a id="E7"></a>**E7 · XLSX, RTF and TXT → PDF:** on each file clip, sheet → **Convert** → **Convert to PDF**. → Each gives a new PDF clip with the content (XLSX: sheets as tables; RTF: formatted text; TXT: plain text) that opens in the PDF viewer.
 - <a id="E8"></a>**E8 · Text → TXT:** on a text clip, sheet → **Convert** → **Text → TXT**. → A new File clip (.txt) appears with the same text. Tapping it shows the text.
 - <a id="E9"></a>**E9 · HTML → PDF:** on a text clip that contains HTML (e.g. the result of E5), sheet → **Convert** → **HTML → PDF**. → A new PDF clip shows the rendered page (headings, paragraphs, lists), not the raw tags. Plain text clips don't offer this row.
-- <a id="E10"></a>**E10 · PDF output settings:** Settings → **PDF & export** (collapsed by default; tap the row to expand): change Font type, Font size, Line spacing, the two margins and Max output resolution, then repeat E1. → The new PDF uses the new font, size, spacing and margins. The settings survive an app restart.
+- <a id="E10"></a>**E10 · PDF output settings:** Settings → **PDF & export** (collapsed by default; tap the row to expand): change Font type, Font size, Line spacing, the two margins and Max output resolution, then repeat E1. → The new PDF uses the new font, size, spacing and margins. Plain text → PDF embeds the chosen font (Sans, Serif or Mono), so the three are visibly different. The settings survive an app restart.
 
 ## F. PDF viewer and PDF tools
 - <a id="F1"></a>**F1 · PDF viewer:** tap a multi-page PDF, swipe horizontally through pages, pinch-zoom, pan while zoomed, and use go-to-page. → The pages render. While the page is not zoomed, a horizontal swipe flips to the next or previous page; once zoomed, pinch and one-finger pan move the page and do not flip it. The page buttons and go-to-page still work.
