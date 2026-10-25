@@ -48,6 +48,13 @@ class FormFieldRadioGroupTest {
             assertEquals(RADIO, auth.single().type)
             // The three widget kids, in page order, each with its own export value.
             assertEquals(listOf("citizen", "visa", "sponsor"), auth.single().options)
+            // The printed option text is what the fill screen shows; export values keep saving.
+            assertEquals(
+                listOf("Citizen / Permanent resident", "Visa holder", "Needs sponsorship"),
+                auth.single().optionLabels,
+            )
+            // The group header is the printed heading, never the first option text or /TU (#78).
+            assertEquals("Work authorization", auth.single().label)
             assertEquals(listOf("citizen", "visa", "sponsor"), auth.single().hits.map { it.option })
             assertEquals("auth", auth.single().valueKey)
             assertEquals("citizen", auth.single().currentValue)
@@ -61,6 +68,8 @@ class FormFieldRadioGroupTest {
             assertEquals(1, shirt.size)
             assertEquals(RADIO, shirt.single().type)
             assertEquals(listOf("s", "m", "l", "xl"), shirt.single().options)
+            assertEquals(listOf("S", "M", "L", "XL"), shirt.single().optionLabels)
+            assertEquals("T-shirt size", shirt.single().label)
             assertEquals("m", shirt.single().currentValue)
             // Same-name session checkboxes are separate fields, not a radio group.
             assertEquals(

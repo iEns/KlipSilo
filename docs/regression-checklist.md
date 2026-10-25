@@ -73,7 +73,7 @@ All conversions below are under the sheet's **Convert** row — tap it to expand
 ## G. Fill PDF form (testaroo job-application and event-registration)
 - <a id="G1"></a>**G1 · Single-line fields:** fill Full name and Email, then **Save PDF**. → The values show in the preview. The saved PDF clip shows them in Files or another PDF viewer.
 - <a id="G2"></a>**G2 · Multi-line field:** type several lines in **Cover letter** (job form) and **Notes** (event form). → There's no crash on the first character, the text wraps in the preview, and it's saved (#68).
-- <a id="G3"></a>**G3 · Checkboxes and radio groups:** tick checkboxes. In each radio group (Position, Ticket), pick an option and then switch to another. → Each radio option shows separately, and only one per group is selected. This is not shown as a single checkbox (#67). The choice is kept in the saved PDF.
+- <a id="G3"></a>**G3 · Checkboxes and radio groups:** tick checkboxes. In each radio group (**Work authorization** on the job form, **T-shirt size** on the event form), check the heading and pick an option, then switch to another. → Each radio option shows the text printed on the form ("Citizen / Permanent resident", "Visa holder", "Needs sponsorship"; "S", "M", "L", "XL"), not the internal export value, and only one per group is selected. This is not shown as a single checkbox (#67). The group heading is the printed group name, never the first option; a group without a name has no heading (#72, #78). The choice is kept in the saved PDF.
 - <a id="G4"></a>**G4 · Password field:** in a form with a password field, type a value. Use the eye button (**Show password** / **Hide password**). → The field shows dots by default and the value on Show. The note "This will be saved in the PDF as readable text." is shown. The preview shows dots (with a "Saved as readable text" pill when the field is large enough). The saved PDF holds the real value.
 
 ## H. Mark up PDF
@@ -85,7 +85,7 @@ All conversions below are under the sheet's **Convert** row — tap it to expand
 
 ## I. Scan and capture
 - <a id="I1"></a>**I1 · QR scanner and camera OCR:** Tools → QR on a QR code, and Tools → OCR camera on printed text. → The decoded text or link is offered or saved as a clip, and the OCR text is saved as a clip.
-- <a id="I2"></a>**I2 · OCR from an image clip:** sheet → **Convert** → **Crop/OCR from image** on a photo of text. → A text clip holds the recognised text.
+- <a id="I2"></a>**I2 · OCR from an image clip:** sheet → **Convert** → **Crop/OCR from image** on a photo of text. → A text clip holds the recognised text. The crop frame includes everything it visually encloses: a full line at the right or bottom edge keeps its trailing characters in the OCR result (#82).
 - <a id="I3"></a>**I3 · Location:** Tools → Location (current location; there is no typed-address entry). → A "Getting location" dialog appears; **Cancel** closes it without saving, and the back gesture or a tap outside does the same. Let it finish: a location clip is created with the address. The snackbar's **Open** opens the clip in KlipSilo, and tapping the clip opens Maps.
 - <a id="I4"></a>**I4 · QR from an image clip:** open an image clip that contains a QR code and tap the **Scan QR** button. → The decoded message is shown with **Copy**, **Save to clip** and **Cancel**. Save to clip creates a text or URL clip. An image without a QR shows "No QR code found".
 

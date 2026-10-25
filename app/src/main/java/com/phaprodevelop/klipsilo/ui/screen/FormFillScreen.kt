@@ -800,11 +800,14 @@ private fun FormFieldRow(
                 }
             }
             FormFieldType.RADIO, FormFieldType.CHOICE -> {
-                Text(
-                    text = field.label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // A radio group without a trustworthy printed group name has no header (#78).
+                if (field.label.isNotBlank()) {
+                    Text(
+                        text = field.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 // One kid per radio option; selectableGroup makes the group exclusive for
                 // screen readers too (#67).
                 Column(modifier = Modifier.selectableGroup()) {
@@ -834,6 +837,10 @@ private fun FormFieldRow(
                     }
                     field.options.forEachIndexed { index, option ->
                         val selected = value == option
+                        // Radio groups show the text printed on the page; the export value stays
+                        // the save/selection key (#72). CHOICE options are already human text.
+                        val optionText =
+                            field.optionLabels.getOrNull(index)?.takeIf { it.isNotBlank() } ?: option
                         val rowModifier =
                             Modifier
                                 .fillMaxWidth()
@@ -865,7 +872,7 @@ private fun FormFieldRow(
                         ) {
                             // The row is the click target; the radio button itself only shows state.
                             RadioButton(selected = selected, onClick = null)
-                            Text(option, style = MaterialTheme.typography.bodyMedium)
+                            Text(optionText, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

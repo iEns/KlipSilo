@@ -280,6 +280,79 @@ internal fun resolveWidgetLabel(
 }
 
 /**
+ * Header for a radio group (#78). The printed text above the group wins, then a field-level
+ * tooltip that names the group. The first option's text or tooltip must never become the header:
+ * if no trustworthy group name is available the header is empty (no header is better than a
+ * wrong one). A readable partial name is the last resort, for groups without any page text.
+ */
+internal fun resolveRadioGroupHeader(
+    partialName: String,
+    fieldTooltip: String?,
+    nearbyAbove: String?,
+    firstOptionLabel: String?,
+    firstOptionTip: String?,
+): String? {
+    val optionNames =
+        listOfNotNull(firstOptionLabel, firstOptionTip)
+            .map { normalizeExtractedText(it) }
+            .filter { it.isNotEmpty() }
+
+    fun usable(candidate: String?): String? {
+        val text = normalizeExtractedText(candidate).removeSuffix("*").trim()
+        if (text.isEmpty()) return null
+        if (looksLikeOptionText(text, optionNames)) return null
+        return text.take(80)
+    }
+    usable(nearbyAbove)?.let { return it }
+    val tip = normalizeExtractedText(fieldTooltip).removeSuffix("*").trim()
+    if (tip.isNotEmpty()) {
+        // A field-level tooltip is either a group title or an option tip. If it is an option
+        // tip, do not fall through to a weak partial name ("Auth"): no header is better (#78).
+        return if (looksLikeOptionText(tip, optionNames)) null else tip.take(80)
+    }
+    val partial = partialName.trim()
+    if (partial.isNotEmpty() && !genericFieldName.matches(partial)) {
+        val text = prettifyFieldName(partial)
+        if (!looksLikeOptionText(text, optionNames)) return text
+    }
+    return null
+}
+
+/**
+ * Printed label for one radio option (#72). The text to the right of that option's widget wins,
+ * then that widget's own tooltip, then the prettified export value. The export value itself stays
+ * untouched so saving and current-value matching keep working.
+ */
+internal fun resolveRadioOptionLabel(
+    nearbyRight: String?,
+    kidTooltip: String?,
+    exportValue: String?,
+): String {
+    val right = normalizeExtractedText(nearbyRight)
+    if (right.isNotEmpty()) return right.take(80)
+    val tip = normalizeExtractedText(kidTooltip)
+    if (tip.isNotEmpty()) return tip.take(80)
+    return prettifyFieldName(exportValue.orEmpty()).take(80)
+}
+
+private fun normalizeExtractedText(raw: String?): String = raw?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
+
+/** True when [candidate] is just the first option's own text (spacing/punctuation may differ). */
+private fun looksLikeOptionText(
+    candidate: String,
+    optionNames: List<String>,
+): Boolean {
+    val key = candidate.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]+"), " ").trim()
+    if (key.isEmpty()) return false
+    val firstWord = key.substringBefore(' ')
+    return optionNames.any { option ->
+        val optionKey = option.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]+"), " ").trim()
+        optionKey == key ||
+            (firstWord.length >= 2 && optionKey.substringBefore(' ') == firstWord)
+    }
+}
+
+/**
  * Maps a widget to fractions of the page bitmap. [rotation] is the page's clockwise /Rotate.
  */
 internal fun widgetVisualFractions(
