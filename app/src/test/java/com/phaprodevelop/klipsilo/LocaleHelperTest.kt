@@ -73,8 +73,7 @@ class LocaleHelperTest {
 
     @Test
     fun getLanguage_noOverride_europeanPortuguese_returnsEn() {
-        // Privacy text exists only in Danish and English. pt-PT is not stored as a choice;
-        // string resources follow the device locale list on their own.
+        // pt-PT is not a picker tag; privacy and strings fall back to English.
         val language = LocaleHelper.getLanguage(contextWithLocale("pt-PT"))
 
         assertEquals("en", language)

@@ -1,0 +1,57 @@
+Política de privacidad de KlipSilo
+Fecha de entrada en vigor: 25 de octubre de 2026
+
+Quiénes somos
+KlipSilo lo publica Poul Andersen, Dinamarca. Contacto: phaprodevelop@gmail.com.
+
+Esta política describe cómo KlipSilo trata la información. La aplicación es una herramienta de portapapeles y documentos que se ejecuta en su dispositivo Android. No es una red social, no crea una cuenta y no envía sus clips a un servidor de KlipSilo.
+
+Lo que KlipSilo no hace
+KlipSilo no:
+- muestra publicidad
+- vende ni alquila sus datos
+- usa compras dentro de la aplicación
+- exige una cuenta
+- opera un backend de KlipSilo que recibe sus clips, fotos, archivos o ubicación
+- incluye un informe de fallos de terceros (como Firebase Crashlytics)
+
+KlipSilo está disponible en Google Play. Cualquier pago lo gestiona Google Play. No hay compras dentro de la aplicación.
+
+Datos almacenados en su dispositivo
+Cuando guarda un clip — al compartirlo hacia KlipSilo, guardar el portapapeles actual, capturar con la cámara, convertir un archivo o guardar su posición — el contenido se almacena en el almacenamiento privado de la aplicación en este dispositivo (base de datos y archivos). Puede incluir texto, enlaces, imágenes, PDF, otros archivos y coordenadas de ubicación.
+
+«Bloquear» un clip solo evita el borrado, el cambio de nombre y la edición accidentales. No es cifrado. Los clips bloqueados siguen almacenados en claro en el dispositivo y se incluyen si exporta un ZIP de copia de seguridad.
+
+Copia de seguridad de Android y restauración en la nube
+KlipSilo desactiva la copia de seguridad de Android y la transferencia de dispositivo a dispositivo para sus datos. Una copia de seguridad en la nube de Google de su teléfono, o configurar un teléfono nuevo a partir de uno antiguo, no restaurará sus clips, archivos ni ajustes de KlipSilo. Si quiere una copia para restaurar más adelante, use Copia de seguridad de clips en la aplicación y conserve ese archivo ZIP usted mismo.
+
+El ZIP de copia de seguridad que exporta no está cifrado. No ponga contraseñas u otros secretos en una copia que guarde en unidades en la nube o envíe a otros.
+
+Permisos
+Cámara — solo cuando abre el escáner QR o el OCR de cámara. Las fotos para OCR o QR se procesan en el dispositivo. KlipSilo no usa la cámara en segundo plano.
+
+Ubicación (precisa y aproximada) — solo cuando elige Ubicación para guardar su ubicación actual como clip. La aplicación guarda las coordenadas en el dispositivo. Para mostrar una dirección, las coordenadas pueden enviarse al servicio de geocodificación del dispositivo (en la mayoría de teléfonos con Google Play lo proporciona Google). KlipSilo no recibe esa consulta en un servidor propio. Puede rechazar el permiso de ubicación y seguir usando el resto de funciones.
+
+Almacenamiento (Android 9 y anteriores) — solo si guarda un archivo en Descargas en esas versiones.
+
+Portapapeles — se lee solo cuando pulsa «Guardar portapapeles actual» con la aplicación en primer plano. KlipSilo no supervisa el portapapeles en segundo plano.
+
+Red
+La conversión, el OCR, el escaneo QR, la visualización y la edición están diseñados para funcionar sin un servidor de KlipSilo. Google ML Kit (reconocimiento de texto y códigos de barras) y CameraX se ejecutan en el dispositivo.
+
+La aplicación puede incluir igualmente un permiso de Internet porque las bibliotecas de Google Play Services / ML Kit lo declaran. KlipSilo no lo usa para subir sus clips. El único caso iniciado por usted que puede usar un servicio de red es la búsqueda de dirección a partir de la ubicación (geocodificación), descrita arriba.
+
+Compartición que usted inicia
+Si comparte un clip, lo copia, lo guarda en Descargas, abre un enlace o exporta una copia de seguridad, ese contenido sale de la aplicación porque usted lo pidió. Los destinatarios y otras aplicaciones tienen sus propias políticas.
+
+Niños
+KlipSilo no está dirigido a menores de 13 años y no recopila datos de niños a sabiendas.
+
+Cómo eliminar datos
+Elimine clips individuales en la aplicación, o todos los clips en Herramientas → Mantenimiento. Desinstalar KlipSilo elimina el almacenamiento privado de la aplicación en ese dispositivo. No elimina un ZIP de copia de seguridad guardado en otro sitio ni archivos guardados en Descargas.
+
+Cambios
+Si esta política cambia, se actualizará el texto en la aplicación y cambiará la fecha de entrada en vigor.
+
+Contacto
+Preguntas sobre privacidad: Poul Andersen, phaprodevelop@gmail.com, Dinamarca.

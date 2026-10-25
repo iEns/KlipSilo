@@ -1,5 +1,5 @@
 Privatlivspolitik for KlipSilo
-Ikrafttrædelsesdato: 16. september 2026
+Ikrafttrædelsesdato: 25. oktober 2026
 
 Hvem vi er
 KlipSilo udgives af Poul Andersen, Danmark. Kontakt: phaprodevelop@gmail.com.
@@ -15,7 +15,7 @@ KlipSilo:
 - driver ikke en KlipSilo-backend, der modtager dine klip, billeder, filer eller din placering
 - indeholder ikke en tredjeparts crash-rapportering (fx Firebase Crashlytics)
 
-KlipSilo kan udbydes som betalt download på Google Play. Betalingen klares af Google Play. Der er ingen køb i appen.
+KlipSilo er tilgængelig på Google Play. Eventuel betaling klares af Google Play. Der er ingen køb i appen.
 
 Data gemt på din enhed
 Når du gemmer et klip — ved at dele ind i KlipSilo, gemme den aktuelle udklipsholder, tage billede med kameraet, konvertere en fil eller gemme din position — lagres indholdet i appens private lager på denne enhed (database og filer). Det kan være tekst, links, billeder, PDF’er, andre filer og koordinater.

@@ -18,17 +18,33 @@ import com.phaprodevelop.klipsilo.LocaleHelper
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.ui.components.FitBackBar
 
+/**
+ * Raw privacy policy resource for a [LocaleHelper.getLanguage] tag (#87).
+ * Indonesian picker tag is `id` but the raw file is `privacy_in` (Android values-in).
+ */
+internal fun privacyRawResId(languageTag: String): Int =
+    when (languageTag) {
+        "da" -> R.raw.privacy_da
+        "de" -> R.raw.privacy_de
+        "es" -> R.raw.privacy_es
+        "fr" -> R.raw.privacy_fr
+        "id" -> R.raw.privacy_in
+        "it" -> R.raw.privacy_it
+        "ja" -> R.raw.privacy_ja
+        "ko" -> R.raw.privacy_ko
+        "pt-BR" -> R.raw.privacy_pt_br
+        "ru" -> R.raw.privacy_ru
+        "tr" -> R.raw.privacy_tr
+        "zh-Hans" -> R.raw.privacy_zh_hans
+        else -> R.raw.privacy_en
+    }
+
 @Composable
 fun PrivacyPolicyScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val body =
         remember {
-            val resId =
-                if (LocaleHelper.getLanguage(context) == "da") {
-                    R.raw.privacy_da
-                } else {
-                    R.raw.privacy_en
-                }
+            val resId = privacyRawResId(LocaleHelper.getLanguage(context))
             context.resources.openRawResource(resId).bufferedReader(Charsets.UTF_8).use { it.readText() }
         }
 

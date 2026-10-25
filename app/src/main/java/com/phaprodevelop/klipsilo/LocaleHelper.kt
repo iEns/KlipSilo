@@ -73,7 +73,7 @@ object LocaleHelper {
     }
 
     /**
-     * Language for content that is not a string resource (the Danish or English privacy text).
+     * Language for content that is not a string resource (localized privacy policy raw texts).
      * An explicit per-app locale wins. Otherwise the device locale is matched.
      * Nothing is written, so a first launch stays on the system default.
      */

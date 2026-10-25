@@ -1,0 +1,57 @@
+Kebijakan Privasi untuk KlipSilo
+Tanggal berlaku: 25 Oktober 2026
+
+Siapa kami
+KlipSilo diterbitkan oleh Poul Andersen, Denmark. Kontak: phaprodevelop@gmail.com.
+
+Kebijakan ini menjelaskan bagaimana KlipSilo menangani informasi. Aplikasi ini adalah alat papan klip dan dokumen yang berjalan di perangkat Android Anda. Bukan jejaring sosial, tidak membuat akun, dan tidak mengirim klip Anda ke server KlipSilo.
+
+Yang tidak dilakukan KlipSilo
+KlipSilo tidak:
+- menampilkan iklan
+- menjual atau menyewakan data Anda
+- menggunakan pembelian dalam aplikasi
+- mewajibkan akun
+- mengoperasikan backend KlipSilo yang menerima klip, foto, file, atau lokasi Anda
+- menyertakan pelapor kerusakan pihak ketiga (seperti Firebase Crashlytics)
+
+KlipSilo tersedia di Google Play. Setiap pembayaran ditangani oleh Google Play. Tidak ada pembelian dalam aplikasi.
+
+Data yang disimpan di perangkat Anda
+Saat Anda menyimpan klip — dengan membagikannya ke KlipSilo, menyimpan papan klip saat ini, mengambil dengan kamera, mengonversi file, atau menyimpan posisi Anda — konten disimpan di penyimpanan pribadi aplikasi di perangkat ini (basis data dan file). Itu dapat mencakup teks, tautan, gambar, PDF, file lain, dan koordinat lokasi.
+
+“Kunci” pada klip hanya mencegah penghapusan, penggantian nama, dan pengeditan yang tidak disengaja. Itu bukan enkripsi. Klip yang dikunci tetap disimpan tanpa enkripsi di perangkat dan disertakan jika Anda mengekspor ZIP cadangan.
+
+Cadangan Android dan pemulihan perangkat cloud
+KlipSilo menonaktifkan Cadangan Android dan transfer perangkat-ke-perangkat untuk datanya. Cadangan cloud Google pada ponsel Anda, atau menyiapkan ponsel baru dari yang lama, tidak akan memulihkan klip, file, atau pengaturan KlipSilo Anda. Jika Anda ingin salinan untuk dipulihkan nanti, gunakan Cadangkan klip di aplikasi dan simpan sendiri file ZIP itu.
+
+ZIP cadangan yang Anda ekspor tidak dienkripsi. Jangan taruh kata sandi atau rahasia lain di cadangan yang Anda simpan di cloud atau kirim ke orang lain.
+
+Izin
+Kamera — hanya digunakan saat Anda membuka pemindai QR atau OCR kamera. Foto untuk OCR atau QR diproses di perangkat. KlipSilo tidak menggunakan kamera di latar belakang.
+
+Lokasi (tepat dan perkiraan) — hanya digunakan saat Anda memilih Lokasi untuk menyimpan lokasi saat ini sebagai klip. Aplikasi menyimpan koordinat di perangkat. Untuk menampilkan alamat jalan, koordinat dapat dikirim ke layanan geocoding perangkat Anda (pada sebagian besar ponsel dengan Google Play disediakan oleh Google). KlipSilo tidak menerima pencarian itu di server miliknya. Anda dapat menolak izin lokasi dan tetap menggunakan semua fitur lain.
+
+Penyimpanan (Android 9 dan lebih lama) — hanya digunakan jika Anda menyimpan file ke Unduhan pada versi tersebut.
+
+Papan klip — dibaca hanya saat Anda mengetuk “Simpan papan klip saat ini” saat aplikasi di latar depan. KlipSilo tidak memantau papan klip di latar belakang.
+
+Jaringan
+Konversi, OCR, pemindaian QR, melihat, dan mengedit dirancang agar berfungsi tanpa server KlipSilo. Google ML Kit (pengenalan teks dan pemindaian kode batang) serta CameraX berjalan di perangkat.
+
+Aplikasi tetap dapat menyertakan izin Internet karena pustaka Google Play Services / ML Kit mendeklarasikannya. KlipSilo tidak menggunakannya untuk mengunggah klip Anda. Satu-satunya kasus yang Anda picu yang dapat memakai layanan jaringan adalah pencarian alamat dari lokasi (geocoding), seperti dijelaskan di atas.
+
+Berbagi yang Anda mulai
+Jika Anda membagikan klip, menyalinnya, menyimpannya ke Unduhan, membuka tautan, atau mengekspor cadangan, konten itu meninggalkan aplikasi karena Anda memintanya. Penerima dan aplikasi lain mengikuti kebijakan mereka sendiri.
+
+Anak-anak
+KlipSilo tidak ditujukan untuk anak di bawah 13 tahun dan tidak dengan sengaja mengumpulkan data dari anak-anak.
+
+Cara menghapus data
+Hapus klip satu per satu di aplikasi, atau semua klip di Alat → Pemeliharaan. Mencopot pemasangan KlipSilo menghapus penyimpanan pribadi aplikasi di perangkat itu. Itu tidak menghapus ZIP cadangan yang Anda simpan di tempat lain, atau file yang Anda simpan ke Unduhan.
+
+Perubahan
+Jika kebijakan ini berubah, teks di aplikasi akan diperbarui dan tanggal berlaku akan berubah.
+
+Kontak
+Pertanyaan tentang privasi: Poul Andersen, phaprodevelop@gmail.com, Denmark.

@@ -136,7 +136,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 |---|---|---|---|---|
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
 | 13 languages plus System default, synced with Android App Info | Settings → Language | 1.2.0 | [K1](docs/regression-checklist.md#K1) | no |
-| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy | Settings, above PDF & export | 1.1.0 | [K3](docs/regression-checklist.md#K3) | no |
+| Tips, Limitations, Why, Use cases ("Where the app helps"), About, Privacy policy (all 13 app languages; paid-download wording matches the site; effective 25 Oct 2026) | Settings, above PDF & export | 1.3.0 | [K3](docs/regression-checklist.md#K3) | no |
 
 ## Other / maintenance
 
