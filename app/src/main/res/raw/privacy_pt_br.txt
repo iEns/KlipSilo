@@ -1,0 +1,57 @@
+Política de privacidade do KlipSilo
+Data de vigência: 25 de outubro de 2026
+
+Quem somos
+O KlipSilo é publicado por Poul Andersen, Dinamarca. Contato: phaprodevelop@gmail.com.
+
+Esta política descreve como o KlipSilo trata informações. O app é uma ferramenta de área de transferência e documentos que roda no seu dispositivo Android. Não é uma rede social, não cria conta e não envia seus clips a um servidor do KlipSilo.
+
+O que o KlipSilo não faz
+O KlipSilo não:
+- exibe publicidade
+- vende nem aluga seus dados
+- usa compras no aplicativo
+- exige uma conta
+- opera um backend do KlipSilo que recebe seus clips, fotos, arquivos ou localização
+- inclui um relatador de falhas de terceiros (como o Firebase Crashlytics)
+
+O KlipSilo está disponível no Google Play. Qualquer pagamento é tratado pelo Google Play. Não há compras no aplicativo.
+
+Dados armazenados no seu dispositivo
+Quando você salva um clip — compartilhando para o KlipSilo, salvando a área de transferência atual, capturando com a câmera, convertendo um arquivo ou salvando sua posição — o conteúdo é armazenado no armazenamento privado do app neste dispositivo (banco de dados e arquivos). Isso pode incluir texto, links, imagens, PDFs, outros arquivos e coordenadas de localização.
+
+“Bloquear” um clip só impede exclusão, renomeação e edição acidentais. Não é criptografia. Clips bloqueados ainda ficam em texto claro no dispositivo e são incluídos se você exportar um ZIP de backup.
+
+Backup do Android e restauração na nuvem
+O KlipSilo desativa o Backup do Android e a transferência de dispositivo para dispositivo para seus dados. Um backup na nuvem do Google do seu telefone, ou configurar um telefone novo a partir de um antigo, não restaurará seus clips, arquivos ou configurações do KlipSilo. Se quiser uma cópia para restaurar depois, use Backup de clips no app e guarde esse arquivo ZIP você mesmo.
+
+O ZIP de backup que você exporta não é criptografado. Não coloque senhas ou outros segredos em um backup que você guarda em nuvens ou envia a outras pessoas.
+
+Permissões
+Câmera — usada só quando você abre o scanner de QR ou o OCR da câmera. Fotos para OCR ou QR são processadas no dispositivo. O KlipSilo não usa a câmera em segundo plano.
+
+Localização (precisa e aproximada) — usada só quando você escolhe Localização para salvar sua localização atual como clip. O app armazena as coordenadas no dispositivo. Para mostrar um endereço, as coordenadas podem ser enviadas ao serviço de geocodificação do dispositivo (na maioria dos telefones com Google Play, fornecido pelo Google). O KlipSilo não recebe essa consulta em um servidor próprio. Você pode recusar a permissão de localização e ainda usar todos os outros recursos.
+
+Armazenamento (Android 9 e anteriores) — usado só se você salvar um arquivo em Downloads nessas versões.
+
+Área de transferência — lida só quando você toca em “Salvar área de transferência atual” com o app em primeiro plano. O KlipSilo não monitora a área de transferência em segundo plano.
+
+Rede
+Conversão, OCR, leitura de QR, visualização e edição são feitos para funcionar sem um servidor do KlipSilo. Google ML Kit (reconhecimento de texto e códigos de barras) e CameraX rodam no dispositivo.
+
+O app ainda pode incluir uma permissão de Internet porque bibliotecas do Google Play Services / ML Kit a declaram. O KlipSilo não a usa para enviar seus clips. O único caso iniciado por você que pode usar um serviço de rede é a busca de endereço a partir da localização (geocodificação), descrita acima.
+
+Compartilhamentos que você inicia
+Se você compartilhar um clip, copiá-lo, salvá-lo em Downloads, abrir um link ou exportar um backup, esse conteúdo sai do app porque você pediu. Destinatários e outros apps seguem as próprias políticas.
+
+Crianças
+O KlipSilo não é destinado a crianças menores de 13 anos e não coleta dados de crianças de forma consciente.
+
+Como excluir dados
+Exclua clips individuais no app, ou todos os clips em Ferramentas → Manutenção. Desinstalar o KlipSilo remove o armazenamento privado do app nesse dispositivo. Não exclui um ZIP de backup salvo em outro lugar nem arquivos salvos em Downloads.
+
+Alterações
+Se esta política mudar, o texto no app será atualizado e a data de vigência mudará.
+
+Contato
+Perguntas sobre privacidade: Poul Andersen, phaprodevelop@gmail.com, Dinamarca.

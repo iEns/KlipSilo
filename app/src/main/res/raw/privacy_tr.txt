@@ -1,0 +1,57 @@
+KlipSilo Gizlilik Politikası
+Yürürlük tarihi: 25 Ekim 2026
+
+Biz kimiz
+KlipSilo, Danimarka’dan Poul Andersen tarafından yayımlanır. İletişim: phaprodevelop@gmail.com.
+
+Bu politika, KlipSilo’nun bilgileri nasıl işlediğini açıklar. Uygulama, Android cihazınızda çalışan bir pano ve belge aracıdır. Bir sosyal ağ değildir, hesap oluşturmaz ve kliplerinizi bir KlipSilo sunucusuna göndermez.
+
+KlipSilo’nun yapmadıkları
+KlipSilo:
+- reklam göstermez
+- verilerinizi satmaz veya kiralamaz
+- uygulama içi satın alma kullanmaz
+- hesap gerektirmez
+- kliplerinizi, fotoğraflarınızı, dosyalarınızı veya konumunuzu alan bir KlipSilo arka ucu işletmez
+- üçüncü taraf bir çökme bildirici (Firebase Crashlytics gibi) içermez
+
+KlipSilo Google Play’de mevcuttur. Herhangi bir ödeme Google Play tarafından işlenir. Uygulama içi satın alma yoktur.
+
+Cihazınızda saklanan veriler
+Bir klip kaydettiğinizde — KlipSilo’ya paylaşarak, geçerli panoyu kaydederek, kamerayla yakalayarak, bir dosyayı dönüştürerek veya konumunuzu kaydederek — içerik bu cihazdaki uygulamanın özel deposunda (veritabanı ve dosyalar) saklanır. Buna metin, bağlantılar, görseller, PDF’ler, diğer dosyalar ve konum koordinatları dahil olabilir.
+
+Bir klipteki “Kilitle”, yalnızca yanlışlıkla silmeyi, yeniden adlandırmayı ve düzenlemeyi engeller. Bu şifreleme değildir. Kilitli klipler cihazda açık metin olarak kalır ve bir yedek ZIP dışa aktarırsanız dahil edilir.
+
+Android yedekleme ve bulut cihaz geri yükleme
+KlipSilo, verileri için Android Yedekleme’yi ve cihazdan cihaza aktarımı kapatır. Telefonunuzun Google bulut yedeği veya eski bir telefondan yeni bir telefon kurmak, KlipSilo kliplerinizi, dosyalarınızı veya ayarlarınızı geri yüklemez. Daha sonra geri yükleyebileceğiniz bir kopya isterseniz, uygulamada Klipleri yedekle’yi kullanın ve o ZIP dosyasını kendiniz saklayın.
+
+Dışa aktardığınız ZIP yedek şifrelenmemiştir. Bulut depolarda sakladığınız veya başkalarına gönderdiğiniz bir yedeğe parola veya başka sırlar koymayın.
+
+İzinler
+Kamera — yalnızca QR tarayıcıyı veya kamera OCR’ını açtığınızda kullanılır. OCR veya QR için çekilen fotoğraflar cihazda işlenir. KlipSilo kamerayı arka planda kullanmaz.
+
+Konum (kesin ve yaklaşık) — yalnızca mevcut konumunuzu klip olarak kaydetmek için Konum’u seçtiğinizde kullanılır. Uygulama koordinatları cihazda saklar. Bir sokak adresi göstermek için koordinatlar cihazınızın coğrafi kodlama hizmetine gönderilebilir (Google Play’li çoğu telefonda bunu Google sağlar). KlipSilo bu sorgulamayı kendi sunucusunda almaz. Konum iznini reddedip diğer tüm özellikleri kullanmaya devam edebilirsiniz.
+
+Depolama (Android 9 ve daha eski) — yalnızca bu sürümlerde İndirilenler’e dosya kaydederseniz kullanılır.
+
+Pano — yalnızca uygulama ön plandayken “Geçerli panoyu kaydet”e dokunduğunuzda okunur. KlipSilo panoyu arka planda izlemez.
+
+Ağ
+Dönüştürme, OCR, QR tarama, görüntüleme ve düzenleme bir KlipSilo sunucusu olmadan çalışacak şekilde tasarlanmıştır. Google ML Kit (metin tanıma ve barkod tarama) ve CameraX cihazda çalışır.
+
+Uygulama yine de bir İnternet izni içerebilir çünkü Google Play Hizmetleri / ML Kit kitaplıkları bunu bildirir. KlipSilo bunu kliplerinizi yüklemek için kullanmaz. Sizin tetiklediğiniz ve bir ağ hizmeti kullanabilecek tek durum, yukarıda açıklanan konumdan adres aramasıdır (coğrafi kodlama).
+
+Sizin başlattığınız paylaşımlar
+Bir klipi paylaşırsanız, kopyalarsanız, İndirilenler’e kaydederseniz, bir bağlantı açarsanız veya yedek dışa aktarırsanız, o içerik istediğiniz için uygulamadan çıkar. Alıcılar ve diğer uygulamalar kendi politikalarını izler.
+
+Çocuklar
+KlipSilo 13 yaşından küçük çocuklara yönelik değildir ve bilerek çocuklardan veri toplamaz.
+
+Verileri silme
+Uygulamada tek tek klipleri silin veya Araçlar → Bakım altında tüm klipleri silin. KlipSilo’yu kaldırmak, o cihazdaki uygulamanın özel depolamasını kaldırır. Başka yere kaydettiğiniz bir yedek ZIP’i veya İndirilenler’e kaydettiğiniz dosyaları silmez.
+
+Değişiklikler
+Bu politika değişirse, uygulamadaki metin güncellenir ve yürürlük tarihi değişir.
+
+İletişim
+Gizlilik soruları: Poul Andersen, phaprodevelop@gmail.com, Danimarka.

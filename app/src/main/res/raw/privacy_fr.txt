@@ -1,0 +1,57 @@
+Politique de confidentialité de KlipSilo
+Date d’entrée en vigueur : 25 octobre 2026
+
+Qui nous sommes
+KlipSilo est publié par Poul Andersen, Danemark. Contact : phaprodevelop@gmail.com.
+
+Cette politique décrit la façon dont KlipSilo traite les informations. L’application est un outil de presse-papiers et de documents qui s’exécute sur votre appareil Android. Ce n’est pas un réseau social, elle ne crée pas de compte et n’envoie pas vos clips à un serveur KlipSilo.
+
+Ce que KlipSilo ne fait pas
+KlipSilo :
+- n’affiche pas de publicité
+- ne vend ni ne loue vos données
+- n’utilise pas d’achats intégrés
+- n’exige pas de compte
+- n’exploite pas de backend KlipSilo qui reçoit vos clips, photos, fichiers ou position
+- n’inclut pas de rapport de plantage tiers (tel que Firebase Crashlytics)
+
+KlipSilo est disponible sur Google Play. Tout paiement est géré par Google Play. Il n’y a pas d’achats intégrés.
+
+Données stockées sur votre appareil
+Lorsque vous enregistrez un clip — en le partageant vers KlipSilo, en enregistrant le presse-papiers actuel, en capturant avec l’appareil photo, en convertissant un fichier ou en enregistrant votre position — le contenu est stocké dans le stockage privé de l’application sur cet appareil (base de données et fichiers). Cela peut inclure du texte, des liens, des images, des PDF, d’autres fichiers et des coordonnées de localisation.
+
+Le « Verrouillage » d’un clip empêche seulement la suppression, le renommage et la modification accidentels. Ce n’est pas du chiffrement. Les clips verrouillés restent en clair sur l’appareil et sont inclus si vous exportez une archive ZIP de sauvegarde.
+
+Sauvegarde Android et restauration cloud
+KlipSilo désactive la sauvegarde Android et le transfert d’appareil à appareil pour ses données. Une sauvegarde Google cloud de votre téléphone, ou la configuration d’un nouveau téléphone à partir d’un ancien, ne restaurera pas vos clips, fichiers ou paramètres KlipSilo. Si vous voulez une copie à restaurer plus tard, utilisez Sauvegarder les clips dans l’application et conservez ce fichier ZIP vous-même.
+
+La sauvegarde ZIP que vous exportez n’est pas chiffrée. N’y mettez pas de mots de passe ni d’autres secrets si vous la stockez dans un cloud ou l’envoyez à d’autres.
+
+Autorisations
+Appareil photo — utilisé uniquement lorsque vous ouvrez le scanner QR ou l’OCR appareil photo. Les photos pour l’OCR ou le QR sont traitées sur l’appareil. KlipSilo n’utilise pas l’appareil photo en arrière-plan.
+
+Localisation (précise et approximative) — utilisée uniquement lorsque vous choisissez Localisation pour enregistrer votre position actuelle comme clip. L’application stocke les coordonnées sur l’appareil. Pour afficher une adresse, les coordonnées peuvent être envoyées au service de géocodage de votre appareil (sur la plupart des téléphones avec Google Play, fourni par Google). KlipSilo ne reçoit pas cette recherche sur un serveur qui lui appartient. Vous pouvez refuser l’autorisation de localisation et utiliser toutes les autres fonctions.
+
+Stockage (Android 9 et antérieur) — utilisé uniquement si vous enregistrez un fichier dans Téléchargements sur ces versions.
+
+Presse-papiers — lu uniquement lorsque vous appuyez sur « Enregistrer le presse-papiers actuel » pendant que l’application est au premier plan. KlipSilo ne surveille pas le presse-papiers en arrière-plan.
+
+Réseau
+La conversion, l’OCR, le scan QR, l’affichage et l’édition sont conçus pour fonctionner sans serveur KlipSilo. Google ML Kit (reconnaissance de texte et codes-barres) et CameraX s’exécutent sur l’appareil.
+
+L’application peut néanmoins inclure une autorisation Internet parce que les bibliothèques Google Play Services / ML Kit la déclarent. KlipSilo ne l’utilise pas pour envoyer vos clips. Le seul cas déclenché par vous qui peut utiliser un service réseau est la recherche d’adresse à partir de la position (géocodage), décrite ci-dessus.
+
+Partages que vous lancez
+Si vous partagez un clip, le copiez, l’enregistrez dans Téléchargements, ouvrez un lien ou exportez une sauvegarde, ce contenu quitte l’application parce que vous l’avez demandé. Les destinataires et les autres applications ont leurs propres politiques.
+
+Enfants
+KlipSilo ne s’adresse pas aux enfants de moins de 13 ans et ne collecte pas sciemment de données auprès d’enfants.
+
+Comment supprimer les données
+Supprimez des clips individuels dans l’application, ou tous les clips sous Outils → Maintenance. La désinstallation de KlipSilo supprime le stockage privé de l’application sur cet appareil. Elle ne supprime pas une archive ZIP de sauvegarde enregistrée ailleurs, ni les fichiers enregistrés dans Téléchargements.
+
+Modifications
+Si cette politique change, le texte dans l’application sera mis à jour et la date d’entrée en vigueur changera.
+
+Contact
+Questions sur la confidentialité : Poul Andersen, phaprodevelop@gmail.com, Danemark.

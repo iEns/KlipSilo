@@ -1,0 +1,57 @@
+Informativa sulla privacy di KlipSilo
+Data di entrata in vigore: 25 ottobre 2026
+
+Chi siamo
+KlipSilo è pubblicato da Poul Andersen, Danimarca. Contatto: phaprodevelop@gmail.com.
+
+Questa informativa descrive come KlipSilo tratta le informazioni. L’app è uno strumento di appunti e documenti che viene eseguito sul tuo dispositivo Android. Non è un social network, non crea un account e non invia i tuoi clip a un server KlipSilo.
+
+Cosa KlipSilo non fa
+KlipSilo non:
+- mostra pubblicità
+- vende o affitta i tuoi dati
+- usa acquisti in-app
+- richiede un account
+- gestisce un backend KlipSilo che riceve i tuoi clip, foto, file o posizione
+- include un segnalatore di crash di terze parti (come Firebase Crashlytics)
+
+KlipSilo è disponibile su Google Play. Eventuali pagamenti sono gestiti da Google Play. Non ci sono acquisti in-app.
+
+Dati memorizzati sul dispositivo
+Quando salvi un clip — condividendolo in KlipSilo, salvando gli appunti correnti, acquisendo con la fotocamera, convertendo un file o salvando la tua posizione — il contenuto viene memorizzato nell’archiviazione privata dell’app su questo dispositivo (database e file). Può includere testo, link, immagini, PDF, altri file e coordinate di posizione.
+
+Il «Blocco» di un clip impedisce solo eliminazione, rinomina e modifica accidentali. Non è crittografia. I clip bloccati restano in chiaro sul dispositivo e sono inclusi se esporti un ZIP di backup.
+
+Backup Android e ripristino cloud
+KlipSilo disattiva il backup Android e il trasferimento da dispositivo a dispositivo per i suoi dati. Un backup Google cloud del telefono, o la configurazione di un nuovo telefono da uno vecchio, non ripristinerà i tuoi clip, file o impostazioni KlipSilo. Se vuoi una copia da ripristinare in seguito, usa Backup clip nell’app e conserva tu stesso quel file ZIP.
+
+Il backup ZIP che esporti non è crittografato. Non metterci password o altri segreti se lo memorizzi in cloud o lo invii ad altri.
+
+Autorizzazioni
+Fotocamera — usata solo quando apri lo scanner QR o l’OCR della fotocamera. Le foto per OCR o QR sono elaborate sul dispositivo. KlipSilo non usa la fotocamera in background.
+
+Posizione (precisa e approssimativa) — usata solo quando scegli Posizione per salvare la posizione attuale come clip. L’app memorizza le coordinate sul dispositivo. Per mostrare un indirizzo, le coordinate possono essere inviate al servizio di geocodifica del dispositivo (sulla maggior parte dei telefoni con Google Play fornito da Google). KlipSilo non riceve quella ricerca su un server proprio. Puoi rifiutare l’autorizzazione alla posizione e usare comunque tutte le altre funzioni.
+
+Archiviazione (Android 9 e precedenti) — usata solo se salvi un file in Download su quelle versioni.
+
+Appunti — letti solo quando tocchi «Salva appunti correnti» con l’app in primo piano. KlipSilo non monitora gli appunti in background.
+
+Rete
+Conversione, OCR, scansione QR, visualizzazione e modifica sono progettati per funzionare senza un server KlipSilo. Google ML Kit (riconoscimento testo e codici a barre) e CameraX vengono eseguiti sul dispositivo.
+
+L’app può comunque includere un’autorizzazione Internet perché le librerie Google Play Services / ML Kit la dichiarano. KlipSilo non la usa per caricare i tuoi clip. L’unico caso avviato da te che può usare un servizio di rete è la ricerca dell’indirizzo dalla posizione (geocodifica), descritta sopra.
+
+Condivisioni che avvii tu
+Se condividi un clip, lo copi, lo salvi in Download, apri un link o esporti un backup, quel contenuto lascia l’app perché lo hai chiesto tu. Destinatari e altre app hanno le proprie politiche.
+
+Minori
+KlipSilo non è rivolto a minori di 13 anni e non raccoglie consapevolmente dati sui minori.
+
+Come eliminare i dati
+Elimina i singoli clip nell’app, oppure tutti i clip in Strumenti → Manutenzione. La disinstallazione di KlipSilo rimuove l’archiviazione privata dell’app su quel dispositivo. Non elimina un ZIP di backup salvato altrove, né i file salvati in Download.
+
+Modifiche
+Se questa informativa cambia, il testo nell’app verrà aggiornato e la data di entrata in vigore cambierà.
+
+Contatto
+Domande sulla privacy: Poul Andersen, phaprodevelop@gmail.com, Danimarca.

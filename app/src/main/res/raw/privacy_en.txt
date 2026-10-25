@@ -1,5 +1,5 @@
 Privacy Policy for KlipSilo
-Effective date: 16 September 2026
+Effective date: 25 October 2026
 
 Who we are
 KlipSilo is published by Poul Andersen, Denmark. Contact: phaprodevelop@gmail.com.
@@ -15,7 +15,7 @@ KlipSilo does not:
 - operate a KlipSilo backend that receives your clips, photos, files or location
 - include a third-party crash reporter (such as Firebase Crashlytics)
 
-KlipSilo may be offered as a paid download on Google Play. Payment is handled by Google Play. There are no in-app purchases.
+KlipSilo is available on Google Play. Any payment is handled by Google Play. There are no in-app purchases.
 
 Data stored on your device
 When you save a clip — by sharing into KlipSilo, saving the current clipboard, capturing with the camera, converting a file, or saving your position — the content is stored in the app’s private storage on this device (database and files). That can include text, links, images, PDFs, other files, and location coordinates.

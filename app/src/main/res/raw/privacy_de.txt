@@ -1,0 +1,57 @@
+Datenschutzerklärung für KlipSilo
+Gültig ab: 25. Oktober 2026
+
+Wer wir sind
+KlipSilo wird von Poul Andersen, Dänemark, herausgegeben. Kontakt: phaprodevelop@gmail.com.
+
+Diese Erklärung beschreibt, wie KlipSilo mit Informationen umgeht. Die App ist ein Zwischenablage- und Dokumentenwerkzeug, das auf Ihrem Android-Gerät läuft. Sie ist kein soziales Netzwerk, erstellt kein Konto und sendet Ihre Clips nicht an einen KlipSilo-Server.
+
+Was KlipSilo nicht tut
+KlipSilo:
+- zeigt keine Werbung
+- verkauft oder vermietet Ihre Daten nicht
+- nutzt keine In-App-Käufe
+- erfordert kein Konto
+- betreibt kein KlipSilo-Backend, das Ihre Clips, Fotos, Dateien oder Ihren Standort empfängt
+- enthält keinen Drittanbieter-Absturzmelder (z. B. Firebase Crashlytics)
+
+KlipSilo ist im Google Play Store verfügbar. Etwaige Zahlungen werden von Google Play abgewickelt. Es gibt keine In-App-Käufe.
+
+Auf Ihrem Gerät gespeicherte Daten
+Wenn Sie einen Clip speichern — durch Teilen in KlipSilo, Speichern der aktuellen Zwischenablage, Aufnehmen mit der Kamera, Konvertieren einer Datei oder Speichern Ihrer Position — wird der Inhalt im privaten Speicher der App auf diesem Gerät abgelegt (Datenbank und Dateien). Das können Text, Links, Bilder, PDFs, andere Dateien und Standortkoordinaten sein.
+
+„Sperren“ eines Clips verhindert nur versehentliches Löschen, Umbenennen und Bearbeiten. Es ist keine Verschlüsselung. Gesperrte Clips bleiben unverschlüsselt auf dem Gerät und sind in einem Backup-ZIP enthalten.
+
+Android-Backup und Cloud-Gerätewiederherstellung
+KlipSilo deaktiviert Android Backup und die Geräte-zu-Gerät-Übertragung für seine Daten. Ein Google-Cloud-Backup Ihres Telefons oder die Einrichtung eines neuen Telefons von einem alten stellt Ihre KlipSilo-Clips, Dateien oder Einstellungen nicht wieder her. Wenn Sie später eine Kopie wiederherstellen möchten, nutzen Sie „Clips sichern“ in der App und bewahren Sie die ZIP-Datei selbst auf.
+
+Das von Ihnen exportierte ZIP-Backup ist unverschlüsselt. Legen Sie keine Passwörter oder anderen Geheimnisse in ein Backup, das Sie in Cloud-Speichern ablegen oder an andere senden.
+
+Berechtigungen
+Kamera — nur, wenn Sie den QR-Scanner oder die Kamera-OCR öffnen. Fotos für OCR oder QR werden auf dem Gerät verarbeitet. KlipSilo nutzt die Kamera nicht im Hintergrund.
+
+Standort (genau und ungefähr) — nur, wenn Sie Standort wählen, um Ihren aktuellen Standort als Clip zu speichern. Die App speichert die Koordinaten auf dem Gerät. Zur Anzeige einer Straßenadresse können die Koordinaten an den Geocoding-Dienst Ihres Geräts gesendet werden (auf den meisten Telefonen mit Google Play von Google bereitgestellt). KlipSilo empfängt diese Abfrage nicht auf einem eigenen Server. Sie können die Standortberechtigung verweigern und trotzdem alle anderen Funktionen nutzen.
+
+Speicher (Android 9 und älter) — nur, wenn Sie auf diesen Versionen eine Datei in Downloads speichern.
+
+Zwischenablage — nur gelesen, wenn Sie „Aktuelle Zwischenablage speichern“ tippen, während die App im Vordergrund ist. KlipSilo überwacht die Zwischenablage nicht im Hintergrund.
+
+Netzwerk
+Konvertierung, OCR, QR-Scannen, Anzeigen und Bearbeiten sind so ausgelegt, dass sie ohne KlipSilo-Server funktionieren. Google ML Kit (Texterkennung und Barcode-Scannen) und CameraX laufen auf dem Gerät.
+
+Die App kann trotzdem eine Internetberechtigung enthalten, weil Bibliotheken von Google Play-Diensten / ML Kit sie deklarieren. KlipSilo nutzt sie nicht, um Ihre Clips hochzuladen. Der einzige von Ihnen ausgelöste Fall, der einen Netzwerkdienst nutzen kann, ist die Adresssuche aus dem Standort (Geocoding), wie oben beschrieben.
+
+Teilen, das Sie starten
+Wenn Sie einen Clip teilen, kopieren, in Downloads speichern, einen Link öffnen oder ein Backup exportieren, verlässt der Inhalt die App, weil Sie es so wollten. Empfänger und andere Apps haben eigene Richtlinien.
+
+Kinder
+KlipSilo richtet sich nicht an Kinder unter 13 Jahren und erhebt wissentlich keine Daten von Kindern.
+
+Daten löschen
+Löschen Sie einzelne Clips in der App oder alle Clips unter Werkzeuge → Wartung. Die Deinstallation von KlipSilo entfernt den privaten Speicher der App auf diesem Gerät. Ein Backup-ZIP, das Sie anderswo gespeichert haben, oder Dateien in Downloads werden dabei nicht gelöscht.
+
+Änderungen
+Wenn sich diese Erklärung ändert, wird der Text in der App aktualisiert und das Gültigkeitsdatum geändert.
+
+Kontakt
+Fragen zum Datenschutz: Poul Andersen, phaprodevelop@gmail.com, Dänemark.
