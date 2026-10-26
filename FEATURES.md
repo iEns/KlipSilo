@@ -82,6 +82,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | PDF viewer with page flipping and pinch zoom | Tap a PDF clip; a horizontal swipe flips pages when the page is not zoomed, and pinch-zoom/pan take over once zoomed in | 1.1.0 | [F1](docs/regression-checklist.md#F1) | no |
+| Zoomed pan stays in view | PDF viewer and Mark up: pinch in slightly past fit-to-screen, then pan in every direction; some of the page always remains on screen and it can be panned back, while fit-to-screen still centers the page (#148) | Unreleased | [F5](docs/regression-checklist.md#F5) | no |
 | Page navigation and go-to-page | Viewer action bar: previous/next, or tap the page indicator to jump to a page | 1.2.0 | [F1](docs/regression-checklist.md#F1) | no |
 | OCR the current page to text | Viewer action bar | 1.1.0 | [F2](docs/regression-checklist.md#F2) | no |
 | Viewer bar labels stay on one line | PDF viewer action bar: labels use a single line (no mid-word wrap). Japanese bar strings are short (`OCR`, `保存`); long labels in any locale shrink, then fall back to icons or the overflow menu (1.3.0) | 1.3.0 | [F2](docs/regression-checklist.md#F2) | no |

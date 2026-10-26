@@ -30,6 +30,35 @@ class PdfPreviewZoomTest {
     }
 
     @Test
+    fun `fit pan centers the page at fit-to-screen even with a stale offset`() {
+        val clamped = clampFittedPan(300f, -500f, scale = 1f, 400f, 400f, 400f, 800f)
+        assertEquals(PreviewZoomState(scale = 1f), clamped)
+    }
+
+    @Test
+    fun `fit pan uses the letterboxed page size when clamping`() {
+        // A 400x800 page fits as 200x400 in a 400x400 viewport: 1.1x is 220x440.
+        // There is no horizontal room to pan yet, and only 20px vertically.
+        val portrait = clampFittedPan(999f, -999f, scale = 1.1f, 400f, 400f, 400f, 800f)
+        assertEquals(0f, portrait.offsetX, 0.01f)
+        assertEquals(-20f, portrait.offsetY, 0.01f)
+
+        // A 800x400 page fits as 400x200; 1.5x is 600x300, so only X has room (100px).
+        val landscape = clampFittedPan(-999f, 999f, scale = 1.5f, 400f, 400f, 800f, 400f)
+        assertEquals(-100f, landscape.offsetX, 0.01f)
+        assertEquals(0f, landscape.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `fit pan keeps the page edge flush when zoomed in further`() {
+        val clamped = clampFittedPan(10_000f, -10_000f, scale = 2f, 400f, 300f, 400f, 500f)
+        // A 400x500 page fits as 240x300 in a 400x300 viewport; at 2x it is 480x600.
+        assertEquals(40f, clamped.offsetX, 0.01f)
+        assertEquals(-150f, clamped.offsetY, 0.01f)
+        assertEquals(2f, clamped.scale)
+    }
+
+    @Test
     fun `pan step keeps the tapped page point fixed while zooming`() {
         val start = PreviewZoomState(scale = 1f, offsetX = 0f, offsetY = 0f)
         // Tap point 120px right of the viewport center.

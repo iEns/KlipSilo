@@ -50,6 +50,40 @@ fun clampOffset(
 }
 
 /**
+ * Clamps pan offsets for a page drawn with ContentScale.Fit inside the viewport.
+ *
+ * [pageWidth] x [pageHeight] are the page's unscaled (bitmap) dimensions. The page is first
+ * fitted into the viewport (letterboxed on the shorter axis), then scaled by [scale]. Offsets
+ * are relative to the viewport center, like [PreviewZoomState]. When the scaled page is smaller
+ * than the viewport on an axis, it stays centered on that axis. Pure; unit tested.
+ */
+fun clampFittedPan(
+    offsetX: Float,
+    offsetY: Float,
+    scale: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    pageWidth: Float,
+    pageHeight: Float,
+): PreviewZoomState {
+    if (
+        viewportWidth <= 0f ||
+        viewportHeight <= 0f ||
+        pageWidth <= 0f ||
+        pageHeight <= 0f ||
+        scale <= 0f
+    ) {
+        return PreviewZoomState(scale = scale, offsetX = offsetX, offsetY = offsetY)
+    }
+    val fit = minOf(viewportWidth / pageWidth, viewportHeight / pageHeight)
+    return PreviewZoomState(
+        scale = scale,
+        offsetX = clampOffset(offsetX, pageWidth * fit * scale, viewportWidth),
+        offsetY = clampOffset(offsetY, pageHeight * fit * scale, viewportHeight),
+    )
+}
+
+/**
  * Offset after scaling by [factor] (new scale divided by old scale) while keeping the viewport
  * point [focal] (relative to the viewport center) stationary on screen.
  */

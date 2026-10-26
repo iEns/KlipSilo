@@ -63,6 +63,7 @@ import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.ui.components.ButtonLabel
 import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
+import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -437,10 +438,21 @@ private fun PagePreviewDialog(
                             )
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(1f, 6f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
+                                    val nextScale = (scale * zoom).coerceIn(1f, 6f)
+                                    scale = nextScale
+                                    if (nextScale > 1f) {
+                                        val clamped =
+                                            clampFittedPan(
+                                                offsetX + pan.x,
+                                                offsetY + pan.y,
+                                                nextScale,
+                                                size.width.toFloat(),
+                                                size.height.toFloat(),
+                                                bmp.width.toFloat(),
+                                                bmp.height.toFloat(),
+                                            )
+                                        offsetX = clamped.offsetX
+                                        offsetY = clamped.offsetY
                                     } else {
                                         offsetX = 0f
                                         offsetY = 0f

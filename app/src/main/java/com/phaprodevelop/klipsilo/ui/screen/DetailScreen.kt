@@ -128,6 +128,7 @@ import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
 import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
 import com.phaprodevelop.klipsilo.ui.components.SheetRow
 import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
+import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
@@ -1382,10 +1383,21 @@ private fun ImageViewer(
                             )
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(1f, 5f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
+                                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                                    scale = nextScale
+                                    if (nextScale > 1f) {
+                                        val clamped =
+                                            clampFittedPan(
+                                                offsetX + pan.x,
+                                                offsetY + pan.y,
+                                                nextScale,
+                                                size.width.toFloat(),
+                                                size.height.toFloat(),
+                                                bitmap.width.toFloat(),
+                                                bitmap.height.toFloat(),
+                                            )
+                                        offsetX = clamped.offsetX
+                                        offsetY = clamped.offsetY
                                     } else {
                                         offsetX = 0f
                                         offsetY = 0f
@@ -1495,15 +1507,35 @@ private fun PdfViewer(
                                             if (newScale != scale) {
                                                 scale = newScale
                                             }
-                                            if (scale > 1f) {
-                                                offsetX += panChange.x
-                                                offsetY += panChange.y
+                                            if (newScale > 1f) {
+                                                val clamped =
+                                                    clampFittedPan(
+                                                        offsetX + panChange.x,
+                                                        offsetY + panChange.y,
+                                                        newScale,
+                                                        size.width.toFloat(),
+                                                        size.height.toFloat(),
+                                                        bmp.width.toFloat(),
+                                                        bmp.height.toFloat(),
+                                                    )
+                                                offsetX = clamped.offsetX
+                                                offsetY = clamped.offsetY
                                             }
                                             event.changes.forEach { it.consume() }
                                         } else if (pressed == 1) {
                                             if (scale > PDF_UNZOOMED_MAX_SCALE) {
-                                                offsetX += panChange.x
-                                                offsetY += panChange.y
+                                                val clamped =
+                                                    clampFittedPan(
+                                                        offsetX + panChange.x,
+                                                        offsetY + panChange.y,
+                                                        scale,
+                                                        size.width.toFloat(),
+                                                        size.height.toFloat(),
+                                                        bmp.width.toFloat(),
+                                                        bmp.height.toFloat(),
+                                                    )
+                                                offsetX = clamped.offsetX
+                                                offsetY = clamped.offsetY
                                                 event.changes.forEach { it.consume() }
                                             } else {
                                                 dragX += panChange.x
