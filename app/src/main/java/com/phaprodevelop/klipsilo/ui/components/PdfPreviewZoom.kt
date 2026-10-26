@@ -17,6 +17,9 @@ const val PREVIEW_BASE_RENDER_DIM = 1800
 /** Upper bound for the zoomed render so a sharp preview never blows the memory budget. */
 const val PREVIEW_MAX_RENDER_DIM = 3200
 
+/** Largest zoom the View Content PDF viewer allows while pinching. */
+const val PDF_VIEW_MAX_SCALE = 8f
+
 /**
  * State of the zoomable form preview.
  *
@@ -29,24 +32,73 @@ data class PreviewZoomState(
     val offsetY: Float = 0f,
 )
 
-fun clampScale(scale: Float): Float =
+fun clampScale(
+    scale: Float,
+    maxScale: Float = PREVIEW_MAX_SCALE,
+): Float =
     when {
-        scale.isNaN() -> PREVIEW_MIN_SCALE
-        else -> scale.coerceIn(PREVIEW_MIN_SCALE, PREVIEW_MAX_SCALE)
+        scale.isNaN() || scale <= PREVIEW_MIN_SCALE -> PREVIEW_MIN_SCALE
+        scale >= maxScale -> maxScale
+        else -> scale
     }
 
 /**
  * Clamps one axis of the pan offset so the scaled page cannot leave the viewport.
  * When the scaled page is smaller than the viewport in that axis, the page stays centered.
+ * A non-finite (NaN/Infinity) input is treated as "no pan" so a bad gesture sample can never
+ * stick the page off screen.
  */
 fun clampOffset(
     offset: Float,
     scaledSize: Float,
     viewportSize: Float,
 ): Float {
+    if (!offset.isFinite() || !scaledSize.isFinite() || !viewportSize.isFinite()) return 0f
     if (scaledSize <= viewportSize) return 0f
     val max = (scaledSize - viewportSize) / 2f
     return offset.coerceIn(-max, max)
+}
+
+/**
+ * Clamps pan offsets for a page drawn with ContentScale.Fit inside the viewport.
+ *
+ * [pageWidth] x [pageHeight] are the page's unscaled (bitmap) dimensions. The page is first
+ * fitted into the viewport (letterboxed on the shorter axis), then scaled by [scale]. Offsets
+ * are relative to the viewport center, like [PreviewZoomState]. When the scaled page is smaller
+ * than the viewport on an axis, it stays centered on that axis. Pure; unit tested.
+ */
+fun clampFittedPan(
+    offsetX: Float,
+    offsetY: Float,
+    scale: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    pageWidth: Float,
+    pageHeight: Float,
+): PreviewZoomState {
+    // A non-finite scale/offset can only come from a wild gesture sample. Reset to the
+    // centred fit state instead of propagating NaN into graphicsLayer (which draws nothing).
+    if (!scale.isFinite() || !offsetX.isFinite() || !offsetY.isFinite() || scale <= 0f) {
+        return PreviewZoomState()
+    }
+    if (
+        viewportWidth <= 0f ||
+        viewportHeight <= 0f ||
+        pageWidth <= 0f ||
+        pageHeight <= 0f ||
+        !viewportWidth.isFinite() ||
+        !viewportHeight.isFinite() ||
+        !pageWidth.isFinite() ||
+        !pageHeight.isFinite()
+    ) {
+        return PreviewZoomState(scale = scale, offsetX = offsetX, offsetY = offsetY)
+    }
+    val fit = minOf(viewportWidth / pageWidth, viewportHeight / pageHeight)
+    return PreviewZoomState(
+        scale = scale,
+        offsetX = clampOffset(offsetX, pageWidth * fit * scale, viewportWidth),
+        offsetY = clampOffset(offsetY, pageHeight * fit * scale, viewportHeight),
+    )
 }
 
 /**
@@ -93,6 +145,44 @@ fun transformPreviewZoom(
                 pageHeight * scale,
                 viewportHeight,
             ),
+    )
+}
+
+/**
+ * One pinch or pan step for a page drawn with ContentScale.Fit (#148).
+ *
+ * Zooms by [zoomDelta] around the viewport point ([focalX], [focalY]) and pans by
+ * ([panX], [panY]) screen px. [pageWidth] x [pageHeight] are the unscaled page dimensions;
+ * the pan bounds use the fitted page size via [clampFittedPan]. Zooming around the focal
+ * point keeps the content under the fingers in place instead of throwing it off screen.
+ * Non-finite input is ignored so a wild gesture sample cannot blank the page. Pure; unit tested.
+ */
+fun transformFittedZoom(
+    current: PreviewZoomState,
+    zoomDelta: Float,
+    panX: Float,
+    panY: Float,
+    focalX: Float,
+    focalY: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    pageWidth: Float,
+    pageHeight: Float,
+    maxScale: Float = PREVIEW_MAX_SCALE,
+): PreviewZoomState {
+    if (!current.scale.isFinite() || current.scale <= 0f) return PreviewZoomState()
+    val safeDelta =
+        if (!zoomDelta.isFinite() || zoomDelta <= 0f) 1f else zoomDelta
+    val nextScale = clampScale(current.scale * safeDelta, maxScale)
+    val factor = nextScale / current.scale
+    return clampFittedPan(
+        offsetX = zoomedOffset(current.offsetX, factor, focalX) + panX,
+        offsetY = zoomedOffset(current.offsetY, factor, focalY) + panY,
+        scale = nextScale,
+        viewportWidth = viewportWidth,
+        viewportHeight = viewportHeight,
+        pageWidth = pageWidth,
+        pageHeight = pageHeight,
     )
 }
 

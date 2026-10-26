@@ -150,6 +150,7 @@ import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
@@ -1494,12 +1495,26 @@ fun AnnotatePdfScreen(
                                                     lastCentroid = centroid
                                                 } else if (lastDist > 0f) {
                                                     val zoom = dist / lastDist
-                                                    scale = (scale * zoom).coerceIn(1f, 8f)
+                                                    val nextScale = (scale * zoom).coerceIn(1f, 8f)
+                                                    scale = nextScale
                                                     lastDist = dist
                                                     val cDelta = centroid - lastCentroid
-                                                    if (scale > 1f) {
-                                                        offsetX += cDelta.x
-                                                        offsetY += cDelta.y
+                                                    if (nextScale > 1f && bmp != null) {
+                                                        val clamped =
+                                                            clampFittedPan(
+                                                                offsetX + cDelta.x,
+                                                                offsetY + cDelta.y,
+                                                                nextScale,
+                                                                size.width.toFloat(),
+                                                                size.height.toFloat(),
+                                                                bmp.width.toFloat(),
+                                                                bmp.height.toFloat(),
+                                                            )
+                                                        offsetX = clamped.offsetX
+                                                        offsetY = clamped.offsetY
+                                                    } else if (nextScale <= 1f) {
+                                                        offsetX = 0f
+                                                        offsetY = 0f
                                                     }
                                                     lastCentroid = centroid
                                                 }
@@ -1655,8 +1670,20 @@ fun AnnotatePdfScreen(
                                                         }
                                                     }
                                                 } else if (scale > 1f) {
-                                                    offsetX += delta.x
-                                                    offsetY += delta.y
+                                                    if (bmp != null) {
+                                                        val clamped =
+                                                            clampFittedPan(
+                                                                offsetX + delta.x,
+                                                                offsetY + delta.y,
+                                                                scale,
+                                                                size.width.toFloat(),
+                                                                size.height.toFloat(),
+                                                                bmp.width.toFloat(),
+                                                                bmp.height.toFloat(),
+                                                            )
+                                                        offsetX = clamped.offsetX
+                                                        offsetY = clamped.offsetY
+                                                    }
                                                 } else {
                                                     offsetX = 0f
                                                     offsetY = 0f
@@ -1702,12 +1729,26 @@ fun AnnotatePdfScreen(
                                                     lastCentroid = centroid
                                                 } else if (lastDist > 0f) {
                                                     val zoom = dist / lastDist
-                                                    scale = (scale * zoom).coerceIn(1f, 8f)
+                                                    val nextScale = (scale * zoom).coerceIn(1f, 8f)
+                                                    scale = nextScale
                                                     lastDist = dist
                                                     val cDelta = centroid - lastCentroid
-                                                    if (scale > 1f) {
-                                                        offsetX += cDelta.x
-                                                        offsetY += cDelta.y
+                                                    if (nextScale > 1f && bmp != null) {
+                                                        val clamped =
+                                                            clampFittedPan(
+                                                                offsetX + cDelta.x,
+                                                                offsetY + cDelta.y,
+                                                                nextScale,
+                                                                size.width.toFloat(),
+                                                                size.height.toFloat(),
+                                                                bmp.width.toFloat(),
+                                                                bmp.height.toFloat(),
+                                                            )
+                                                        offsetX = clamped.offsetX
+                                                        offsetY = clamped.offsetY
+                                                    } else if (nextScale <= 1f) {
+                                                        offsetX = 0f
+                                                        offsetY = 0f
                                                     }
                                                     lastCentroid = centroid
                                                 }
@@ -1768,10 +1809,24 @@ fun AnnotatePdfScreen(
                                     }
                                 } else {
                                     detectTransformGestures { _, pan, zoom, _ ->
-                                        scale = (scale * zoom).coerceIn(1f, 8f)
-                                        if (scale > 1f) {
-                                            offsetX += pan.x
-                                            offsetY += pan.y
+                                        val nextScale = (scale * zoom).coerceIn(1f, 8f)
+                                        scale = nextScale
+                                        if (nextScale > 1f) {
+                                            val pageBmp = baseBitmap
+                                            if (pageBmp != null) {
+                                                val clamped =
+                                                    clampFittedPan(
+                                                        offsetX + pan.x,
+                                                        offsetY + pan.y,
+                                                        nextScale,
+                                                        size.width.toFloat(),
+                                                        size.height.toFloat(),
+                                                        pageBmp.width.toFloat(),
+                                                        pageBmp.height.toFloat(),
+                                                    )
+                                                offsetX = clamped.offsetX
+                                                offsetY = clamped.offsetY
+                                            }
                                         } else {
                                             offsetX = 0f
                                             offsetY = 0f

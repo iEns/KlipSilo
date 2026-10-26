@@ -9,8 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculatePan
-import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,6 +81,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
@@ -124,10 +123,13 @@ import com.phaprodevelop.klipsilo.ui.components.DialogTitleLabel
 import com.phaprodevelop.klipsilo.ui.components.FILE_TO_PDF_EXTENSIONS
 import com.phaprodevelop.klipsilo.ui.components.FitActionBar
 import com.phaprodevelop.klipsilo.ui.components.HtmlClipPane
+import com.phaprodevelop.klipsilo.ui.components.PDF_VIEW_MAX_SCALE
 import com.phaprodevelop.klipsilo.ui.components.PdfBarActionSpec
 import com.phaprodevelop.klipsilo.ui.components.PdfViewerActionBar
+import com.phaprodevelop.klipsilo.ui.components.PreviewZoomState
 import com.phaprodevelop.klipsilo.ui.components.SheetRow
 import com.phaprodevelop.klipsilo.ui.components.TopBarIconAction
+import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
 import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
@@ -137,6 +139,7 @@ import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
+import com.phaprodevelop.klipsilo.ui.components.transformFittedZoom
 import com.phaprodevelop.klipsilo.ui.components.typefaceForPdfFont
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
@@ -1382,10 +1385,21 @@ private fun ImageViewer(
                             )
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(1f, 5f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
+                                    val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                                    scale = nextScale
+                                    if (nextScale > 1f) {
+                                        val clamped =
+                                            clampFittedPan(
+                                                offsetX + pan.x,
+                                                offsetY + pan.y,
+                                                nextScale,
+                                                size.width.toFloat(),
+                                                size.height.toFloat(),
+                                                bitmap.width.toFloat(),
+                                                bitmap.height.toFloat(),
+                                            )
+                                        offsetX = clamped.offsetX
+                                        offsetY = clamped.offsetY
                                     } else {
                                         offsetX = 0f
                                         offsetY = 0f
@@ -1481,33 +1495,86 @@ private fun PdfViewer(
                             .pointerInput(Unit) {
                                 awaitEachGesture {
                                     awaitFirstDown(requireUnconsumed = false)
+                                    val viewportWidth = size.width.toFloat()
+                                    val viewportHeight = size.height.toFloat()
+                                    val pageWidth = bmp.width.toFloat()
+                                    val pageHeight = bmp.height.toFloat()
                                     var dragX = 0f
                                     var dragY = 0f
                                     var pinched = false
+                                    var pinching = false
+                                    var lastDistance = 0f
+                                    var lastCentroid = Offset.Zero
                                     do {
                                         val event = awaitPointerEvent()
-                                        val pressed = event.changes.count { it.pressed }
-                                        val zoomChange = event.calculateZoom()
-                                        val panChange = event.calculatePan()
-                                        if (pressed >= 2) {
+                                        val pressed = event.changes.filter { it.pressed }
+                                        if (pressed.size >= 2) {
+                                            // #148: distance-based pinch (same model as
+                                            // Mark Up) plus a focal-anchored zoom, so the
+                                            // content under the fingers stays on screen
+                                            // instead of jumping away from the viewport
+                                            // centre.
                                             pinched = true
-                                            val newScale = (scale * zoomChange).coerceIn(1f, 8f)
-                                            if (newScale != scale) {
-                                                scale = newScale
+                                            val distance =
+                                                (pressed[0].position - pressed[1].position)
+                                                    .getDistance()
+                                            val centroid = (pressed[0].position + pressed[1].position) / 2f
+                                            if (!pinching) {
+                                                pinching = true
+                                            } else if (lastDistance > 0f && distance > 0f) {
+                                                val centroidDelta = centroid - lastCentroid
+                                                val zoomed =
+                                                    transformFittedZoom(
+                                                        current = PreviewZoomState(scale, offsetX, offsetY),
+                                                        zoomDelta = distance / lastDistance,
+                                                        panX = centroidDelta.x,
+                                                        panY = centroidDelta.y,
+                                                        focalX = centroid.x - viewportWidth / 2f,
+                                                        focalY = centroid.y - viewportHeight / 2f,
+                                                        viewportWidth = viewportWidth,
+                                                        viewportHeight = viewportHeight,
+                                                        pageWidth = pageWidth,
+                                                        pageHeight = pageHeight,
+                                                        maxScale = PDF_VIEW_MAX_SCALE,
+                                                    )
+                                                scale = zoomed.scale
+                                                offsetX = zoomed.offsetX
+                                                offsetY = zoomed.offsetY
                                             }
-                                            if (scale > 1f) {
-                                                offsetX += panChange.x
-                                                offsetY += panChange.y
+                                            lastDistance = distance
+                                            lastCentroid = centroid
+                                            pressed.forEach { it.consume() }
+                                        } else if (pressed.size == 1) {
+                                            if (pinching) {
+                                                // One finger lifted: restart the pinch
+                                                // baseline when the second one comes back.
+                                                pinching = false
+                                                lastDistance = 0f
                                             }
-                                            event.changes.forEach { it.consume() }
-                                        } else if (pressed == 1) {
+                                            val change = pressed.first()
+                                            val delta = change.position - change.previousPosition
                                             if (scale > PDF_UNZOOMED_MAX_SCALE) {
-                                                offsetX += panChange.x
-                                                offsetY += panChange.y
-                                                event.changes.forEach { it.consume() }
+                                                val panned =
+                                                    transformFittedZoom(
+                                                        current = PreviewZoomState(scale, offsetX, offsetY),
+                                                        zoomDelta = 1f,
+                                                        panX = delta.x,
+                                                        panY = delta.y,
+                                                        focalX = 0f,
+                                                        focalY = 0f,
+                                                        viewportWidth = viewportWidth,
+                                                        viewportHeight = viewportHeight,
+                                                        pageWidth = pageWidth,
+                                                        pageHeight = pageHeight,
+                                                        maxScale = PDF_VIEW_MAX_SCALE,
+                                                    )
+                                                scale = panned.scale
+                                                offsetX = panned.offsetX
+                                                offsetY = panned.offsetY
+                                                change.consume()
                                             } else {
-                                                dragX += panChange.x
-                                                dragY += panChange.y
+                                                dragX += delta.x
+                                                dragY += delta.y
                                             }
                                         }
                                     } while (event.changes.any { it.pressed })
