@@ -14,6 +14,6 @@ enum class BottomNavItem(
     val icon: ImageVector,
 ) {
     KLIP("klip", R.string.clips, Icons.Filled.Inbox),
-    VÆRKTØJER("vaerktojer", R.string.tools, Icons.Filled.Construction),
-    INDSTILLINGER("indstillinger", R.string.settings, Icons.Filled.Settings),
+    TOOLS("vaerktojer", R.string.tools, Icons.Filled.Construction),
+    SETTINGS("indstillinger", R.string.settings, Icons.Filled.Settings),
 }
