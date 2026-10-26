@@ -21,6 +21,7 @@ import com.phaprodevelop.klipsilo.data.repository.ClipboardRepository
 import com.phaprodevelop.klipsilo.data.repository.FormFieldInfo
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfCombineResult
+import com.phaprodevelop.klipsilo.data.repository.PdfImageAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.repository.SaveClipResult
 import com.phaprodevelop.klipsilo.data.repository.ScannedItem
@@ -112,6 +113,8 @@ data class MarkupSession(
     val strokes: Map<Int, List<PdfStroke>>,
     val savedAnnotations: List<PdfAnnotation>,
     val savedStrokes: List<PdfStroke>,
+    val images: Map<Int, List<PdfImageAnnotation>> = emptyMap(),
+    val savedImages: List<PdfImageAnnotation> = emptyList(),
     val pageIndex: Int = 0,
 )
 
@@ -1779,10 +1782,18 @@ class ClipboardViewModel(
         }
     }
 
+    /** Copies a picked image into Mark up storage (#92); null when it could not be read. */
+    suspend fun importMarkupImage(uri: Uri): String? = withContext(ioDispatcher) { repository.importMarkupImage(uri) }
+
+    /** Camera captures arrive as a cache file; copy them into Mark up storage (#92). */
+    suspend fun importMarkupImageFile(path: String): String? =
+        withContext(ioDispatcher) { repository.importMarkupImageFile(path) }
+
     fun saveAnnotatedPdf(
         entry: ClipboardEntry,
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke> = emptyList(),
+        images: List<PdfImageAnnotation> = emptyList(),
     ) {
         if (_isConverting.value) return
         viewModelScope.launch {
@@ -1791,7 +1802,7 @@ class ClipboardViewModel(
                 val filePath = requireFilePath(entry) ?: return@launch
                 val newId =
                     withContext(ioDispatcher) {
-                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry)
+                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry, images)
                     }
                 if (newId > 0L) {
                     triggerScrollToTop()

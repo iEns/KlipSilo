@@ -1,8 +1,16 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -29,6 +38,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -46,6 +57,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.Highlight
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.TouchApp
@@ -73,6 +85,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,9 +120,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.exifinterface.media.ExifInterface
 import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.MarkupHistory
 import com.phaprodevelop.klipsilo.data.TextCommitDecision
+import com.phaprodevelop.klipsilo.data.db.ContentType
 import com.phaprodevelop.klipsilo.data.markupTextSizeStep
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepCount
 import com.phaprodevelop.klipsilo.data.markupTextSizeStepIndex
@@ -120,6 +137,7 @@ import com.phaprodevelop.klipsilo.data.model.ClipboardEntry
 import com.phaprodevelop.klipsilo.data.nearestMarkupTextSize
 import com.phaprodevelop.klipsilo.data.nearestMarkupWidth
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
+import com.phaprodevelop.klipsilo.data.repository.PdfImageAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
 import com.phaprodevelop.klipsilo.data.resolveTextCommit
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
@@ -131,6 +149,7 @@ import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
@@ -143,13 +162,17 @@ import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.viewmodel.MarkupSession
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private data class MarkupSnapshot(
     val annotations: Map<Int, List<PdfAnnotation>>,
     val strokes: Map<Int, List<PdfStroke>>,
+    val images: Map<Int, List<PdfImageAnnotation>> = emptyMap(),
 )
 
 private data class DraftAnnotation(
@@ -168,12 +191,15 @@ private enum class MarkupTool {
     LINE,
     DRAW,
     HIGHLIGHT,
+    IMAGE,
 }
 
 private sealed class DrawItem(val z: Long) {
     class Text(val index: Int, val ann: PdfAnnotation, z: Long) : DrawItem(z)
 
     class Stroke(val index: Int, val stroke: PdfStroke, z: Long) : DrawItem(z)
+
+    class Image(val index: Int, val image: PdfImageAnnotation, z: Long) : DrawItem(z)
 }
 
 /**
@@ -268,6 +294,14 @@ fun AnnotatePdfScreen(
                 restoredSession?.strokes?.forEach { (page, items) -> this[page] = items }
             }
         }
+    val images =
+        remember(entryId) {
+            mutableStateMapOf<Int, List<PdfImageAnnotation>>().apply {
+                restoredSession?.images?.forEach { (page, items) -> this[page] = items }
+            }
+        }
+    // Decoded once per image path; the preview must not decode on every frame.
+    val imageBitmaps = remember { mutableStateMapOf<String, Bitmap>() }
     var draftStroke by remember { mutableStateOf<PdfStroke?>(null) }
     val savedAnnotate = remember { AnnotateSettingsStore.load(context) }
     var strokeWidth by remember {
@@ -282,7 +316,8 @@ fun AnnotatePdfScreen(
         mutableStateOf(
             (
                 restoredSession?.annotations?.values?.flatten().orEmpty().map { it.zOrder } +
-                    restoredSession?.strokes?.values?.flatten().orEmpty().map { it.zOrder }
+                    restoredSession?.strokes?.values?.flatten().orEmpty().map { it.zOrder } +
+                    restoredSession?.images?.values?.flatten().orEmpty().map { it.zOrder }
             ).maxOrNull() ?: 0L,
         )
     }
@@ -307,6 +342,9 @@ fun AnnotatePdfScreen(
     var movingDraft by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableIntStateOf(-1) }
     var selectedStroke by remember { mutableIntStateOf(-1) }
+    var selectedImage by remember { mutableIntStateOf(-1) }
+    var showImageSources by remember { mutableStateOf(false) }
+    var showImageClips by remember { mutableStateOf(false) }
     var pageSize by remember { mutableStateOf(IntSize.Zero) }
     var showExitWarning by remember { mutableStateOf(false) }
     val annotations =
@@ -322,17 +360,23 @@ fun AnnotatePdfScreen(
     var savedStrokes by remember(entryId) {
         mutableStateOf(restoredSession?.savedStrokes ?: emptyList())
     }
+    var savedImages by remember(entryId) {
+        mutableStateOf(restoredSession?.savedImages ?: emptyList())
+    }
 
     // Persist the draft session on every markup/page change so a recreate can rehydrate it.
     val persistedAnnotations = annotations.mapValues { it.value.toList() }
     val persistedStrokes = strokes.mapValues { it.value.toList() }
+    val persistedImages = images.mapValues { it.value.toList() }
     LaunchedEffect(
         entryId,
         leaving,
         persistedAnnotations,
         persistedStrokes,
+        persistedImages,
         savedAnnotations,
         savedStrokes,
+        savedImages,
         pageIndex,
     ) {
         if (leaving) return@LaunchedEffect
@@ -341,8 +385,10 @@ fun AnnotatePdfScreen(
                 entryId = entryId,
                 annotations = persistedAnnotations,
                 strokes = persistedStrokes,
+                images = persistedImages,
                 savedAnnotations = savedAnnotations,
                 savedStrokes = savedStrokes,
+                savedImages = savedImages,
                 pageIndex = pageIndex,
             ),
         )
@@ -380,6 +426,7 @@ fun AnnotatePdfScreen(
     val dirty =
         annotations.values.flatten() != savedAnnotations ||
             strokes.values.flatten() != savedStrokes ||
+            images.values.flatten() != savedImages ||
             draftDirty ||
             draftStroke != null
     val markupHistory = remember { MarkupHistory<MarkupSnapshot>() }
@@ -389,6 +436,7 @@ fun AnnotatePdfScreen(
         MarkupSnapshot(
             annotations = annotations.mapValues { it.value.toList() },
             strokes = strokes.mapValues { it.value.toList() },
+            images = images.mapValues { it.value.toList() },
         )
 
     fun applyMarkupSnapshot(snapshot: MarkupSnapshot) {
@@ -396,6 +444,8 @@ fun AnnotatePdfScreen(
         snapshot.annotations.forEach { (page, items) -> annotations[page] = items }
         strokes.clear()
         snapshot.strokes.forEach { (page, items) -> strokes[page] = items }
+        images.clear()
+        snapshot.images.forEach { (page, items) -> images[page] = items }
     }
 
     fun recordMarkup() {
@@ -421,6 +471,7 @@ fun AnnotatePdfScreen(
             draftStroke = null
             selectedIndex = -1
             selectedStroke = -1
+            selectedImage = -1
             historyTick++
             return
         }
@@ -436,6 +487,7 @@ fun AnnotatePdfScreen(
             draft = null
             selectedIndex = -1
             selectedStroke = -1
+            selectedImage = -1
             historyTick++
             return
         }
@@ -445,6 +497,7 @@ fun AnnotatePdfScreen(
         draft = null
         selectedIndex = -1
         selectedStroke = -1
+        selectedImage = -1
         val restored = markupHistory.undo(markupSnapshot()) ?: return
         applyMarkupSnapshot(restored)
         historyTick++
@@ -457,6 +510,7 @@ fun AnnotatePdfScreen(
         draftStroke = null
         selectedIndex = -1
         selectedStroke = -1
+        selectedImage = -1
         historyTick++
     }
 
@@ -549,7 +603,66 @@ fun AnnotatePdfScreen(
                 strokes[pageIndex] = list
             }
             selectedStroke = -1
+            return
         }
+        if (selectedImage >= 0) {
+            recordMarkup()
+            val list = images[pageIndex].orEmpty().toMutableList()
+            if (selectedImage in list.indices) {
+                list.removeAt(selectedImage)
+                images[pageIndex] = list
+            }
+            selectedImage = -1
+        }
+    }
+
+    /**
+     * Places [sourcePath] (a copy in app storage) centred on the current page (#92). The
+     * default width is 40% of the page, shrunk when a tall image would exceed 60% of the
+     * page height. Width and height fractions stay aspect-locked from here on.
+     */
+    fun placeImage(sourcePath: String) {
+        val dims = orientedImageDimensions(sourcePath)
+        if (dims == null) {
+            Toast.makeText(context, R.string.markup_image_import_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val pageAspect =
+            baseBitmap
+                ?.takeIf { it.height > 0 }
+                ?.let { it.width.toFloat() / it.height }
+                ?: (612f / 792f)
+        var widthFraction = 0.4f
+        val ratio = pageAspect * dims.second / dims.first
+        var heightFraction = widthFraction * ratio
+        if (heightFraction > 0.6f) {
+            heightFraction = 0.6f
+            widthFraction = heightFraction / ratio
+        }
+        if (widthFraction > 0.9f) {
+            widthFraction = 0.9f
+            heightFraction = widthFraction * ratio
+        }
+        val x = ((1f - widthFraction) / 2f).coerceIn(0f, 1f - widthFraction)
+        val y = ((1f - heightFraction) / 2f).coerceIn(0f, 1f - heightFraction)
+        recordMarkup()
+        val list = images[pageIndex].orEmpty().toMutableList()
+        list.add(
+            PdfImageAnnotation(
+                pageIndex = pageIndex,
+                xFraction = x,
+                yFraction = y,
+                widthFraction = widthFraction,
+                heightFraction = heightFraction,
+                imagePath = sourcePath,
+                zOrder = nextZ(),
+            ),
+        )
+        images[pageIndex] = list
+        selectedImage = list.lastIndex
+        selectedIndex = -1
+        selectedStroke = -1
+        tool = MarkupTool.SELECT
     }
 
     fun applyTextSize(size: Float) {
@@ -660,6 +773,76 @@ fun AnnotatePdfScreen(
 
     BackHandler { leave() }
 
+    // Image insertion sources (#92): every source ends up as a copy in app storage before
+    // it is placed, so Save still works after a gallery/FileProvider URI is revoked.
+    val imageScope = rememberCoroutineScope()
+    var pendingCameraPath by remember { mutableStateOf<String?>(null) }
+
+    fun importImageUri(uri: Uri) {
+        imageScope.launch {
+            val path = viewModel.importMarkupImage(uri)
+            if (path != null) {
+                placeImage(path)
+            } else {
+                Toast.makeText(context, R.string.markup_image_import_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun importImageFile(path: String) {
+        imageScope.launch {
+            val copied = viewModel.importMarkupImageFile(path)
+            if (copied != null) {
+                placeImage(copied)
+            } else {
+                Toast.makeText(context, R.string.markup_image_import_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val galleryLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) importImageUri(uri)
+        }
+    val imageFileLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) importImageUri(uri)
+        }
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            val path = pendingCameraPath
+            pendingCameraPath = null
+            if (success && path != null) importImageFile(path)
+        }
+
+    fun startCameraCapture() {
+        val dir = File(context.cacheDir, "markup").apply { mkdirs() }
+        val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        pendingCameraPath = file.absolutePath
+        cameraLauncher.launch(uri)
+    }
+
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                startCameraCapture()
+            } else {
+                Toast.makeText(context, R.string.markup_image_camera_denied, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    fun openCameraSource() {
+        val granted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            startCameraCapture()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     val filePath = entry.filePath
     val pageGate = remember { AtomicInteger(0) }
     val drawGate = remember { AtomicInteger(0) }
@@ -697,11 +880,27 @@ fun AnnotatePdfScreen(
             movingDraft = false
             selectedIndex = -1
             selectedStroke = -1
+            selectedImage = -1
         }
     }
 
     val currentAnnotations = annotations[pageIndex].orEmpty()
     val currentStrokes = strokes[pageIndex].orEmpty()
+    val currentImages = images[pageIndex].orEmpty()
+    // Snapshot for the IO draw; reading the state map here also recomposes when a decode lands.
+    val imageBitmapSnapshot = imageBitmaps.toMap()
+    val currentImagePaths = currentImages.map { it.imagePath }.distinct()
+    LaunchedEffect(currentImagePaths) {
+        currentImagePaths.forEach { path ->
+            if (path !in imageBitmaps) {
+                val bitmap =
+                    withContext(Dispatchers.IO) {
+                        decodeImageBitmap(path, MARKUP_IMAGE_PREVIEW_MAX_PX, MARKUP_IMAGE_PREVIEW_MAX_PX)
+                    }
+                if (bitmap != null) imageBitmaps[path] = bitmap
+            }
+        }
+    }
     val draftText = draft?.text.orEmpty()
     val draftSize = draft?.sizeFraction ?: 0f
     val draftX = draft?.xFraction ?: 0f
@@ -713,6 +912,8 @@ fun AnnotatePdfScreen(
         baseBitmap,
         currentAnnotations,
         currentStrokes,
+        currentImages,
+        imageBitmapSnapshot,
         draftText,
         draftSize,
         draftX,
@@ -725,6 +926,7 @@ fun AnnotatePdfScreen(
         movingDraft,
         selectedIndex,
         selectedStroke,
+        selectedImage,
     ) {
         val base = baseBitmap ?: return@LaunchedEffect
         baseUse.acquire(base)
@@ -753,7 +955,16 @@ fun AnnotatePdfScreen(
                     drawGate,
                     produce = {
                         withContext(Dispatchers.IO) {
-                            drawAnnotations(base, shown, shownStrokes, highlight, selectedStroke)
+                            drawAnnotations(
+                                base,
+                                shown,
+                                shownStrokes,
+                                currentImages,
+                                imageBitmapSnapshot,
+                                highlight,
+                                selectedStroke,
+                                selectedImage,
+                            )
                         }
                     },
                     discard = { bitmap ->
@@ -804,7 +1015,8 @@ fun AnnotatePdfScreen(
                         commitDrafts()
                         val all = annotations.values.flatten()
                         val allStrokes = strokes.values.flatten()
-                        viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                        val allImages = images.values.flatten()
+                        viewModel.saveAnnotatedPdf(entry, all, allStrokes, allImages)
                     } else {
                         // Save with no changes (#60): just leave, like Back, instead
                         // of creating an identical copy clip.
@@ -825,7 +1037,11 @@ fun AnnotatePdfScreen(
             MarkupHistoryRow(
                 canUndo = historyTick >= 0 && (markupHistory.canUndo || draftStroke != null || draftDirty),
                 canRedo = historyTick >= 0 && markupHistory.canRedo,
-                canDelete = selectedIndex >= 0 || selectedStroke >= 0 || draft?.editingIndex != null,
+                canDelete =
+                    selectedIndex >= 0 ||
+                        selectedStroke >= 0 ||
+                        selectedImage >= 0 ||
+                        draft?.editingIndex != null,
                 pageIndex = pageIndex,
                 pageCount = pageCount,
                 onUndo = { undoMarkup() },
@@ -881,6 +1097,9 @@ fun AnnotatePdfScreen(
                                         var targetIndex = -1
                                         var targetIsDraft = false
                                         var targetStroke = -1
+                                        var targetImage = -1
+                                        var resizeCorner: ImageCorner? = null
+                                        var resizeStart: PdfImageAnnotation? = null
                                         var fx = 0.5f
                                         var fy = 0.5f
                                         val bmp = baseBitmap
@@ -910,9 +1129,72 @@ fun AnnotatePdfScreen(
                                                         bmp.height,
                                                     )
                                                 }
-                                            if (idx >= 0) {
+                                            val imageIdx =
+                                                if (tool == MarkupTool.SELECT) {
+                                                    images[pageIndex].orEmpty().indexOfLast {
+                                                        imageHitTest(fx, fy, it)
+                                                    }
+                                                } else {
+                                                    -1
+                                                }
+                                            // A corner handle sticks out of the image, so a tap just
+                                            // outside a selected image's corner still grabs it.
+                                            val handleImageIdx =
+                                                if (
+                                                    imageIdx < 0 &&
+                                                    tool == MarkupTool.SELECT &&
+                                                    selectedImage >= 0
+                                                ) {
+                                                    val selected =
+                                                        images[pageIndex].orEmpty().getOrNull(selectedImage)
+                                                    if (selected != null) {
+                                                        val handleRect =
+                                                            imageScreenRect(
+                                                                selected,
+                                                                fittedRect(size, bmp.width, bmp.height),
+                                                                size,
+                                                                scale,
+                                                                offsetX,
+                                                                offsetY,
+                                                            )
+                                                        if (
+                                                            nearestImageCorner(
+                                                                handleRect,
+                                                                downPos,
+                                                                with(density) { 28.dp.toPx() },
+                                                            ) != null
+                                                        ) {
+                                                            selectedImage
+                                                        } else {
+                                                            -1
+                                                        }
+                                                    } else {
+                                                        -1
+                                                    }
+                                                } else {
+                                                    -1
+                                                }
+                                            val hitImage = if (imageIdx >= 0) imageIdx else handleImageIdx
+                                            // Images participate in the same z-order as text, so
+                                            // tapping where both overlap selects what is on top.
+                                            if (idx >= 0 && hitImage >= 0) {
+                                                val textZ =
+                                                    annotations[pageIndex].orEmpty()[idx].zOrder
+                                                val imageZ =
+                                                    images[pageIndex].orEmpty()[hitImage].zOrder
+                                                if (imageZ > textZ) {
+                                                    targetImage = hitImage
+                                                } else {
+                                                    targetIndex = idx
+                                                }
+                                                targetIsDraft = false
+                                                selectedStroke = -1
+                                            } else if (idx >= 0) {
                                                 targetIndex = idx
                                                 targetIsDraft = false
+                                                selectedStroke = -1
+                                            } else if (hitImage >= 0) {
+                                                targetImage = hitImage
                                                 selectedStroke = -1
                                             } else if (
                                                 draft != null &&
@@ -932,6 +1214,31 @@ fun AnnotatePdfScreen(
                                             } else {
                                                 targetStroke =
                                                     strokeHitIndex(strokes[pageIndex].orEmpty(), fx, fy)
+                                            }
+                                            // A corner of the already selected image starts an
+                                            // aspect-locked resize instead of a body move.
+                                            if (targetImage >= 0 && targetImage == selectedImage) {
+                                                val image =
+                                                    images[pageIndex].orEmpty().getOrNull(targetImage)
+                                                if (image != null) {
+                                                    val fitted = fittedRect(size, bmp.width, bmp.height)
+                                                    val screenRect =
+                                                        imageScreenRect(
+                                                            image,
+                                                            fitted,
+                                                            size,
+                                                            scale,
+                                                            offsetX,
+                                                            offsetY,
+                                                        )
+                                                    resizeCorner =
+                                                        nearestImageCorner(
+                                                            screenRect,
+                                                            downPos,
+                                                            with(density) { 28.dp.toPx() },
+                                                        )
+                                                    if (resizeCorner != null) resizeStart = image
+                                                }
                                             }
                                         }
                                         val targetOnText = targetIndex >= 0 || targetIsDraft
@@ -996,8 +1303,8 @@ fun AnnotatePdfScreen(
                                                         val layout = draftFieldLayout
                                                         if (!tapInEditField && layout != null) {
                                                             val d = activeDraft
-                                                            val pageBmp = bmp
-                                                            if (d != null && pageBmp != null) {
+                                                            val pageBmp = bmp ?: return@awaitEachGesture
+                                                            if (d != null) {
                                                                 val fitted =
                                                                     fittedRect(size, pageBmp.width, pageBmp.height)
                                                                 val layer =
@@ -1087,16 +1394,25 @@ fun AnnotatePdfScreen(
                                                         if (draft != null) commitDrafts()
                                                         selectedIndex = targetIndex
                                                         selectedStroke = -1
+                                                        selectedImage = -1
                                                         lastTapUpTime = now
+                                                    } else if (targetImage >= 0) {
+                                                        if (draft != null) commitDrafts()
+                                                        selectedImage = targetImage
+                                                        selectedIndex = -1
+                                                        selectedStroke = -1
+                                                        lastTapUpTime = 0L
                                                     } else if (targetStroke >= 0 && tool == MarkupTool.SELECT) {
                                                         if (draft != null) commitDrafts()
                                                         selectedStroke = targetStroke
                                                         selectedIndex = -1
+                                                        selectedImage = -1
                                                         lastTapUpTime = 0L
                                                     } else if (tool == MarkupTool.TEXT && !targetOnText) {
                                                         if (draft != null) commitDrafts()
                                                         selectedIndex = -1
                                                         selectedStroke = -1
+                                                        selectedImage = -1
                                                         beginDraft(
                                                             DraftAnnotation(
                                                                 "",
@@ -1113,6 +1429,7 @@ fun AnnotatePdfScreen(
                                                         if (draft != null) commitDrafts()
                                                         selectedIndex = -1
                                                         selectedStroke = -1
+                                                        selectedImage = -1
                                                         lastTapUpTime = 0L
                                                     }
                                                 }
@@ -1160,6 +1477,17 @@ fun AnnotatePdfScreen(
                                                                 annotations[pageIndex] = list
                                                             }
                                                         }
+                                                    } else if (targetImage >= 0 && tool == MarkupTool.SELECT) {
+                                                        recordMarkup()
+                                                        selectedImage = targetImage
+                                                        selectedIndex = -1
+                                                        selectedStroke = -1
+                                                        val list = images[pageIndex].orEmpty().toMutableList()
+                                                        if (targetImage in list.indices) {
+                                                            list[targetImage] =
+                                                                list[targetImage].copy(zOrder = nextZ())
+                                                            images[pageIndex] = list
+                                                        }
                                                     }
                                                 }
                                                 val delta = pos - lastPos
@@ -1196,6 +1524,105 @@ fun AnnotatePdfScreen(
                                                                     )
                                                                 annotations[pageIndex] = list
                                                             }
+                                                        }
+                                                    }
+                                                } else if (targetImage >= 0 && tool == MarkupTool.SELECT) {
+                                                    val curBmp = baseBitmap ?: break
+                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    if (rect.width > 0f && rect.height > 0f && scale > 0f) {
+                                                        val list = images[pageIndex].orEmpty().toMutableList()
+                                                        if (targetImage in list.indices) {
+                                                            val current = list[targetImage]
+                                                            val start = resizeStart
+                                                            val corner = resizeCorner
+                                                            if (start != null && corner != null) {
+                                                                val totalDx =
+                                                                    (pos.x - downPos.x) /
+                                                                        (scale * rect.width)
+                                                                val totalDy =
+                                                                    (pos.y - downPos.y) /
+                                                                        (scale * rect.height)
+                                                                // Use the dominant drag direction, then
+                                                                // scale width and height by the same factor
+                                                                // so corners never distort the image.
+                                                                val scaleDelta =
+                                                                    if (
+                                                                        start.widthFraction > 0f &&
+                                                                        start.heightFraction > 0f &&
+                                                                        abs(totalDx) / start.widthFraction >=
+                                                                        abs(totalDy) / start.heightFraction
+                                                                    ) {
+                                                                        totalDx / start.widthFraction
+                                                                    } else {
+                                                                        totalDy / start.heightFraction
+                                                                    }
+                                                                val availableW =
+                                                                    if (corner.left) {
+                                                                        start.xFraction + start.widthFraction
+                                                                    } else {
+                                                                        1f - start.xFraction
+                                                                    }
+                                                                val availableH =
+                                                                    if (corner.top) {
+                                                                        start.yFraction + start.heightFraction
+                                                                    } else {
+                                                                        1f - start.yFraction
+                                                                    }
+                                                                val minScale =
+                                                                    maxOf(
+                                                                        MARKUP_IMAGE_MIN_FRACTION /
+                                                                            start.widthFraction,
+                                                                        MARKUP_IMAGE_MIN_FRACTION /
+                                                                            start.heightFraction,
+                                                                    )
+                                                                val maxScale =
+                                                                    minOf(
+                                                                        availableW / start.widthFraction,
+                                                                        availableH / start.heightFraction,
+                                                                    ).coerceAtLeast(minScale)
+                                                                val factor =
+                                                                    (1f + scaleDelta).coerceIn(minScale, maxScale)
+                                                                val newW = start.widthFraction * factor
+                                                                val newH = start.heightFraction * factor
+                                                                list[targetImage] =
+                                                                    current.copy(
+                                                                        xFraction =
+                                                                            if (corner.left) {
+                                                                                start.xFraction +
+                                                                                    start.widthFraction - newW
+                                                                            } else {
+                                                                                start.xFraction
+                                                                            },
+                                                                        yFraction =
+                                                                            if (corner.top) {
+                                                                                start.yFraction +
+                                                                                    start.heightFraction - newH
+                                                                            } else {
+                                                                                start.yFraction
+                                                                            },
+                                                                        widthFraction = newW,
+                                                                        heightFraction = newH,
+                                                                    )
+                                                            } else {
+                                                                val dfx = delta.x / (scale * rect.width)
+                                                                val dfy = delta.y / (scale * rect.height)
+                                                                list[targetImage] =
+                                                                    current.copy(
+                                                                        xFraction =
+                                                                            (current.xFraction + dfx).coerceIn(
+                                                                                0f,
+                                                                                (1f - current.widthFraction)
+                                                                                    .coerceAtLeast(0f),
+                                                                            ),
+                                                                        yFraction =
+                                                                            (current.yFraction + dfy).coerceIn(
+                                                                                0f,
+                                                                                (1f - current.heightFraction)
+                                                                                    .coerceAtLeast(0f),
+                                                                            ),
+                                                                    )
+                                                            }
+                                                            images[pageIndex] = list
                                                         }
                                                     }
                                                 } else if (targetStroke >= 0 && tool == MarkupTool.SELECT) {
@@ -1413,19 +1840,33 @@ fun AnnotatePdfScreen(
                 // Floating Edit/Move/✕ chip anchored to the selection bounds (#36):
                 // above the item by default, flipped below near the top edge and
                 // clamped so it stays on screen, without ever covering the selection.
-                if (tool == MarkupTool.SELECT && draft == null && (selectedIndex >= 0 || selectedStroke >= 0)) {
+                if (
+                    tool == MarkupTool.SELECT &&
+                    draft == null &&
+                    (selectedIndex >= 0 || selectedStroke >= 0 || selectedImage >= 0)
+                ) {
                     val chipBmp = baseBitmap
                     val anchor =
                         if (chipBmp != null && pageSize.width > 0) {
                             val fractionBounds =
-                                if (selectedIndex >= 0) {
-                                    annotations[pageIndex].orEmpty().getOrNull(selectedIndex)?.let {
-                                        annotationBoundsFraction(it, chipBmp.width, chipBmp.height)
-                                    }
-                                } else {
-                                    strokes[pageIndex].orEmpty().getOrNull(selectedStroke)?.let {
-                                        strokeBoundsFraction(it, chipBmp.width, chipBmp.height)
-                                    }
+                                when {
+                                    selectedIndex >= 0 ->
+                                        annotations[pageIndex].orEmpty().getOrNull(selectedIndex)?.let {
+                                            annotationBoundsFraction(it, chipBmp.width, chipBmp.height)
+                                        }
+                                    selectedImage >= 0 ->
+                                        images[pageIndex].orEmpty().getOrNull(selectedImage)?.let {
+                                            Rect(
+                                                it.xFraction,
+                                                it.yFraction,
+                                                (it.xFraction + it.widthFraction).coerceAtMost(1f),
+                                                (it.yFraction + it.heightFraction).coerceAtMost(1f),
+                                            )
+                                        }
+                                    else ->
+                                        strokes[pageIndex].orEmpty().getOrNull(selectedStroke)?.let {
+                                            strokeBoundsFraction(it, chipBmp.width, chipBmp.height)
+                                        }
                                 }
                             fractionBounds?.let { bounds ->
                                 val fitted = fittedRect(pageSize, chipBmp.width, chipBmp.height)
@@ -1491,27 +1932,30 @@ fun AnnotatePdfScreen(
                                     .padding(horizontal = 6.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TextButton(onClick = {
-                                val index = selectedIndex
-                                val list = annotations[pageIndex].orEmpty()
-                                if (index in list.indices) {
-                                    val item = list[index]
-                                    selectedIndex = -1
-                                    selectedStroke = -1
-                                    beginDraft(
-                                        DraftAnnotation(
-                                            item.text,
-                                            item.sizeFraction,
-                                            item.xFraction,
-                                            item.yFraction,
-                                            index,
-                                            item.color,
-                                            nextZ(),
-                                        ),
-                                    )
+                            if (selectedIndex >= 0) {
+                                TextButton(onClick = {
+                                    val index = selectedIndex
+                                    val list = annotations[pageIndex].orEmpty()
+                                    if (index in list.indices) {
+                                        val item = list[index]
+                                        selectedIndex = -1
+                                        selectedStroke = -1
+                                        selectedImage = -1
+                                        beginDraft(
+                                            DraftAnnotation(
+                                                item.text,
+                                                item.sizeFraction,
+                                                item.xFraction,
+                                                item.yFraction,
+                                                index,
+                                                item.color,
+                                                nextZ(),
+                                            ),
+                                        )
+                                    }
+                                }) {
+                                    ButtonLabel(context.getString(R.string.edit))
                                 }
-                            }) {
-                                ButtonLabel(context.getString(R.string.edit))
                             }
                             TextButton(onClick = {}) {
                                 ButtonLabel(context.getString(R.string.markup_move))
@@ -1575,6 +2019,11 @@ fun AnnotatePdfScreen(
                         )
                     }
                     MarkupToolBar(tool = tool) { next ->
+                        if (next == MarkupTool.IMAGE) {
+                            commitDrafts()
+                            showImageSources = true
+                            return@MarkupToolBar
+                        }
                         commitDrafts()
                         if (next == MarkupTool.HIGHLIGHT && tool != MarkupTool.HIGHLIGHT) {
                             strokeColor = android.graphics.Color.YELLOW
@@ -1582,6 +2031,9 @@ fun AnnotatePdfScreen(
                         tool = next
                         if (next != MarkupTool.SELECT && next != MarkupTool.TEXT) {
                             selectedIndex = -1
+                        }
+                        if (next != MarkupTool.SELECT) {
+                            selectedImage = -1
                         }
                     }
                 }
@@ -1615,7 +2067,8 @@ fun AnnotatePdfScreen(
                             showExitWarning = false
                             val all = annotations.values.flatten()
                             val allStrokes = strokes.values.flatten()
-                            viewModel.saveAnnotatedPdf(entry, all, allStrokes)
+                            val allImages = images.values.flatten()
+                            viewModel.saveAnnotatedPdf(entry, all, allStrokes, allImages)
                         },
                     ) {
                         ButtonLabel(context.getString(R.string.save))
@@ -1623,6 +2076,79 @@ fun AnnotatePdfScreen(
                 }
             },
             dismissButton = {},
+        )
+    }
+
+    if (showImageSources) {
+        AlertDialog(
+            onDismissRequest = { showImageSources = false },
+            title = { DialogTitleLabel(context.getString(R.string.markup_image_source_title)) },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        showImageSources = false
+                        showImageClips = true
+                    }) {
+                        ButtonLabel(context.getString(R.string.markup_image_from_clips))
+                    }
+                    TextButton(onClick = {
+                        showImageSources = false
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    }) {
+                        ButtonLabel(context.getString(R.string.markup_image_from_gallery))
+                    }
+                    TextButton(onClick = {
+                        showImageSources = false
+                        openCameraSource()
+                    }) {
+                        ButtonLabel(context.getString(R.string.markup_image_from_camera))
+                    }
+                    TextButton(onClick = {
+                        showImageSources = false
+                        imageFileLauncher.launch(arrayOf("image/*"))
+                    }) {
+                        ButtonLabel(context.getString(R.string.markup_image_from_files))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showImageSources = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (showImageClips) {
+        val imageClips = clips.filter { it.contentType == ContentType.IMAGE && it.filePath != null }
+        AlertDialog(
+            onDismissRequest = { showImageClips = false },
+            title = { DialogTitleLabel(context.getString(R.string.markup_image_from_clips)) },
+            text = {
+                if (imageClips.isEmpty()) {
+                    Text(context.getString(R.string.markup_image_no_clips))
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                        items(imageClips, key = { it.id }) { clip ->
+                            TextButton(onClick = {
+                                showImageClips = false
+                                clip.filePath?.let { importImageFile(it) }
+                            }) {
+                                Text(clip.previewText.ifBlank { context.getString(R.string.untitled_clip) })
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showImageClips = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
         )
     }
 }
@@ -1720,6 +2246,7 @@ private fun MarkupToolBar(
             Triple(MarkupTool.LINE, Icons.AutoMirrored.Filled.ShowChart, R.string.markup_tool_line),
             Triple(MarkupTool.DRAW, Icons.Filled.Gesture, R.string.markup_tool_draw),
             Triple(MarkupTool.HIGHLIGHT, Icons.Filled.Highlight, R.string.markup_tool_highlight),
+            Triple(MarkupTool.IMAGE, Icons.Filled.Image, R.string.markup_tool_image),
         )
     val labels = items.map { context.getString(it.third) }
     val labelStyle = MaterialTheme.typography.labelSmall
@@ -2037,8 +2564,11 @@ private fun drawAnnotations(
     base: Bitmap,
     annotations: List<PdfAnnotation>,
     strokes: List<PdfStroke>,
+    images: List<PdfImageAnnotation> = emptyList(),
+    imageBitmaps: Map<String, Bitmap> = emptyMap(),
     highlightIndex: Int? = null,
     selectedStrokeIndex: Int = -1,
+    selectedImageIndex: Int = -1,
 ): Bitmap {
     val out = base.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = android.graphics.Canvas(out)
@@ -2046,6 +2576,7 @@ private fun drawAnnotations(
         buildList {
             annotations.forEachIndexed { index, ann -> add(DrawItem.Text(index, ann, ann.zOrder)) }
             strokes.forEachIndexed { index, stroke -> add(DrawItem.Stroke(index, stroke, stroke.zOrder)) }
+            images.forEachIndexed { index, image -> add(DrawItem.Image(index, image, image.zOrder)) }
         }.sortedBy { it.z }
     for (item in items) {
         when (item) {
@@ -2123,6 +2654,32 @@ private fun drawAnnotations(
                     canvas.drawPath(path, paint)
                 }
             }
+            is DrawItem.Image -> {
+                val image = item.image
+                val left = image.xFraction * out.width
+                val top = image.yFraction * out.height
+                val right = (image.xFraction + image.widthFraction) * out.width
+                val bottom = (image.yFraction + image.heightFraction) * out.height
+                val bitmap = imageBitmaps[image.imagePath]
+                if (bitmap != null && right > left && bottom > top) {
+                    canvas.drawBitmap(
+                        bitmap,
+                        null,
+                        android.graphics.RectF(left, top, right, bottom),
+                        android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG),
+                    )
+                }
+                if (item.index == selectedImageIndex) {
+                    val outline =
+                        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                            color = 0xFF3F51B5.toInt()
+                            style = android.graphics.Paint.Style.STROKE
+                            strokeWidth = 4f
+                        }
+                    canvas.drawRect(left, top, right, bottom, outline)
+                    drawHandles(canvas, left, top, right, bottom)
+                }
+            }
         }
     }
     canvas.setBitmap(null)
@@ -2188,6 +2745,109 @@ private fun fittedRect(
 }
 
 private const val ANNOTATION_HIT_PAD = 0.05f
+
+/** Long-edge decode bound for the on-screen preview of a placed image (#92). */
+private const val MARKUP_IMAGE_PREVIEW_MAX_PX = 1200
+
+/** Smallest allowed width/height of a placed image, as page fractions. */
+private const val MARKUP_IMAGE_MIN_FRACTION = 0.05f
+
+private fun imageHitTest(
+    fx: Float,
+    fy: Float,
+    image: PdfImageAnnotation,
+): Boolean {
+    val pad = 0.01f
+    return fx >= image.xFraction - pad &&
+        fx <= image.xFraction + image.widthFraction + pad &&
+        fy >= image.yFraction - pad &&
+        fy <= image.yFraction + image.heightFraction + pad
+}
+
+/** Where an image's corners land on screen after the page scale/pan transform. */
+private fun imageScreenRect(
+    image: PdfImageAnnotation,
+    fitted: Rect,
+    container: IntSize,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+): Rect {
+    val zoom = if (scale > 0f) scale else 1f
+    val screenWidth = container.width.toFloat()
+    val screenHeight = container.height.toFloat()
+
+    fun screenX(fraction: Float): Float {
+        val x = fitted.left + fraction * fitted.width
+        return (x - screenWidth / 2f) * zoom + screenWidth / 2f + offsetX
+    }
+
+    fun screenY(fraction: Float): Float {
+        val y = fitted.top + fraction * fitted.height
+        return (y - screenHeight / 2f) * zoom + screenHeight / 2f + offsetY
+    }
+
+    return Rect(
+        screenX(image.xFraction),
+        screenY(image.yFraction),
+        screenX(image.xFraction + image.widthFraction),
+        screenY(image.yFraction + image.heightFraction),
+    )
+}
+
+private data class ImageCorner(val left: Boolean, val top: Boolean)
+
+/** The image corner within [thresholdPx] of [position], or null for a body move. */
+private fun nearestImageCorner(
+    bounds: Rect,
+    position: Offset,
+    thresholdPx: Float,
+): ImageCorner? {
+    val corners =
+        listOf(
+            ImageCorner(left = true, top = true) to Offset(bounds.left, bounds.top),
+            ImageCorner(left = false, top = true) to Offset(bounds.right, bounds.top),
+            ImageCorner(left = true, top = false) to Offset(bounds.left, bounds.bottom),
+            ImageCorner(left = false, top = false) to Offset(bounds.right, bounds.bottom),
+        )
+    return corners
+        .map { (corner, point) -> corner to (point - position).getDistance() }
+        .filter { (_, distance) -> distance <= thresholdPx }
+        .minByOrNull { (_, distance) -> distance }
+        ?.first
+}
+
+/**
+ * Intrinsic, EXIF-corrected pixel dimensions of an image file (#92). The preview and PDF
+ * bake decode through [decodeImageBitmap], which applies the same orientation.
+ */
+private fun orientedImageDimensions(path: String): Pair<Int, Int>? {
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(path, options)
+    if (options.outWidth <= 0 || options.outHeight <= 0) return null
+    var width = options.outWidth
+    var height = options.outHeight
+    val orientation =
+        try {
+            ExifInterface(path).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+        } catch (_: Exception) {
+            ExifInterface.ORIENTATION_NORMAL
+        }
+    val swapped =
+        orientation == ExifInterface.ORIENTATION_ROTATE_90 ||
+            orientation == ExifInterface.ORIENTATION_ROTATE_270 ||
+            orientation == ExifInterface.ORIENTATION_TRANSPOSE ||
+            orientation == ExifInterface.ORIENTATION_TRANSVERSE
+    if (swapped) {
+        val tmp = width
+        width = height
+        height = tmp
+    }
+    return width to height
+}
 
 private fun annotationHitTest(
     fx: Float,
