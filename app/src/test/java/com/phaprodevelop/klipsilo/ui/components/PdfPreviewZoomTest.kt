@@ -266,4 +266,106 @@ class PdfPreviewZoomTest {
         // Zooming back out re-renders the base resolution.
         assertEquals(PREVIEW_BASE_RENDER_DIM, previewRenderDim(currentDim = PREVIEW_MAX_RENDER_DIM, scale = 1f))
     }
+
+    @Test
+    fun `fitted zoom keeps the pinched point under the fingers`() {
+        // 800x400 page in a 400x300 viewport fits as 400x200; at 2x it is 800x400.
+        val zoomed =
+            transformFittedZoom(
+                current = PreviewZoomState(),
+                zoomDelta = 2f,
+                panX = 0f,
+                panY = 0f,
+                focalX = 100f,
+                focalY = 20f,
+                viewportWidth = 400f,
+                viewportHeight = 300f,
+                pageWidth = 800f,
+                pageHeight = 400f,
+            )
+        assertEquals(2f, zoomed.scale)
+        // offset = focal * (1 - factor); both are inside the 200/50px clamp range.
+        assertEquals(-100f, zoomed.offsetX, 0.01f)
+        assertEquals(-20f, zoomed.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `fitted pinch in returns to the same focal point`() {
+        var state = PreviewZoomState()
+        val start =
+            transformFittedZoom(state, 2f, 0f, 0f, 80f, -40f, 400f, 300f, 800f, 400f)
+        state = transformFittedZoom(start, 0.5f, 0f, 0f, 80f, -40f, 400f, 300f, 800f, 400f)
+        assertEquals(1f, state.scale, 0.001f)
+        assertEquals(0f, state.offsetX, 0.01f)
+        assertEquals(0f, state.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `fitted zoom clamps the page edge flush with the viewport`() {
+        val zoomed =
+            transformFittedZoom(
+                current = PreviewZoomState(scale = 4f),
+                zoomDelta = 3f,
+                panX = 10_000f,
+                panY = -10_000f,
+                focalX = 0f,
+                focalY = 0f,
+                viewportWidth = 400f,
+                viewportHeight = 300f,
+                pageWidth = 800f,
+                pageHeight = 400f,
+                maxScale = 8f,
+            )
+        assertEquals(8f, zoomed.scale)
+        // 400x200 at 8x is 3200x1600: max pan is 1400 and 650.
+        assertEquals(1400f, zoomed.offsetX, 0.01f)
+        assertEquals(-650f, zoomed.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `fitted zoom ignores invalid deltas and caps at the viewer maximum`() {
+        val start = PreviewZoomState(scale = 2f)
+        for (delta in listOf(Float.NaN, 0f, -2f)) {
+            assertEquals(
+                start,
+                transformFittedZoom(start, delta, 0f, 0f, 0f, 0f, 400f, 300f, 800f, 400f),
+            )
+        }
+        assertEquals(
+            PDF_VIEW_MAX_SCALE,
+            transformFittedZoom(start, 100f, 0f, 0f, 0f, 0f, 400f, 300f, 800f, 400f, PDF_VIEW_MAX_SCALE).scale,
+        )
+    }
+
+    @Test
+    fun `non-finite state recovers to the centred fit instead of a blank page`() {
+        assertEquals(0f, clampOffset(Float.NaN, scaledSize = 600f, viewportSize = 400f))
+        assertEquals(PreviewZoomState(), clampFittedPan(Float.NaN, 0f, 1f, 400f, 400f, 400f, 800f))
+        assertEquals(PreviewZoomState(), clampFittedPan(0f, 0f, Float.NaN, 400f, 400f, 400f, 800f))
+        assertEquals(
+            PreviewZoomState(),
+            transformFittedZoom(PreviewZoomState(scale = Float.NaN), 2f, 0f, 0f, 0f, 0f, 400f, 300f, 800f, 400f),
+        )
+        // A single bad sample cannot leave a NaN offset behind; the next step recentres.
+        val recovered =
+            transformFittedZoom(
+                current = PreviewZoomState(scale = 2f, offsetX = Float.NaN, offsetY = 0f),
+                zoomDelta = 1f,
+                panX = 10f,
+                panY = 0f,
+                focalX = 0f,
+                focalY = 0f,
+                viewportWidth = 400f,
+                viewportHeight = 300f,
+                pageWidth = 800f,
+                pageHeight = 400f,
+            )
+        assertEquals(PreviewZoomState(), recovered)
+    }
+
+    @Test
+    fun `scale clamps infinity to the preview maximum`() {
+        assertEquals(PREVIEW_MAX_SCALE, clampScale(Float.POSITIVE_INFINITY))
+        assertEquals(PREVIEW_MIN_SCALE, clampScale(Float.NEGATIVE_INFINITY))
+    }
 }
