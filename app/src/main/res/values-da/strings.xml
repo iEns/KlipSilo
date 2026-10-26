@@ -285,6 +285,16 @@
     <string name="markup_color_white">Hvid</string>
     <string name="markup_color_red">Rød</string>
     <string name="markup_color_yellow">Gul</string>
+    <string name="markup_color_gray">Grå</string>
+    <string name="markup_color_orange">Orange</string>
+    <string name="markup_color_green">Grøn</string>
+    <string name="markup_color_teal">Turkis</string>
+    <string name="markup_color_blue">Blå</string>
+    <string name="markup_color_indigo">Indigo</string>
+    <string name="markup_color_purple">Lilla</string>
+    <string name="markup_color_pink">Lyserød</string>
+    <string name="markup_color_brown">Brun</string>
+    <string name="markup_color_cyan">Cyan</string>
     <string name="markup_font_size">Aa %1$d pkt</string>
     <string name="markup_size_decrease">Mindsk størrelse</string>
     <string name="markup_size_increase">Forøg størrelse</string>

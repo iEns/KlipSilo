@@ -108,6 +108,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Select / move / delete an annotation | Annotate → Select | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Undo / redo | Toolbar | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | [H3](docs/regression-checklist.md#H3) | no |
+| Solid colour palette from one colour button | Mark up → tap the colour circle above the toolbar; text and pen each keep their own colour, yellow included for highlight | 1.3.0 | [H3](docs/regression-checklist.md#H3) | no |
 | Multi-page markup | Previous/next page in the toolbar | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Save the annotated PDF as a new clip | Save | 1.1.0 | [H2](docs/regression-checklist.md#H2) | no |
 | Back with unsaved marks asks Save / Discard / Cancel | Annotate → Back (system or top bar) | 1.3.0 | [H4](docs/regression-checklist.md#H4) | no |

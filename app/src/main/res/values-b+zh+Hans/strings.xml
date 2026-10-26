@@ -281,6 +281,16 @@
     <string name="markup_color_white">白色</string>
     <string name="markup_color_red">红色</string>
     <string name="markup_color_yellow">黄色</string>
+    <string name="markup_color_gray">灰色</string>
+    <string name="markup_color_orange">橙色</string>
+    <string name="markup_color_green">绿色</string>
+    <string name="markup_color_teal">蓝绿色</string>
+    <string name="markup_color_blue">蓝色</string>
+    <string name="markup_color_indigo">靛蓝</string>
+    <string name="markup_color_purple">紫色</string>
+    <string name="markup_color_pink">粉色</string>
+    <string name="markup_color_brown">棕色</string>
+    <string name="markup_color_cyan">青色</string>
     <string name="markup_font_size">Aa %1$d pt</string>
     <string name="markup_size_decrease">减小尺寸</string>
     <string name="markup_size_increase">增大尺寸</string>
