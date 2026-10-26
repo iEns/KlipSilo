@@ -271,6 +271,15 @@
     <string name="markup_tool_draw">Tegn</string>
     <string name="markup_tool_select">Vælg</string>
     <string name="markup_tool_highlight">Marker</string>
+    <string name="markup_tool_image">Billede</string>
+    <string name="markup_image_source_title">Indsæt billede</string>
+    <string name="markup_image_from_clips">Klip</string>
+    <string name="markup_image_from_gallery">Galleri</string>
+    <string name="markup_image_from_camera">Kamera</string>
+    <string name="markup_image_from_files">Filer</string>
+    <string name="markup_image_no_clips">Ingen billedklip endnu</string>
+    <string name="markup_image_import_failed">Kunne ikke tilføje billedet</string>
+    <string name="markup_image_camera_denied">Kameraadgang er nødvendig</string>
     <string name="markup_undo">Fortryd</string>
     <string name="markup_redo">Gentag</string>
     <string name="markup_delete">Slet</string>

@@ -105,6 +105,8 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Straight line | Annotate → Line | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Freehand drawing | Annotate → Draw | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Highlighter | Annotate → Highlight | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
+| Insert an image (clips, gallery, camera, files) | Annotate → Image, then pick a source; the image is placed centred at about 40% page width | 1.3.0 | [H7](docs/regression-checklist.md#H7) | no |
+| Move or resize a placed image | Annotate → Select, drag the image to move, drag a corner to resize with the aspect ratio kept. No rotate or crop | 1.3.0 | [H7](docs/regression-checklist.md#H7) | no |
 | Select / move / delete an annotation | Annotate → Select | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Undo / redo | Toolbar | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Colours and text/pen size, remembered between sessions | Toolbar | 1.1.0 | [H3](docs/regression-checklist.md#H3) | no |

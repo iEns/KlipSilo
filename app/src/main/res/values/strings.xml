@@ -295,6 +295,15 @@
     <string name="markup_tool_line">Line</string>
     <string name="markup_tool_draw">Draw</string>
     <string name="markup_tool_highlight">Highlight</string>
+    <string name="markup_tool_image">Image</string>
+    <string name="markup_image_source_title">Insert image</string>
+    <string name="markup_image_from_clips">Clips</string>
+    <string name="markup_image_from_gallery">Gallery</string>
+    <string name="markup_image_from_camera">Camera</string>
+    <string name="markup_image_from_files">Files</string>
+    <string name="markup_image_no_clips">No image clips yet</string>
+    <string name="markup_image_import_failed">Couldn\'t add the image</string>
+    <string name="markup_image_camera_denied">Camera permission is needed</string>
     <string name="markup_undo">Undo</string>
     <string name="markup_redo">Redo</string>
     <string name="markup_delete">Delete</string>

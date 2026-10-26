@@ -5,4 +5,6 @@
     <files-path name="files" path="files/" />
     <!-- #127: temporary .txt/.md files for Share as file. -->
     <cache-path name="share" path="share/" />
+    <!-- #92: camera capture hand-off for images inserted in Mark up. -->
+    <cache-path name="markup" path="markup/" />
 </paths>

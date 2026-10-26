@@ -61,6 +61,7 @@ import com.phaprodevelop.klipsilo.data.settings.PdfFont
 import com.phaprodevelop.klipsilo.data.settings.PdfSettingsStore
 import com.phaprodevelop.klipsilo.data.settings.pdfFontAsset
 import com.phaprodevelop.klipsilo.data.widgetVisualFractions
+import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
@@ -76,6 +77,7 @@ import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
 import com.tom_roush.pdfbox.pdmodel.font.PDFont
 import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
+import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
@@ -189,6 +191,10 @@ class ClipboardRepository(
 
     private val filesDir: File
         get() = File(context.filesDir, "files").also { it.mkdirs() }
+
+    /** Copies of images inserted in Mark up (#92); kept out of the clip library. */
+    private val markupImagesDir: File
+        get() = File(context.filesDir, "markup_images").also { it.mkdirs() }
 
     fun getAllClips(): Flow<List<ClipboardEntry>> {
         return dao.getAll().map { rows ->
@@ -946,10 +952,32 @@ class ClipboardRepository(
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke> = emptyList(),
         originalEntry: ClipboardEntry,
+        images: List<PdfImageAnnotation> = emptyList(),
     ): Long {
-        val vector = savePdfWithAnnotationsVector(pdfPath, annotations, strokes, originalEntry)
+        val vector = savePdfWithAnnotationsVector(pdfPath, annotations, strokes, originalEntry, images)
         if (vector > 0L) return vector
-        return savePdfWithAnnotationsRaster(pdfPath, annotations, strokes, originalEntry)
+        return savePdfWithAnnotationsRaster(pdfPath, annotations, strokes, originalEntry, images)
+    }
+
+    /**
+     * Copies a picked image into app storage for the Mark up session (#92), so a later save
+     * still works after the source URI loses its permission. Returns the copied path or null.
+     */
+    fun importMarkupImage(uri: Uri): String? {
+        return (copyFileToStorage(uri, markupImagesDir, "markup_") as? CopyResult.Ok)?.path
+    }
+
+    /** Camera captures already live in app cache; copy them beside other Mark up images. */
+    fun importMarkupImageFile(sourcePath: String): String? {
+        return try {
+            val source = File(sourcePath)
+            if (!source.isFile) return null
+            val target = ensureUniqueFile(File(markupImagesDir, "markup_${source.name}")) ?: return null
+            source.copyTo(target, overwrite = false)
+            target.absolutePath
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
@@ -961,6 +989,7 @@ class ClipboardRepository(
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke> = emptyList(),
         originalEntry: ClipboardEntry,
+        images: List<PdfImageAnnotation> = emptyList(),
     ): Long {
         val source = File(pdfPath)
         if (!source.isFile) return 0L
@@ -988,21 +1017,33 @@ class ClipboardRepository(
                         null
                     }
                 val markedPages =
-                    (annotations.map { it.pageIndex } + strokes.map { it.pageIndex })
-                        .filter { it in 0 until pageCount }
+                    (
+                        annotations.map { it.pageIndex } +
+                            strokes.map { it.pageIndex } +
+                            images.map { it.pageIndex }
+                    ).filter { it in 0 until pageCount }
                         .distinct()
                 markedPages.forEach { pageIndex ->
                     val pageAnnotations =
                         annotations.filter { it.pageIndex == pageIndex && it.text.isNotBlank() }
                     val pageStrokes =
                         strokes.filter { it.pageIndex == pageIndex && it.points.isNotEmpty() }
-                    if (pageAnnotations.isEmpty() && pageStrokes.isEmpty()) return@forEach
+                    val pageImages =
+                        images.filter {
+                            it.pageIndex == pageIndex &&
+                                it.widthFraction > 0f &&
+                                it.heightFraction > 0f
+                        }
+                    if (pageAnnotations.isEmpty() && pageStrokes.isEmpty() && pageImages.isEmpty()) {
+                        return@forEach
+                    }
                     appendPdfMarks(
                         document,
                         document.getPage(pageIndex),
                         font,
                         pageAnnotations,
                         pageStrokes,
+                        pageImages,
                     )
                 }
                 FileOutputStream(pdfFile).use { document.save(it) }
@@ -1038,6 +1079,7 @@ class ClipboardRepository(
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke>,
         originalEntry: ClipboardEntry,
+        images: List<PdfImageAnnotation> = emptyList(),
     ): Long {
         return try {
             val pageCount = pdfPageCount(pdfPath)
@@ -1053,6 +1095,7 @@ class ClipboardRepository(
                     pageBitmap.height,
                     annotations.filter { it.pageIndex == i },
                     strokes.filter { it.pageIndex == i },
+                    images.filter { it.pageIndex == i },
                 )
                 canvas.setBitmap(null)
                 val pageInfo =
@@ -1091,11 +1134,13 @@ class ClipboardRepository(
         height: Int,
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke>,
+        images: List<PdfImageAnnotation> = emptyList(),
     ) {
         val items =
             buildList {
                 annotations.forEach { add(it.zOrder to (it as Any)) }
                 strokes.forEach { add(it.zOrder to (it as Any)) }
+                images.forEach { add(it.zOrder to (it as Any)) }
             }.sortedBy { it.first }
         for ((_, item) in items) {
             when (item) {
@@ -1136,6 +1181,29 @@ class ClipboardRepository(
                         canvas.drawPath(path, paint)
                     }
                 }
+                is PdfImageAnnotation -> {
+                    val bitmap =
+                        decodeImageBitmap(
+                            item.imagePath,
+                            MARKUP_IMAGE_BAKE_MAX_PX,
+                            MARKUP_IMAGE_BAKE_MAX_PX,
+                        ) ?: continue
+                    try {
+                        canvas.drawBitmap(
+                            bitmap,
+                            null,
+                            android.graphics.RectF(
+                                item.xFraction * width,
+                                item.yFraction * height,
+                                (item.xFraction + item.widthFraction) * width,
+                                (item.yFraction + item.heightFraction) * height,
+                            ),
+                            Paint(Paint.FILTER_BITMAP_FLAG),
+                        )
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
             }
         }
     }
@@ -1151,6 +1219,7 @@ class ClipboardRepository(
         font: PDType0Font?,
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke>,
+        images: List<PdfImageAnnotation> = emptyList(),
     ) {
         val box = page.cropBox
         val rotation = normalizedPageRotation(page.rotation)
@@ -1177,6 +1246,7 @@ class ClipboardRepository(
                 buildList {
                     annotations.forEach { add(it.zOrder to (it as Any)) }
                     strokes.forEach { add(it.zOrder to (it as Any)) }
+                    images.forEach { add(it.zOrder to (it as Any)) }
                 }.sortedBy { it.first }
             marks.forEach { (_, item) ->
                 when (item) {
@@ -1186,6 +1256,8 @@ class ClipboardRepository(
                         }
                     }
                     is PdfStroke -> drawPdfStroke(stream, item, visualWidth, visualHeight)
+                    is PdfImageAnnotation ->
+                        drawPdfImage(stream, document, item, visualWidth, visualHeight)
                 }
             }
             stream.restoreGraphicsState()
@@ -1256,6 +1328,47 @@ class ClipboardRepository(
         }
         stream.stroke()
         if (stroke.highlight) stream.restoreGraphicsState()
+    }
+
+    /**
+     * Embeds the placed bitmap as a PDF image XObject (#92). A failure for one image is skipped
+     * so the rest of the marks still save; the raster fallback gets its own chance.
+     */
+    private fun drawPdfImage(
+        stream: PDPageContentStream,
+        document: PDDocument,
+        image: PdfImageAnnotation,
+        visualWidth: Float,
+        visualHeight: Float,
+    ) {
+        val width = image.widthFraction * visualWidth
+        val height = image.heightFraction * visualHeight
+        if (width <= 0f || height <= 0f) return
+        val bitmap =
+            try {
+                decodeImageBitmap(
+                    image.imagePath,
+                    MARKUP_IMAGE_BAKE_MAX_PX,
+                    MARKUP_IMAGE_BAKE_MAX_PX,
+                )
+            } catch (_: Exception) {
+                null
+            } ?: return
+        try {
+            val pdfImage = LosslessFactory.createFromImage(document, bitmap)
+            stream.drawImage(
+                pdfImage,
+                image.xFraction * visualWidth,
+                (1f - image.yFraction - image.heightFraction) * visualHeight,
+                width,
+                height,
+            )
+        } catch (_: Exception) {
+            // Keep the other marks; the raster path will try the same image independently.
+        } catch (_: OutOfMemoryError) {
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun pdfSafeText(
@@ -4746,6 +4859,9 @@ private const val A4_HEIGHT_PT = 842
 private const val EMU_PER_PT = 12700.0
 private const val OCR_RENDER_DIM = 2400
 
+/** Long-edge bound for decoding a placed Mark up image when baking it into the PDF (#92). */
+private const val MARKUP_IMAGE_BAKE_MAX_PX = 1600
+
 private const val BACKUP_APP_NAME = "KlipSilo"
 private const val BACKUP_APP_NAME_LEGACY = "Snipdock"
 private const val BACKUP_MANIFEST_NAME = "klipsilo_manifest.json"
@@ -4859,6 +4975,22 @@ data class PdfStroke(
     val straight: Boolean = false,
     val zOrder: Long = 0L,
     val highlight: Boolean = false,
+)
+
+/**
+ * An image placed on a PDF page in Mark up (#92). Position and size are page fractions so
+ * the same annotation renders identically in the preview, the vector save and the raster
+ * fallback. [imagePath] points at a copy in app storage, not the (possibly revocable)
+ * gallery URI, so saving later still works.
+ */
+data class PdfImageAnnotation(
+    val pageIndex: Int,
+    val xFraction: Float,
+    val yFraction: Float,
+    val widthFraction: Float,
+    val heightFraction: Float,
+    val imagePath: String,
+    val zOrder: Long = 0L,
 )
 
 private const val MIN_EXTRACT_IMAGE_PX = 64
