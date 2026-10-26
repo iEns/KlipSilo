@@ -87,7 +87,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun VaerktøjerScreen(
+fun ToolsScreen(
     viewModel: ClipboardViewModel,
     onNavigateToScanner: () -> Unit = {},
     onNavigateToOcr: () -> Unit = {},

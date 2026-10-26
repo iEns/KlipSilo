@@ -65,15 +65,15 @@ import com.phaprodevelop.klipsilo.ui.screen.AnnotatePdfScreen
 import com.phaprodevelop.klipsilo.ui.screen.CameraScanScreen
 import com.phaprodevelop.klipsilo.ui.screen.DetailScreen
 import com.phaprodevelop.klipsilo.ui.screen.FormFillScreen
-import com.phaprodevelop.klipsilo.ui.screen.IndstillingerScreen
 import com.phaprodevelop.klipsilo.ui.screen.KlipScreen
 import com.phaprodevelop.klipsilo.ui.screen.LimitationsScreen
 import com.phaprodevelop.klipsilo.ui.screen.PdfPagesScreen
 import com.phaprodevelop.klipsilo.ui.screen.PrivacyPolicyScreen
 import com.phaprodevelop.klipsilo.ui.screen.ScanMode
+import com.phaprodevelop.klipsilo.ui.screen.SettingsScreen
 import com.phaprodevelop.klipsilo.ui.screen.TipsScreen
+import com.phaprodevelop.klipsilo.ui.screen.ToolsScreen
 import com.phaprodevelop.klipsilo.ui.screen.UseCasesScreen
-import com.phaprodevelop.klipsilo.ui.screen.VaerktøjerScreen
 import com.phaprodevelop.klipsilo.ui.screen.WhyScreen
 import com.phaprodevelop.klipsilo.viewmodel.ClipNoticeAction
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
@@ -200,12 +200,12 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
-                                    if (item == BottomNavItem.VÆRKTØJER) {
+                                    if (item == BottomNavItem.TOOLS) {
                                         if (
-                                            currentRoute != BottomNavItem.VÆRKTØJER.route &&
-                                            !navController.popBackStack(BottomNavItem.VÆRKTØJER.route, false)
+                                            currentRoute != BottomNavItem.TOOLS.route &&
+                                            !navController.popBackStack(BottomNavItem.TOOLS.route, false)
                                         ) {
-                                            navController.navigate(BottomNavItem.VÆRKTØJER.route) {
+                                            navController.navigate(BottomNavItem.TOOLS.route) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
                                                     saveState = true
                                                 }
@@ -286,8 +286,8 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     onEditPages = { id -> navController.navigate("pages/$id") },
                 )
             }
-            composable(BottomNavItem.VÆRKTØJER.route) {
-                VaerktøjerScreen(
+            composable(BottomNavItem.TOOLS.route) {
+                ToolsScreen(
                     viewModel = viewModel,
                     onNavigateToScanner = { navController.navigate("scanner/qr") },
                     onNavigateToOcr = { navController.navigate("scanner/ocr") },
@@ -303,8 +303,8 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     },
                 )
             }
-            composable(BottomNavItem.INDSTILLINGER.route) {
-                IndstillingerScreen(
+            composable(BottomNavItem.SETTINGS.route) {
+                SettingsScreen(
                     viewModel,
                     onNavigateToTips = { navController.navigate("tips") },
                     onNavigateToLimitations = { navController.navigate("limitations") },

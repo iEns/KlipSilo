@@ -74,7 +74,7 @@ private const val SETTINGS_LABEL_MIN_SCALE = 0.6f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IndstillingerScreen(
+fun SettingsScreen(
     viewModel: ClipboardViewModel,
     onNavigateToTips: () -> Unit = {},
     onNavigateToLimitations: () -> Unit = {},
