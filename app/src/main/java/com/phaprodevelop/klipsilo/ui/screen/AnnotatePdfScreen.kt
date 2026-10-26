@@ -304,7 +304,9 @@ fun AnnotatePdfScreen(
     var strokeWidth by remember {
         mutableFloatStateOf(nearestMarkupWidth(savedAnnotate.strokeWidthFraction))
     }
-    var strokeColor by remember { mutableIntStateOf(savedAnnotate.strokeColor) }
+    var lineColor by remember { mutableIntStateOf(savedAnnotate.lineColor) }
+    var drawColor by remember { mutableIntStateOf(savedAnnotate.drawColor) }
+    var highlightColor by remember { mutableIntStateOf(savedAnnotate.highlightColor) }
     var textSizeFraction by remember {
         mutableFloatStateOf(nearestMarkupTextSize(savedAnnotate.textSizeFraction))
     }
@@ -331,9 +333,36 @@ fun AnnotatePdfScreen(
                 textSizeFraction = textSizeFraction,
                 textColor = textColor,
                 strokeWidthFraction = strokeWidth,
-                strokeColor = strokeColor,
+                lineColor = lineColor,
+                drawColor = drawColor,
+                highlightColor = highlightColor,
             ),
         )
+    }
+
+    fun strokeToolFor(stroke: PdfStroke): MarkupTool =
+        when {
+            stroke.highlight -> MarkupTool.HIGHLIGHT
+            stroke.straight -> MarkupTool.LINE
+            else -> MarkupTool.DRAW
+        }
+
+    fun strokeColorFor(activeTool: MarkupTool): Int =
+        when (activeTool) {
+            MarkupTool.LINE -> lineColor
+            MarkupTool.HIGHLIGHT -> highlightColor
+            else -> drawColor
+        }
+
+    fun setStrokeColorFor(
+        activeTool: MarkupTool,
+        color: Int,
+    ) {
+        when (activeTool) {
+            MarkupTool.LINE -> lineColor = color
+            MarkupTool.HIGHLIGHT -> highlightColor = color
+            else -> drawColor = color
+        }
     }
     var movingIndex by remember { mutableIntStateOf(-1) }
     var selectedIndex by remember { mutableIntStateOf(-1) }
@@ -695,7 +724,12 @@ fun AnnotatePdfScreen(
     }
 
     fun applyStrokeColor(color: Int) {
-        strokeColor = color
+        val activeTool =
+            when {
+                tool == MarkupTool.LINE || tool == MarkupTool.DRAW || tool == MarkupTool.HIGHLIGHT -> tool
+                else -> strokes[pageIndex].orEmpty().getOrNull(selectedStroke)?.let(::strokeToolFor) ?: MarkupTool.DRAW
+            }
+        setStrokeColorFor(activeTool, color)
         persistAnnotateSettings()
         val current = draftStroke
         if (current != null) {
@@ -1687,7 +1721,7 @@ fun AnnotatePdfScreen(
                                                             pageIndex = pageIndex,
                                                             points = listOf(mapped),
                                                             widthFraction = strokeWidth,
-                                                            color = strokeColor,
+                                                            color = strokeColorFor(tool),
                                                             straight = straightMode,
                                                             zOrder = nextZ(),
                                                             highlight = tool == MarkupTool.HIGHLIGHT,
@@ -1957,6 +1991,12 @@ fun AnnotatePdfScreen(
                         )
                     } else if (showStrokeOptions) {
                         val selected = strokes[pageIndex].orEmpty().getOrNull(selectedStroke)
+                        val activeStrokeTool =
+                            when (tool) {
+                                MarkupTool.LINE, MarkupTool.DRAW, MarkupTool.HIGHLIGHT -> tool
+                                else -> selected?.let(::strokeToolFor) ?: MarkupTool.DRAW
+                            }
+                        val selectedColor = selected?.color?.takeIf { tool == MarkupTool.SELECT }
                         val width = selected?.widthFraction ?: strokeWidth
                         val stepIndex = markupWidthStepIndex(width)
                         val pointSize = if (pageHeightPt > 0f) (width * pageHeightPt).toInt() else 0
@@ -1968,7 +2008,7 @@ fun AnnotatePdfScreen(
                             canStepUp = stepIndex < markupWidthStepCount() - 1,
                             onStepDown = { applyStrokeWidth(markupWidthStep(stepIndex - 1)) },
                             onStepUp = { applyStrokeWidth(markupWidthStep(stepIndex + 1)) },
-                            color = selected?.color ?: strokeColor,
+                            color = selectedColor ?: strokeColorFor(activeStrokeTool),
                             onColor = { applyStrokeColor(it) },
                         )
                     }
@@ -1979,14 +2019,12 @@ fun AnnotatePdfScreen(
                             return@MarkupToolBar
                         }
                         commitDrafts()
-                        if (next == MarkupTool.HIGHLIGHT && tool != MarkupTool.HIGHLIGHT) {
-                            strokeColor = android.graphics.Color.YELLOW
-                        }
                         tool = next
                         if (next != MarkupTool.SELECT && next != MarkupTool.TEXT) {
                             selectedIndex = -1
                         }
                         if (next != MarkupTool.SELECT) {
+                            selectedStroke = -1
                             selectedImage = -1
                         }
                     }
