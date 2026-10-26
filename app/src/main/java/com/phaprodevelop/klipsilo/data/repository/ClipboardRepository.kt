@@ -969,13 +969,19 @@ class ClipboardRepository(
 
     /** Camera captures already live in app cache; copy them beside other Mark up images. */
     fun importMarkupImageFile(sourcePath: String): String? {
+        var target: File? = null
         return try {
             val source = File(sourcePath)
-            if (!source.isFile) return null
-            val target = ensureUniqueFile(File(markupImagesDir, "markup_${source.name}")) ?: return null
-            source.copyTo(target, overwrite = false)
-            target.absolutePath
+            if (!source.isFile || source.length() <= 0L) return null
+            // ensureUniqueFile reserves (and creates) the target, so the copy itself must
+            // overwrite that empty placeholder (#142). With overwrite = false the copy
+            // always threw FileAlreadyExistsException for camera and Clips sources.
+            val created = ensureUniqueFile(File(markupImagesDir, "markup_${source.name}")) ?: return null
+            target = created
+            source.copyTo(created, overwrite = true)
+            created.absolutePath
         } catch (_: Exception) {
+            target?.delete()
             null
         }
     }
