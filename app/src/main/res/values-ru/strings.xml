@@ -284,6 +284,16 @@
     <string name="markup_color_white">Белый</string>
     <string name="markup_color_red">Красный</string>
     <string name="markup_color_yellow">Жёлтый</string>
+    <string name="markup_color_gray">Серый</string>
+    <string name="markup_color_orange">Оранжевый</string>
+    <string name="markup_color_green">Зелёный</string>
+    <string name="markup_color_teal">Бирюзовый</string>
+    <string name="markup_color_blue">Синий</string>
+    <string name="markup_color_indigo">Индиго</string>
+    <string name="markup_color_purple">Фиолетовый</string>
+    <string name="markup_color_pink">Розовый</string>
+    <string name="markup_color_brown">Коричневый</string>
+    <string name="markup_color_cyan">Циан</string>
     <string name="markup_font_size">Aa %1$d пт</string>
     <string name="markup_size_decrease">Уменьшить размер</string>
     <string name="markup_size_increase">Увеличить размер</string>

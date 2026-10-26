@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -39,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Gesture
@@ -48,6 +51,7 @@ import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -82,6 +86,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -1550,7 +1555,6 @@ fun AnnotatePdfScreen(
                             onStepDown = { applyTextSize(markupTextSizeStep(stepIndex - 1)) },
                             onStepUp = { applyTextSize(markupTextSizeStep(stepIndex + 1)) },
                             color = draft?.color ?: textColor,
-                            includeYellow = false,
                             onColor = { applyTextColor(it) },
                         )
                     } else if (showStrokeOptions) {
@@ -1567,7 +1571,6 @@ fun AnnotatePdfScreen(
                             onStepDown = { applyStrokeWidth(markupWidthStep(stepIndex - 1)) },
                             onStepUp = { applyStrokeWidth(markupWidthStep(stepIndex + 1)) },
                             color = selected?.color ?: strokeColor,
-                            includeYellow = true,
                             onColor = { applyStrokeColor(it) },
                         )
                     }
@@ -1776,6 +1779,29 @@ private fun MarkupToolBar(
     }
 }
 
+/**
+ * Solid markup colours shared by text and stroke. Yellow stays available for
+ * highlight strokes; there is no separate "Automatic" mode or Office theme
+ * shade grid (#90).
+ */
+private val markupPalette: List<Pair<Int, Int>> =
+    listOf(
+        android.graphics.Color.BLACK to R.string.markup_color_black,
+        android.graphics.Color.WHITE to R.string.markup_color_white,
+        android.graphics.Color.GRAY to R.string.markup_color_gray,
+        android.graphics.Color.RED to R.string.markup_color_red,
+        android.graphics.Color.rgb(255, 127, 0) to R.string.markup_color_orange,
+        android.graphics.Color.YELLOW to R.string.markup_color_yellow,
+        android.graphics.Color.rgb(0, 150, 64) to R.string.markup_color_green,
+        android.graphics.Color.rgb(0, 128, 128) to R.string.markup_color_teal,
+        android.graphics.Color.BLUE to R.string.markup_color_blue,
+        android.graphics.Color.rgb(75, 0, 130) to R.string.markup_color_indigo,
+        android.graphics.Color.rgb(128, 0, 128) to R.string.markup_color_purple,
+        android.graphics.Color.rgb(255, 105, 180) to R.string.markup_color_pink,
+        android.graphics.Color.rgb(139, 69, 19) to R.string.markup_color_brown,
+        android.graphics.Color.rgb(0, 188, 212) to R.string.markup_color_cyan,
+    )
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MarkupChoices(
@@ -1787,18 +1813,17 @@ private fun MarkupChoices(
     onStepDown: () -> Unit,
     onStepUp: () -> Unit,
     color: Int,
-    includeYellow: Boolean,
     onColor: (Int) -> Unit,
 ) {
     val context = LocalContext.current
-    val colors =
-        buildList {
-            add(android.graphics.Color.BLACK to R.string.markup_color_black)
-            add(android.graphics.Color.WHITE to R.string.markup_color_white)
-            add(android.graphics.Color.RED to R.string.markup_color_red)
-            if (includeYellow) add(android.graphics.Color.YELLOW to R.string.markup_color_yellow)
-        }
-    // FlowRow so the stepper and the colour swatches wrap to a second line
+    var paletteOpen by remember { mutableStateOf(false) }
+    // The current colour name doubles as the button's accessibility label;
+    // a colour loaded from an older build may not be in the palette (#90).
+    val currentColorName =
+        markupPalette.firstOrNull { (argb, _) -> argb == color }
+            ?.let { (_, labelRes) -> context.getString(labelRes) }
+            ?: context.getString(R.string.color)
+    // FlowRow so the stepper and the colour button wrap to a second line
     // instead of squeezing on narrow screens with large font scale (#50).
     // Each line is centered, so the wrapped row still looks balanced (#65).
     FlowRow(
@@ -1815,51 +1840,104 @@ private fun MarkupChoices(
             onStepDown = onStepDown,
             onStepUp = onStepUp,
         )
-        // One selectable group on one line: TalkBack steps through the
-        // swatches as a set and announces each colour with its selected
-        // state (#65). The 4 × 48dp targets plus spacing fit every width
-        // the FlowRow can give a line, so the group never wraps inside.
-        Row(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            colors.forEach { (argb, labelRes) ->
-                val selected = color == argb
-                val description = context.getString(labelRes)
-                // The visible circle stays 28dp, centered inside a 48dp
-                // touch target (#65). The colour name lives in the
-                // semantics — no visible text label under the swatch —
-                // and the selectable's selected state makes TalkBack say
-                // e.g. "Rot, ausgewählt".
+        // One 48dp button filled with the selected colour opens the palette.
+        // The palette is a DropdownMenu popover so it stays anchored to the
+        // markup bar instead of covering the page with a bottom sheet (#90).
+        Box {
+            Box(
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button) { paletteOpen = true }
+                        .semantics {
+                            contentDescription = currentColorName.withoutSoftHyphens()
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
                 Box(
                     modifier =
                         Modifier
-                            .size(48.dp)
-                            .selectable(
-                                selected = selected,
-                                role = Role.RadioButton,
-                                onClick = { onColor(argb) },
-                            ).semantics { contentDescription = description.withoutSoftHyphens() },
-                    contentAlignment = Alignment.Center,
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(color))
+                            .border(
+                                width = 2.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape,
+                            ),
+                )
+            }
+            DropdownMenu(expanded = paletteOpen, onDismissRequest = { paletteOpen = false }) {
+                Text(
+                    text = currentColorName,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+                // 14 solid colours in rows of five: reds, oranges, yellows,
+                // greens, blues, purple, plus black/white/grey. The selected
+                // swatch gets a primary ring and a contrast check (#90).
+                FlowRow(
+                    modifier =
+                        Modifier
+                            .width(280.dp)
+                            .selectableGroup()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    maxItemsInEachRow = 5,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(argb))
-                                .border(
-                                    width = if (selected) 2.dp else 1.dp,
-                                    color =
-                                        if (selected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.outline
+                    markupPalette.forEach { (argb, labelRes) ->
+                        val selected = color == argb
+                        val description = context.getString(labelRes)
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(48.dp)
+                                    .selectable(
+                                        selected = selected,
+                                        role = Role.RadioButton,
+                                        onClick = {
+                                            paletteOpen = false
+                                            onColor(argb)
                                         },
-                                    shape = CircleShape,
-                                ),
-                    )
+                                    ).semantics { contentDescription = description.withoutSoftHyphens() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(argb))
+                                        .border(
+                                            width = if (selected) 2.dp else 1.dp,
+                                            color =
+                                                if (selected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.outline
+                                                },
+                                            shape = CircleShape,
+                                        ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (selected) {
+                                    Icon(
+                                        Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint =
+                                            if (Color(argb).luminance() > 0.5f) {
+                                                Color.Black
+                                            } else {
+                                                Color.White
+                                            },
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2461,7 +2539,6 @@ internal fun MarkupChoicesPreview() {
             onStepDown = {},
             onStepUp = {},
             color = android.graphics.Color.BLACK,
-            includeYellow = true,
             onColor = {},
         )
     }
