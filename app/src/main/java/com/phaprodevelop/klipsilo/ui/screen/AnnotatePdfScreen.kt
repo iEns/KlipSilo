@@ -45,8 +45,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -112,7 +110,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -339,7 +336,6 @@ fun AnnotatePdfScreen(
         )
     }
     var movingIndex by remember { mutableIntStateOf(-1) }
-    var movingDraft by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableIntStateOf(-1) }
     var selectedStroke by remember { mutableIntStateOf(-1) }
     var selectedImage by remember { mutableIntStateOf(-1) }
@@ -877,7 +873,6 @@ fun AnnotatePdfScreen(
             draft = null
             draftStroke = null
             movingIndex = -1
-            movingDraft = false
             selectedIndex = -1
             selectedStroke = -1
             selectedImage = -1
@@ -901,12 +896,7 @@ fun AnnotatePdfScreen(
             }
         }
     }
-    val draftText = draft?.text.orEmpty()
-    val draftSize = draft?.sizeFraction ?: 0f
-    val draftX = draft?.xFraction ?: 0f
-    val draftY = draft?.yFraction ?: 0f
-    val draftColor = draft?.color ?: android.graphics.Color.BLACK
-    val draftZ = draft?.zOrder ?: 0L
+    val draftOpen = draft != null
     val draftEditingIndex = draft?.editingIndex
     LaunchedEffect(
         baseBitmap,
@@ -914,16 +904,14 @@ fun AnnotatePdfScreen(
         currentStrokes,
         currentImages,
         imageBitmapSnapshot,
-        draftText,
-        draftSize,
-        draftX,
-        draftY,
-        draftColor,
+        // The draft is not drawn into the page while its field is open (#138), so typing
+        // only needs the field itself to recompose. The page is redrawn when the draft
+        // opens/closes or when it hides/reveals the annotation being edited.
+        draftOpen,
         draftEditingIndex,
         draftStroke,
         pageIndex,
         movingIndex,
-        movingDraft,
         selectedIndex,
         selectedStroke,
         selectedImage,
@@ -935,14 +923,13 @@ fun AnnotatePdfScreen(
             if (draftEditingIndex != null && draftEditingIndex < shown.size) {
                 shown.removeAt(draftEditingIndex)
             }
-            if (draftText.isNotBlank()) {
-                shown.add(PdfAnnotation(pageIndex, draftX, draftY, draftText, draftSize, draftColor, draftZ))
-            }
+            // No draft is added to the page: the text field is the preview while editing
+            // (#138). Drawing the draft here produced a clipped one-line copy under a
+            // field that word-wraps, which looked broken.
             val highlight =
                 when {
                     movingIndex >= 0 -> movingIndex
-                    movingDraft && draftText.isNotBlank() -> shown.lastIndex
-                    draft != null && draftText.isNotBlank() -> shown.lastIndex
+                    draftOpen -> null
                     selectedIndex >= 0 -> selectedIndex
                     else -> null
                 }
@@ -980,7 +967,7 @@ fun AnnotatePdfScreen(
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
     val keyboardDraftY = draft?.yFraction
-    LaunchedEffect(draftEpoch, imeBottom, pageSize, baseBitmap) {
+    LaunchedEffect(draftEpoch, imeBottom, pageSize, baseBitmap, draftFieldSize) {
         val yFraction = keyboardDraftY ?: return@LaunchedEffect
         val bmp = baseBitmap ?: return@LaunchedEffect
         if (imeBottom <= 0 || pageSize.height == 0) return@LaunchedEffect
@@ -988,8 +975,13 @@ fun AnnotatePdfScreen(
         val yOnPage = rect.top + yFraction * rect.height
         val reserve = with(density) { 168.dp.toPx() }
         val visibleBottom = pageSize.height - imeBottom - reserve
-        if (yOnPage + offsetY > visibleBottom) {
-            offsetY = visibleBottom - yOnPage
+        // Keep the whole multi-line field above the keyboard (#138), not just its first line.
+        val s = if (scale > 0f) scale else 1f
+        val sh = pageSize.height.toFloat()
+        val fieldTopOnScreen = (yOnPage - sh / 2f) * s + sh / 2f
+        val fieldBottomOnScreen = fieldTopOnScreen + draftFieldSize.height * s
+        if (fieldBottomOnScreen + offsetY > visibleBottom) {
+            offsetY = visibleBottom - fieldBottomOnScreen
         }
     }
     LaunchedEffect(draftEpoch) {
@@ -1467,7 +1459,6 @@ fun AnnotatePdfScreen(
                                                     moved = true
                                                     if (targetOnText) {
                                                         movingIndex = targetIndex
-                                                        movingDraft = targetIsDraft
                                                         if (!targetIsDraft) {
                                                             recordMarkup()
                                                             val list = annotations[pageIndex].orEmpty().toMutableList()
@@ -1660,7 +1651,6 @@ fun AnnotatePdfScreen(
                                             }
                                         }
                                         movingIndex = -1
-                                        movingDraft = false
                                     }
                                 } else if (drawMode) {
                                     awaitEachGesture {
@@ -1802,6 +1792,10 @@ fun AnnotatePdfScreen(
                             val rect = fittedRect(pageSize, bmp.width, bmp.height)
                             val x = rect.left + editing.xFraction * rect.width
                             val y = rect.top + editing.yFraction * rect.height
+                            // Committed annotations wrap at 95% of the page bitmap width
+                            // (wrapAnnotationText), so the edit field uses that same width
+                            // instead of an early 220dp cap (#138).
+                            val fieldWidth = with(density) { (rect.width * 0.95f).toDp() }
                             BasicTextField(
                                 value = draftField,
                                 onValueChange = { value ->
@@ -1815,7 +1809,7 @@ fun AnnotatePdfScreen(
                                 modifier =
                                     Modifier
                                         .offset { IntOffset(x.toInt(), y.toInt()) }
-                                        .widthIn(min = 48.dp, max = 220.dp)
+                                        .width(fieldWidth.coerceAtLeast(48.dp))
                                         .focusRequester(focusRequester)
                                         .background(
                                             if (editing.color == android.graphics.Color.WHITE) {
@@ -1831,8 +1825,9 @@ fun AnnotatePdfScreen(
                                         color = Color(editing.color),
                                         fontSize = with(density) { (editing.sizeFraction * rect.height).toSp() },
                                     ),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = { commitDrafts() }),
+                                // Multi-line text (#138, also #91): Enter inserts a newline;
+                                // commit with Save or by tapping outside the field.
+                                singleLine = false,
                             )
                         }
                     }
@@ -2914,7 +2909,9 @@ private fun editFieldScreenRect(
             offsetX,
             offsetY,
         )
-    return Rect(topLeft.x, topLeft.y, topLeft.x + width, topLeft.y + height)
+    // The measured field size is in page-layer pixels; the graphics layer scales it on screen.
+    val s = if (scale > 0f) scale else 1f
+    return Rect(topLeft.x, topLeft.y, topLeft.x + width * s, topLeft.y + height * s)
 }
 
 /**
