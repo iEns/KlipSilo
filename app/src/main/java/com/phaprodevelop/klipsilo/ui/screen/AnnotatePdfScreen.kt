@@ -1533,67 +1533,26 @@ fun AnnotatePdfScreen(
                                                                 val totalDy =
                                                                     (pos.y - downPos.y) /
                                                                         (scale * rect.height)
-                                                                // Use the dominant drag direction, then
-                                                                // scale width and height by the same factor
-                                                                // so corners never distort the image.
-                                                                val scaleDelta =
-                                                                    if (
-                                                                        start.widthFraction > 0f &&
-                                                                        start.heightFraction > 0f &&
-                                                                        abs(totalDx) / start.widthFraction >=
-                                                                        abs(totalDy) / start.heightFraction
-                                                                    ) {
-                                                                        totalDx / start.widthFraction
-                                                                    } else {
-                                                                        totalDy / start.heightFraction
-                                                                    }
-                                                                val availableW =
-                                                                    if (corner.left) {
-                                                                        start.xFraction + start.widthFraction
-                                                                    } else {
-                                                                        1f - start.xFraction
-                                                                    }
-                                                                val availableH =
-                                                                    if (corner.top) {
-                                                                        start.yFraction + start.heightFraction
-                                                                    } else {
-                                                                        1f - start.yFraction
-                                                                    }
-                                                                val minScale =
-                                                                    maxOf(
-                                                                        MARKUP_IMAGE_MIN_FRACTION /
-                                                                            start.widthFraction,
-                                                                        MARKUP_IMAGE_MIN_FRACTION /
-                                                                            start.heightFraction,
+                                                                val resized =
+                                                                    resizeImageFromCorner(
+                                                                        startX = start.xFraction,
+                                                                        startY = start.yFraction,
+                                                                        startWidth = start.widthFraction,
+                                                                        startHeight = start.heightFraction,
+                                                                        left = corner.left,
+                                                                        top = corner.top,
+                                                                        dragDx = totalDx,
+                                                                        dragDy = totalDy,
                                                                     )
-                                                                val maxScale =
-                                                                    minOf(
-                                                                        availableW / start.widthFraction,
-                                                                        availableH / start.heightFraction,
-                                                                    ).coerceAtLeast(minScale)
-                                                                val factor =
-                                                                    (1f + scaleDelta).coerceIn(minScale, maxScale)
-                                                                val newW = start.widthFraction * factor
-                                                                val newH = start.heightFraction * factor
-                                                                list[targetImage] =
-                                                                    current.copy(
-                                                                        xFraction =
-                                                                            if (corner.left) {
-                                                                                start.xFraction +
-                                                                                    start.widthFraction - newW
-                                                                            } else {
-                                                                                start.xFraction
-                                                                            },
-                                                                        yFraction =
-                                                                            if (corner.top) {
-                                                                                start.yFraction +
-                                                                                    start.heightFraction - newH
-                                                                            } else {
-                                                                                start.yFraction
-                                                                            },
-                                                                        widthFraction = newW,
-                                                                        heightFraction = newH,
-                                                                    )
+                                                                if (resized != null) {
+                                                                    list[targetImage] =
+                                                                        current.copy(
+                                                                            xFraction = resized.xFraction,
+                                                                            yFraction = resized.yFraction,
+                                                                            widthFraction = resized.widthFraction,
+                                                                            heightFraction = resized.heightFraction,
+                                                                        )
+                                                                }
                                                             } else {
                                                                 val dfx = delta.x / (scale * rect.width)
                                                                 val dfy = delta.y / (scale * rect.height)
@@ -2791,6 +2750,65 @@ private fun imageScreenRect(
 }
 
 private data class ImageCorner(val left: Boolean, val top: Boolean)
+
+/** Page-fraction rectangle produced by [resizeImageFromCorner]. */
+internal data class ImageCornerResize(
+    val xFraction: Float,
+    val yFraction: Float,
+    val widthFraction: Float,
+    val heightFraction: Float,
+)
+
+/**
+ * Aspect-locked resize of an image dragged by one corner (#141). [dragDx]/[dragDy] are
+ * the total drag since the gesture started, in page fractions. A drag away from the
+ * opposite corner grows the image for every corner; a drag towards it shrinks. The
+ * opposite corner stays anchored, and the size is clamped to [minFraction] and the
+ * page edges. Returns null for a degenerate start rectangle.
+ */
+internal fun resizeImageFromCorner(
+    startX: Float,
+    startY: Float,
+    startWidth: Float,
+    startHeight: Float,
+    left: Boolean,
+    top: Boolean,
+    dragDx: Float,
+    dragDy: Float,
+    minFraction: Float = MARKUP_IMAGE_MIN_FRACTION,
+): ImageCornerResize? {
+    if (startWidth <= 0f || startHeight <= 0f) return null
+    // Dragging left/up is outward for a left/top corner but inward for a right/bottom
+    // one, so sign the drag by corner before deriving a single scale factor.
+    val signedDx = if (left) -dragDx else dragDx
+    val signedDy = if (top) -dragDy else dragDy
+    // Use the dominant drag direction, then scale width and height by the same factor
+    // so corners never distort the image.
+    val scaleDelta =
+        if (
+            abs(signedDx) / startWidth >=
+            abs(signedDy) / startHeight
+        ) {
+            signedDx / startWidth
+        } else {
+            signedDy / startHeight
+        }
+    val availableW = if (left) startX + startWidth else 1f - startX
+    val availableH = if (top) startY + startHeight else 1f - startY
+    val minScale = maxOf(minFraction / startWidth, minFraction / startHeight)
+    val maxScale =
+        minOf(availableW / startWidth, availableH / startHeight)
+            .coerceAtLeast(minScale)
+    val factor = (1f + scaleDelta).coerceIn(minScale, maxScale)
+    val newW = startWidth * factor
+    val newH = startHeight * factor
+    return ImageCornerResize(
+        xFraction = if (left) startX + startWidth - newW else startX,
+        yFraction = if (top) startY + startHeight - newH else startY,
+        widthFraction = newW,
+        heightFraction = newH,
+    )
+}
 
 /** The image corner within [thresholdPx] of [position], or null for a body move. */
 private fun nearestImageCorner(
