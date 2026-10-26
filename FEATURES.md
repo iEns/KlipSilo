@@ -102,6 +102,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Feature | How to reach it | Released in | Test | Automated |
 |---|---|---|---|---|
 | Text box on a page | PDF clip → action sheet → **Convert & Edit** → Annotate PDF → Text | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
+| Text box wraps like the saved page while typing, the draft is hidden from the page preview during editing, and Enter adds a new line (#138) | Annotate → Text; type a long paragraph or press Enter | 1.3.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Straight line | Annotate → Line | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Freehand drawing | Annotate → Draw | 1.1.0 | [H1](docs/regression-checklist.md#H1) | no |
 | Highlighter | Annotate → Highlight | 1.2.0 | [H1](docs/regression-checklist.md#H1) | no |
