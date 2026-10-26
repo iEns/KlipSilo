@@ -89,14 +89,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -1101,11 +1105,28 @@ fun AnnotatePdfScreen(
                     }
                 },
             )
+            // Page-vs-canvas chrome (#146): a soft tonal wash behind the page keeps a
+            // white sheet from blending into a white canvas when zoomed out.
+            val scheme = MaterialTheme.colorScheme
+            val canvasBrush =
+                Brush.verticalGradient(
+                    listOf(
+                        lerp(scheme.surface, scheme.surfaceVariant, 0.7f),
+                        lerp(scheme.surface, scheme.surfaceVariant, 0.3f),
+                        lerp(scheme.surface, scheme.surfaceVariant, 0.7f),
+                    ),
+                )
+            val darkCanvas = scheme.surface.luminance() < 0.5f
+            val pageShadowColor =
+                scheme.onSurface.copy(alpha = if (darkCanvas) 0.18f else 0.3f)
+            val pageFrameColor =
+                scheme.outline.copy(alpha = if (darkCanvas) 0.55f else 0.45f)
             Box(
                 modifier =
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .background(canvasBrush)
                         .clipToBounds()
                         .onSizeChanged { pageSize = it },
             ) {
@@ -1770,6 +1791,36 @@ fun AnnotatePdfScreen(
                                     translationY = offsetY,
                                 ),
                     ) {
+                        val pageBitmap = displayed.bitmap ?: baseBitmap
+                        val pageRect =
+                            if (pageBitmap != null && pageSize.width > 0 && pageSize.height > 0) {
+                                fittedRect(pageSize, pageBitmap.width, pageBitmap.height)
+                            } else {
+                                null
+                            }
+                        val pageChromeModifier =
+                            pageRect?.let { rect ->
+                                Modifier
+                                    .offset {
+                                        IntOffset(rect.left.roundToInt(), rect.top.roundToInt())
+                                    }.size(
+                                        width = with(density) { rect.width.toDp() },
+                                        height = with(density) { rect.height.toDp() },
+                                    )
+                            }
+                        // Shadow sits under the page bitmap; the frame is drawn over it.
+                        pageChromeModifier?.let { chrome ->
+                            Box(
+                                modifier =
+                                    chrome.shadow(
+                                        elevation = 6.dp,
+                                        shape = RectangleShape,
+                                        clip = false,
+                                        ambientColor = pageShadowColor,
+                                        spotColor = pageShadowColor,
+                                    ),
+                            )
+                        }
                         displayed.bitmap?.let { bmp ->
                             Image(
                                 bitmap = bmp.asImageBitmap(),
@@ -1777,6 +1828,16 @@ fun AnnotatePdfScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit,
                                 filterQuality = FilterQuality.High,
+                            )
+                        }
+                        pageChromeModifier?.let { chrome ->
+                            Box(
+                                modifier =
+                                    chrome.border(
+                                        width = 1.dp,
+                                        color = pageFrameColor,
+                                        shape = RectangleShape,
+                                    ),
                             )
                         }
                         val editing = draft
