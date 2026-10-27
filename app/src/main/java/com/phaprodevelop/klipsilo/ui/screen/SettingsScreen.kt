@@ -20,14 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,7 +42,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -76,10 +72,6 @@ private const val SETTINGS_LABEL_MIN_SCALE = 0.6f
 @Composable
 fun SettingsScreen(
     viewModel: ClipboardViewModel,
-    onNavigateToTips: () -> Unit = {},
-    onNavigateToLimitations: () -> Unit = {},
-    onNavigateToWhy: () -> Unit = {},
-    onNavigateToUseCases: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToPrivacy: () -> Unit = {},
 ) {
@@ -197,7 +189,7 @@ fun SettingsScreen(
 
             // #119: PDF & export is a settings row, so it sits directly under
             // the display-mode controls instead of at the very bottom below
-            // the Guide and About links.
+            // the About links.
             Spacer(Modifier.size(24.dp))
             PdfExportSection(
                 pdfSettings = pdfSettings,
@@ -206,23 +198,6 @@ fun SettingsScreen(
                     PdfSettingsStore.save(context, updated)
                 },
             )
-
-            Spacer(Modifier.size(24.dp))
-            ButtonLabel(
-                text = context.getString(R.string.tool_group_guide),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 2,
-                floorFraction = SETTINGS_LABEL_MIN_SCALE,
-            )
-            Spacer(Modifier.size(8.dp))
-            GuideRow(Icons.Filled.Lightbulb, context.getString(R.string.tips), onNavigateToTips)
-            Spacer(Modifier.size(8.dp))
-            GuideRow(Icons.Filled.Info, context.getString(R.string.tool_limitations), onNavigateToLimitations)
-            Spacer(Modifier.size(8.dp))
-            GuideRow(Icons.AutoMirrored.Filled.Help, context.getString(R.string.tool_why), onNavigateToWhy)
-            Spacer(Modifier.size(8.dp))
-            GuideRow(Icons.Filled.Star, context.getString(R.string.tool_use_cases), onNavigateToUseCases)
 
             Spacer(Modifier.size(24.dp))
             ButtonLabel(
@@ -608,31 +583,6 @@ private fun LanguagePickerSheet(
                 selected = selectedTag == language.tag,
                 onClick = { onSelect(language.tag) },
             )
-        }
-    }
-}
-
-@Composable
-private fun GuideRow(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Row(
-            Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(12.dp))
-            ButtonLabel(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-                maxLines = 3,
-                floorFraction = SETTINGS_LABEL_MIN_SCALE,
-            )
-            Text("›", color = MaterialTheme.colorScheme.primary)
         }
     }
 }
