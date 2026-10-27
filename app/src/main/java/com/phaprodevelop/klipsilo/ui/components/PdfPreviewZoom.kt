@@ -65,7 +65,9 @@ fun clampOffset(
  * [pageWidth] x [pageHeight] are the page's unscaled (bitmap) dimensions. The page is first
  * fitted into the viewport (letterboxed on the shorter axis), then scaled by [scale]. Offsets
  * are relative to the viewport center, like [PreviewZoomState]. When the scaled page is smaller
- * than the viewport on an axis, it stays centered on that axis. Pure; unit tested.
+ * than the viewport on an axis, it stays centered on that axis. With [fitWidth] the page is
+ * fitted to the viewport width instead (taller than the viewport may be panned, #161).
+ * Pure; unit tested.
  */
 fun clampFittedPan(
     offsetX: Float,
@@ -75,6 +77,7 @@ fun clampFittedPan(
     viewportHeight: Float,
     pageWidth: Float,
     pageHeight: Float,
+    fitWidth: Boolean = false,
 ): PreviewZoomState {
     // A non-finite scale/offset can only come from a wild gesture sample. Reset to the
     // centred fit state instead of propagating NaN into graphicsLayer (which draws nothing).
@@ -93,12 +96,111 @@ fun clampFittedPan(
     ) {
         return PreviewZoomState(scale = scale, offsetX = offsetX, offsetY = offsetY)
     }
-    val fit = minOf(viewportWidth / pageWidth, viewportHeight / pageHeight)
+    val fit =
+        if (fitWidth) {
+            viewportWidth / pageWidth
+        } else {
+            minOf(viewportWidth / pageWidth, viewportHeight / pageHeight)
+        }
     return PreviewZoomState(
         scale = scale,
         offsetX = clampOffset(offsetX, pageWidth * fit * scale, viewportWidth),
         offsetY = clampOffset(offsetY, pageHeight * fit * scale, viewportHeight),
     )
+}
+
+/**
+ * Placed page rectangle in viewport pixels: [left]/[top] relative to the viewport top-left.
+ */
+data class PreviewPageRect(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+)
+
+/**
+ * Where a page is drawn inside the viewport: ContentScale.Fit (letterboxed on the shorter
+ * axis), or ContentScale.FillWidth with [fitWidth] so the width always fills the viewport and
+ * the page may extend above and below it (#161). Degenerate input returns the whole viewport.
+ * Pure; unit tested.
+ */
+fun previewPageRect(
+    containerWidth: Float,
+    containerHeight: Float,
+    pageWidth: Float,
+    pageHeight: Float,
+    fitWidth: Boolean = false,
+): PreviewPageRect {
+    if (
+        containerWidth <= 0f ||
+        containerHeight <= 0f ||
+        pageWidth <= 0f ||
+        pageHeight <= 0f ||
+        !containerWidth.isFinite() ||
+        !containerHeight.isFinite() ||
+        !pageWidth.isFinite() ||
+        !pageHeight.isFinite()
+    ) {
+        return PreviewPageRect(0f, 0f, containerWidth, containerHeight)
+    }
+    val fit =
+        if (fitWidth) {
+            containerWidth / pageWidth
+        } else {
+            minOf(containerWidth / pageWidth, containerHeight / pageHeight)
+        }
+    val width = pageWidth * fit
+    val height = pageHeight * fit
+    return PreviewPageRect(
+        left = (containerWidth - width) / 2f,
+        top = (containerHeight - height) / 2f,
+        width = width,
+        height = height,
+    )
+}
+
+/**
+ * Pan offset (px, viewport-centre relative like [PreviewZoomState]) that keeps the page-layer
+ * span [targetTop]..[targetBottom] inside the viewport margins, moving as little as possible
+ * from [currentOffsetY] and then clamped so the page stays over the viewport (#161).
+ * [scaledPageHeight] is the drawn page height after [scale]. Non-finite input means "keep the
+ * current offset". Pure; unit tested.
+ */
+fun revealOffsetY(
+    currentOffsetY: Float,
+    targetTop: Float,
+    targetBottom: Float,
+    scale: Float,
+    viewportHeight: Float,
+    scaledPageHeight: Float,
+    topMargin: Float,
+    bottomMargin: Float,
+): Float {
+    if (
+        !currentOffsetY.isFinite() ||
+        !targetTop.isFinite() ||
+        !targetBottom.isFinite() ||
+        !scale.isFinite() ||
+        scale <= 0f ||
+        !viewportHeight.isFinite() ||
+        viewportHeight <= 0f
+    ) {
+        return currentOffsetY
+    }
+    val center = viewportHeight / 2f
+    val topBase = (targetTop - center) * scale + center
+    val bottomBase = (targetBottom - center) * scale + center
+    val topBound = topMargin - topBase
+    val bottomBound = viewportHeight - bottomMargin - bottomBase
+    val wanted =
+        if (topBound > bottomBound) {
+            // The field is taller than the visible slot: keep its first line readable.
+            topBound
+        } else {
+            currentOffsetY.coerceIn(topBound, bottomBound)
+        }
+    return clampOffset(wanted, scaledPageHeight, viewportHeight)
 }
 
 /**
@@ -169,6 +271,7 @@ fun transformFittedZoom(
     pageWidth: Float,
     pageHeight: Float,
     maxScale: Float = PREVIEW_MAX_SCALE,
+    fitWidth: Boolean = false,
 ): PreviewZoomState {
     if (!current.scale.isFinite() || current.scale <= 0f) return PreviewZoomState()
     val safeDelta =
@@ -183,6 +286,7 @@ fun transformFittedZoom(
         viewportHeight = viewportHeight,
         pageWidth = pageWidth,
         pageHeight = pageHeight,
+        fitWidth = fitWidth,
     )
 }
 
