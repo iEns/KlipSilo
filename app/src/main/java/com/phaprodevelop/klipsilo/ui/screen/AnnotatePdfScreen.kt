@@ -1012,8 +1012,10 @@ fun AnnotatePdfScreen(
         if (imeBottom <= 0 || pageSize.height == 0) return@LaunchedEffect
         val rect = fittedRect(pageSize, bmp.width, bmp.height)
         val yOnPage = rect.top + yFraction * rect.height
-        val reserve = with(density) { 168.dp.toPx() }
-        val visibleBottom = pageSize.height - imeBottom - reserve
+        // The toolbar sits below the canvas (#152), so the canvas already ends above the
+        // keyboard; only a small margin is needed below the field.
+        val bottomMargin = with(density) { 16.dp.toPx() }
+        val visibleBottom = pageSize.height - bottomMargin
         // Keep the whole multi-line field above the keyboard (#138), not just its first line.
         val s = if (scale > 0f) scale else 1f
         val sh = pageSize.height.toFloat()
@@ -2074,75 +2076,74 @@ fun AnnotatePdfScreen(
                         }
                     }
                 }
-                Column(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .imePadding()
-                        .navigationBarsPadding()
-                        .background(MaterialTheme.colorScheme.surface),
-                ) {
-                    val showTextOptions =
-                        tool == MarkupTool.TEXT ||
-                            draft != null ||
-                            (tool == MarkupTool.SELECT && selectedIndex >= 0)
-                    val showStrokeOptions =
-                        !showTextOptions &&
-                            (drawMode || (tool == MarkupTool.SELECT && selectedStroke >= 0))
-                    if (showTextOptions) {
-                        val size = draft?.sizeFraction ?: textSizeFraction
-                        val stepIndex = markupTextSizeStepIndex(size)
-                        val pointSize =
-                            if (pageHeightPt > 0f) (nearestMarkupTextSize(size) * pageHeightPt).toInt() else 0
-                        MarkupChoices(
-                            stepDownDescription = context.getString(R.string.markup_size_decrease),
-                            stepUpDescription = context.getString(R.string.markup_size_increase),
-                            valueLabel = context.getString(R.string.markup_font_size, pointSize),
-                            canStepDown = stepIndex > 0,
-                            canStepUp = stepIndex < markupTextSizeStepCount() - 1,
-                            onStepDown = { applyTextSize(markupTextSizeStep(stepIndex - 1)) },
-                            onStepUp = { applyTextSize(markupTextSizeStep(stepIndex + 1)) },
-                            color = draft?.color ?: textColor,
-                            onColor = { applyTextColor(it) },
-                        )
-                    } else if (showStrokeOptions) {
-                        val selected = strokes[pageIndex].orEmpty().getOrNull(selectedStroke)
-                        val activeStrokeTool =
-                            when (tool) {
-                                MarkupTool.LINE, MarkupTool.DRAW, MarkupTool.HIGHLIGHT -> tool
-                                else -> selected?.let(::strokeToolFor) ?: MarkupTool.DRAW
-                            }
-                        val selectedColor = selected?.color?.takeIf { tool == MarkupTool.SELECT }
-                        val width = selected?.widthFraction ?: strokeWidth
-                        val stepIndex = markupWidthStepIndex(width)
-                        val pointSize = if (pageHeightPt > 0f) (width * pageHeightPt).toInt() else 0
-                        MarkupChoices(
-                            stepDownDescription = context.getString(R.string.markup_size_decrease),
-                            stepUpDescription = context.getString(R.string.markup_size_increase),
-                            valueLabel = context.getString(R.string.markup_stroke_size_value, pointSize),
-                            canStepDown = stepIndex > 0,
-                            canStepUp = stepIndex < markupWidthStepCount() - 1,
-                            onStepDown = { applyStrokeWidth(markupWidthStep(stepIndex - 1)) },
-                            onStepUp = { applyStrokeWidth(markupWidthStep(stepIndex + 1)) },
-                            color = selectedColor ?: strokeColorFor(activeStrokeTool),
-                            onColor = { applyStrokeColor(it) },
-                        )
-                    }
-                    MarkupToolBar(tool = tool) { next ->
-                        if (next == MarkupTool.IMAGE) {
-                            commitDrafts()
-                            showImageSources = true
-                            return@MarkupToolBar
+            }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .background(MaterialTheme.colorScheme.surface),
+            ) {
+                val showTextOptions =
+                    tool == MarkupTool.TEXT ||
+                        draft != null ||
+                        (tool == MarkupTool.SELECT && selectedIndex >= 0)
+                val showStrokeOptions =
+                    !showTextOptions &&
+                        (drawMode || (tool == MarkupTool.SELECT && selectedStroke >= 0))
+                if (showTextOptions) {
+                    val size = draft?.sizeFraction ?: textSizeFraction
+                    val stepIndex = markupTextSizeStepIndex(size)
+                    val pointSize =
+                        if (pageHeightPt > 0f) (nearestMarkupTextSize(size) * pageHeightPt).toInt() else 0
+                    MarkupChoices(
+                        stepDownDescription = context.getString(R.string.markup_size_decrease),
+                        stepUpDescription = context.getString(R.string.markup_size_increase),
+                        valueLabel = context.getString(R.string.markup_font_size, pointSize),
+                        canStepDown = stepIndex > 0,
+                        canStepUp = stepIndex < markupTextSizeStepCount() - 1,
+                        onStepDown = { applyTextSize(markupTextSizeStep(stepIndex - 1)) },
+                        onStepUp = { applyTextSize(markupTextSizeStep(stepIndex + 1)) },
+                        color = draft?.color ?: textColor,
+                        onColor = { applyTextColor(it) },
+                    )
+                } else if (showStrokeOptions) {
+                    val selected = strokes[pageIndex].orEmpty().getOrNull(selectedStroke)
+                    val activeStrokeTool =
+                        when (tool) {
+                            MarkupTool.LINE, MarkupTool.DRAW, MarkupTool.HIGHLIGHT -> tool
+                            else -> selected?.let(::strokeToolFor) ?: MarkupTool.DRAW
                         }
+                    val selectedColor = selected?.color?.takeIf { tool == MarkupTool.SELECT }
+                    val width = selected?.widthFraction ?: strokeWidth
+                    val stepIndex = markupWidthStepIndex(width)
+                    val pointSize = if (pageHeightPt > 0f) (width * pageHeightPt).toInt() else 0
+                    MarkupChoices(
+                        stepDownDescription = context.getString(R.string.markup_size_decrease),
+                        stepUpDescription = context.getString(R.string.markup_size_increase),
+                        valueLabel = context.getString(R.string.markup_stroke_size_value, pointSize),
+                        canStepDown = stepIndex > 0,
+                        canStepUp = stepIndex < markupWidthStepCount() - 1,
+                        onStepDown = { applyStrokeWidth(markupWidthStep(stepIndex - 1)) },
+                        onStepUp = { applyStrokeWidth(markupWidthStep(stepIndex + 1)) },
+                        color = selectedColor ?: strokeColorFor(activeStrokeTool),
+                        onColor = { applyStrokeColor(it) },
+                    )
+                }
+                MarkupToolBar(tool = tool) { next ->
+                    if (next == MarkupTool.IMAGE) {
                         commitDrafts()
-                        tool = next
-                        if (next != MarkupTool.SELECT && next != MarkupTool.TEXT) {
-                            selectedIndex = -1
-                        }
-                        if (next != MarkupTool.SELECT) {
-                            selectedStroke = -1
-                            selectedImage = -1
-                        }
+                        showImageSources = true
+                        return@MarkupToolBar
+                    }
+                    commitDrafts()
+                    tool = next
+                    if (next != MarkupTool.SELECT && next != MarkupTool.TEXT) {
+                        selectedIndex = -1
+                    }
+                    if (next != MarkupTool.SELECT) {
+                        selectedStroke = -1
+                        selectedImage = -1
                     }
                 }
             }
