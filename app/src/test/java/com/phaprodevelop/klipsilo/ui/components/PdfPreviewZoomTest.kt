@@ -368,4 +368,164 @@ class PdfPreviewZoomTest {
         assertEquals(PREVIEW_MAX_SCALE, clampScale(Float.POSITIVE_INFINITY))
         assertEquals(PREVIEW_MIN_SCALE, clampScale(Float.NEGATIVE_INFINITY))
     }
+
+    @Test
+    fun `fit page rect letterboxes the page on the shorter axis`() {
+        // 400x800 page in a 400x400 viewport fits 200x400, centred horizontally.
+        val portrait = previewPageRect(400f, 400f, 400f, 800f)
+        assertEquals(100f, portrait.left, 0.01f)
+        assertEquals(0f, portrait.top, 0.01f)
+        assertEquals(200f, portrait.width, 0.01f)
+        assertEquals(400f, portrait.height, 0.01f)
+    }
+
+    @Test
+    fun `fit width page rect fills the width and may extend past the top and bottom`() {
+        // 400x800 page in a short 400x200 canvas: the width fills, height 800 extends beyond.
+        val fitWidth = previewPageRect(400f, 200f, 400f, 800f, fitWidth = true)
+        assertEquals(0f, fitWidth.left, 0.01f)
+        assertEquals(-300f, fitWidth.top, 0.01f)
+        assertEquals(400f, fitWidth.width, 0.01f)
+        assertEquals(800f, fitWidth.height, 0.01f)
+        // A stubby page is narrower than the canvas after fit-to-width.
+        val landscape = previewPageRect(400f, 300f, 800f, 400f, fitWidth = true)
+        assertEquals(400f, landscape.width, 0.01f)
+        assertEquals(200f, landscape.height, 0.01f)
+        assertEquals(50f, landscape.top, 0.01f)
+    }
+
+    @Test
+    fun `fit width page rect falls back to the viewport for degenerate input`() {
+        assertEquals(PreviewPageRect(0f, 0f, 0f, 0f), previewPageRect(0f, 0f, 400f, 800f, true))
+        assertEquals(
+            PreviewPageRect(0f, 0f, 400f, 300f),
+            previewPageRect(400f, 300f, Float.NaN, 800f, true),
+        )
+    }
+
+    @Test
+    fun `fit width clamp allows panning the taller page at 1x`() {
+        // Fit-page has no room at 1x; fit-width is 800px tall in a 300px viewport (250px each way).
+        val fitPage = clampFittedPan(0f, 120f, 1f, 400f, 300f, 400f, 800f)
+        assertEquals(0f, fitPage.offsetY, 0.01f)
+        val fitWidth = clampFittedPan(999f, 999f, 1f, 400f, 300f, 400f, 800f, fitWidth = true)
+        assertEquals(0f, fitWidth.offsetX, 0.01f)
+        assertEquals(250f, fitWidth.offsetY, 0.01f)
+        val clampedDown = clampFittedPan(0f, -999f, 1f, 400f, 300f, 400f, 800f, fitWidth = true)
+        assertEquals(-250f, clampedDown.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `fit width zoom keeps the page edges flush`() {
+        // Fit-width 400x800 at 1.5x is 600x1200 in a 400x300 viewport: 100 and 450 px of pan.
+        val zoomed =
+            transformFittedZoom(
+                current = PreviewZoomState(),
+                zoomDelta = 1.5f,
+                panX = 10_000f,
+                panY = -10_000f,
+                focalX = 0f,
+                focalY = 0f,
+                viewportWidth = 400f,
+                viewportHeight = 300f,
+                pageWidth = 400f,
+                pageHeight = 800f,
+                fitWidth = true,
+            )
+        assertEquals(1.5f, zoomed.scale, 0.001f)
+        assertEquals(100f, zoomed.offsetX, 0.01f)
+        assertEquals(-450f, zoomed.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `reveal pan keeps the field above the keyboard margin`() {
+        // Fit-width page in a 300px canvas: layer top -250, a field at 90% is 470..490.
+        val offset =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = 470f,
+                targetBottom = 490f,
+                scale = 1f,
+                viewportHeight = 300f,
+                scaledPageHeight = 800f,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(-206f, offset, 0.01f)
+    }
+
+    @Test
+    fun `reveal pan does not move when the field is already visible`() {
+        val offset =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = 150f,
+                targetBottom = 170f,
+                scale = 1f,
+                viewportHeight = 300f,
+                scaledPageHeight = 800f,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(0f, offset, 0.01f)
+        // An existing user pan inside the valid range is kept.
+        val kept =
+            revealOffsetY(
+                currentOffsetY = -100f,
+                targetTop = 150f,
+                targetBottom = 170f,
+                scale = 1f,
+                viewportHeight = 300f,
+                scaledPageHeight = 800f,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(-100f, kept, 0.01f)
+    }
+
+    @Test
+    fun `reveal pan pulls a field above the viewport down and stays clamped`() {
+        // A field at the very top of the fit-width page (-250..-230) moves down, but no
+        // further than the page's 250px pan room.
+        val offset =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = -250f,
+                targetBottom = -230f,
+                scale = 1f,
+                viewportHeight = 300f,
+                scaledPageHeight = 800f,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(250f, offset, 0.01f)
+    }
+
+    @Test
+    fun `reveal pan keeps the first line of an overly tall field readable`() {
+        val offset =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = 0f,
+                targetBottom = 400f,
+                scale = 1f,
+                viewportHeight = 300f,
+                scaledPageHeight = 800f,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(16f, offset, 0.01f)
+    }
+
+    @Test
+    fun `reveal pan ignores non-finite input`() {
+        assertEquals(
+            42f,
+            revealOffsetY(42f, Float.NaN, 0f, 1f, 300f, 800f, 16f, 16f),
+        )
+        assertEquals(
+            42f,
+            revealOffsetY(42f, 0f, 10f, 0f, 300f, 800f, 16f, 16f),
+        )
+    }
 }

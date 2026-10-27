@@ -155,10 +155,12 @@ import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.pdfPageHeightPt
+import com.phaprodevelop.klipsilo.ui.components.previewPageRect
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.rememberUniformLabelDecisions
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
+import com.phaprodevelop.klipsilo.ui.components.revealOffsetY
 import com.phaprodevelop.klipsilo.ui.components.scaledLabelStyle
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.viewmodel.MarkupSession
@@ -1011,25 +1013,71 @@ fun AnnotatePdfScreen(
 
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
+    // While the soft keyboard is up for the Text tool (or an active text draft), the canvas is
+    // shorter. Fit the page to the canvas width instead of shrinking it to fit the short
+    // height, so the text being typed stays readable (#161).
+    val fitWidthForIme = imeBottom > 0 && (tool == MarkupTool.TEXT || draft != null)
+    var preImeOffsetX by remember { mutableFloatStateOf(0f) }
+    var preImeOffsetY by remember { mutableFloatStateOf(0f) }
+    var preImeScale by remember { mutableFloatStateOf(1f) }
+    var imeFitActive by remember { mutableStateOf(false) }
+    LaunchedEffect(fitWidthForIme) {
+        if (fitWidthForIme) {
+            if (!imeFitActive) {
+                preImeOffsetX = offsetX
+                preImeOffsetY = offsetY
+                preImeScale = scale
+                imeFitActive = true
+            }
+        } else if (imeFitActive) {
+            // Keyboard dismissed or the Text tool left: go back to the pre-IME pan instead of
+            // keeping the fit-width pan (which would leave the page pushed off screen, #161).
+            imeFitActive = false
+            val keepScale = scale == preImeScale
+            val wantX = if (keepScale) preImeOffsetX else offsetX
+            val wantY = if (keepScale) preImeOffsetY else offsetY
+            val bmp = baseBitmap
+            if (bmp != null && pageSize.width > 0 && pageSize.height > 0) {
+                val restored =
+                    clampFittedPan(
+                        wantX,
+                        wantY,
+                        scale,
+                        pageSize.width.toFloat(),
+                        pageSize.height.toFloat(),
+                        bmp.width.toFloat(),
+                        bmp.height.toFloat(),
+                    )
+                offsetX = restored.offsetX
+                offsetY = restored.offsetY
+            } else {
+                offsetX = wantX
+                offsetY = wantY
+            }
+        }
+    }
     val keyboardDraftY = draft?.yFraction
-    LaunchedEffect(draftEpoch, imeBottom, pageSize, baseBitmap, draftFieldSize) {
+    LaunchedEffect(draftEpoch, imeBottom, pageSize, baseBitmap, draftFieldSize, fitWidthForIme) {
         val yFraction = keyboardDraftY ?: return@LaunchedEffect
         val bmp = baseBitmap ?: return@LaunchedEffect
-        if (imeBottom <= 0 || pageSize.height == 0) return@LaunchedEffect
-        val rect = fittedRect(pageSize, bmp.width, bmp.height)
+        if (!fitWidthForIme || pageSize.height == 0) return@LaunchedEffect
+        // Fit-width geometry: the page may be taller than the canvas, so pan it until the
+        // whole text field sits above the keyboard (#161).
+        val rect = fittedRect(pageSize, bmp.width, bmp.height, fitWidth = true)
         val yOnPage = rect.top + yFraction * rect.height
-        // The toolbar sits below the canvas (#152), so the canvas already ends above the
-        // keyboard; only a small margin is needed below the field.
-        val bottomMargin = with(density) { 16.dp.toPx() }
-        val visibleBottom = pageSize.height - bottomMargin
-        // Keep the whole multi-line field above the keyboard (#138), not just its first line.
+        val margin = with(density) { 16.dp.toPx() }
         val s = if (scale > 0f) scale else 1f
-        val sh = pageSize.height.toFloat()
-        val fieldTopOnScreen = (yOnPage - sh / 2f) * s + sh / 2f
-        val fieldBottomOnScreen = fieldTopOnScreen + draftFieldSize.height * s
-        if (fieldBottomOnScreen + offsetY > visibleBottom) {
-            offsetY = visibleBottom - fieldBottomOnScreen
-        }
+        offsetY =
+            revealOffsetY(
+                currentOffsetY = offsetY,
+                targetTop = yOnPage,
+                targetBottom = yOnPage + draftFieldSize.height,
+                scale = s,
+                viewportHeight = pageSize.height.toFloat(),
+                scaledPageHeight = rect.height * s,
+                topMargin = margin,
+                bottomMargin = margin,
+            )
     }
     LaunchedEffect(draftEpoch) {
         if (draft != null) {
@@ -1143,7 +1191,7 @@ fun AnnotatePdfScreen(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .pointerInput(tool, selectedIndex, baseBitmap, pageIndex) {
+                            .pointerInput(tool, selectedIndex, baseBitmap, pageIndex, fitWidthForIme) {
                                 val touchSlop = viewConfiguration.touchSlop
                                 if (annotationMode || tool == MarkupTool.SELECT) {
                                     var lastTapUpTime = 0L
@@ -1169,6 +1217,7 @@ fun AnnotatePdfScreen(
                                                     scale,
                                                     offsetX,
                                                     offsetY,
+                                                    fitWidthForIme,
                                                 )
                                             fx = mapped.first
                                             fy = mapped.second
@@ -1207,7 +1256,7 @@ fun AnnotatePdfScreen(
                                                         val handleRect =
                                                             imageScreenRect(
                                                                 selected,
-                                                                fittedRect(size, bmp.width, bmp.height),
+                                                                fittedRect(size, bmp.width, bmp.height, fitWidthForIme),
                                                                 size,
                                                                 scale,
                                                                 offsetX,
@@ -1277,7 +1326,7 @@ fun AnnotatePdfScreen(
                                                 val image =
                                                     images[pageIndex].orEmpty().getOrNull(targetImage)
                                                 if (image != null) {
-                                                    val fitted = fittedRect(size, bmp.width, bmp.height)
+                                                    val fitted = fittedRect(size, bmp.width, bmp.height, fitWidthForIme)
                                                     val screenRect =
                                                         imageScreenRect(
                                                             image,
@@ -1318,6 +1367,7 @@ fun AnnotatePdfScreen(
                                                         offsetY,
                                                         draftFieldSize.width.toFloat(),
                                                         draftFieldSize.height.toFloat(),
+                                                        fitWidthForIme,
                                                     )
                                                 }
                                             }
@@ -1362,7 +1412,12 @@ fun AnnotatePdfScreen(
                                                             val pageBmp = bmp ?: return@awaitEachGesture
                                                             if (d != null) {
                                                                 val fitted =
-                                                                    fittedRect(size, pageBmp.width, pageBmp.height)
+                                                                    fittedRect(
+                                                                        size,
+                                                                        pageBmp.width,
+                                                                        pageBmp.height,
+                                                                        fitWidthForIme,
+                                                                    )
                                                                 val layer =
                                                                     screenToPage(
                                                                         downPos,
@@ -1507,7 +1562,7 @@ fun AnnotatePdfScreen(
                                                     scale = nextScale
                                                     lastDist = dist
                                                     val cDelta = centroid - lastCentroid
-                                                    if (nextScale > 1f && bmp != null) {
+                                                    if ((nextScale > 1f || fitWidthForIme) && bmp != null) {
                                                         val clamped =
                                                             clampFittedPan(
                                                                 offsetX + cDelta.x,
@@ -1517,6 +1572,7 @@ fun AnnotatePdfScreen(
                                                                 size.height.toFloat(),
                                                                 bmp.width.toFloat(),
                                                                 bmp.height.toFloat(),
+                                                                fitWidthForIme,
                                                             )
                                                         offsetX = clamped.offsetX
                                                         offsetY = clamped.offsetY
@@ -1567,7 +1623,8 @@ fun AnnotatePdfScreen(
                                                 }
                                                 if (targetOnText) {
                                                     val curBmp = baseBitmap ?: break
-                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    val rect =
+                                                        fittedRect(size, curBmp.width, curBmp.height, fitWidthForIme)
                                                     if (rect.width > 0f && rect.height > 0f && scale > 0f) {
                                                         val dfx = delta.x / (scale * rect.width)
                                                         val dfy = delta.y / (scale * rect.height)
@@ -1597,7 +1654,8 @@ fun AnnotatePdfScreen(
                                                     }
                                                 } else if (targetImage >= 0 && tool == MarkupTool.SELECT) {
                                                     val curBmp = baseBitmap ?: break
-                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    val rect =
+                                                        fittedRect(size, curBmp.width, curBmp.height, fitWidthForIme)
                                                     if (rect.width > 0f && rect.height > 0f && scale > 0f) {
                                                         val list = images[pageIndex].orEmpty().toMutableList()
                                                         if (targetImage in list.indices) {
@@ -1655,7 +1713,8 @@ fun AnnotatePdfScreen(
                                                     }
                                                 } else if (targetStroke >= 0 && tool == MarkupTool.SELECT) {
                                                     val curBmp = baseBitmap ?: break
-                                                    val rect = fittedRect(size, curBmp.width, curBmp.height)
+                                                    val rect =
+                                                        fittedRect(size, curBmp.width, curBmp.height, fitWidthForIme)
                                                     if (rect.width > 0f && rect.height > 0f && scale > 0f) {
                                                         val dfx = delta.x / (scale * rect.width)
                                                         val dfy = delta.y / (scale * rect.height)
@@ -1677,7 +1736,7 @@ fun AnnotatePdfScreen(
                                                             strokes[pageIndex] = list
                                                         }
                                                     }
-                                                } else if (scale > 1f) {
+                                                } else if (scale > 1f || fitWidthForIme) {
                                                     if (bmp != null) {
                                                         val clamped =
                                                             clampFittedPan(
@@ -1688,6 +1747,7 @@ fun AnnotatePdfScreen(
                                                                 size.height.toFloat(),
                                                                 bmp.width.toFloat(),
                                                                 bmp.height.toFloat(),
+                                                                fitWidthForIme,
                                                             )
                                                         offsetX = clamped.offsetX
                                                         offsetY = clamped.offsetY
@@ -1741,7 +1801,7 @@ fun AnnotatePdfScreen(
                                                     scale = nextScale
                                                     lastDist = dist
                                                     val cDelta = centroid - lastCentroid
-                                                    if (nextScale > 1f && bmp != null) {
+                                                    if ((nextScale > 1f || fitWidthForIme) && bmp != null) {
                                                         val clamped =
                                                             clampFittedPan(
                                                                 offsetX + cDelta.x,
@@ -1751,6 +1811,7 @@ fun AnnotatePdfScreen(
                                                                 size.height.toFloat(),
                                                                 bmp.width.toFloat(),
                                                                 bmp.height.toFloat(),
+                                                                fitWidthForIme,
                                                             )
                                                         offsetX = clamped.offsetX
                                                         offsetY = clamped.offsetY
@@ -1783,6 +1844,7 @@ fun AnnotatePdfScreen(
                                                         scale,
                                                         offsetX,
                                                         offsetY,
+                                                        fitWidthForIme,
                                                     )
                                                 if (!started) {
                                                     started = true
@@ -1819,7 +1881,7 @@ fun AnnotatePdfScreen(
                                     detectTransformGestures { _, pan, zoom, _ ->
                                         val nextScale = (scale * zoom).coerceIn(1f, 8f)
                                         scale = nextScale
-                                        if (nextScale > 1f) {
+                                        if (nextScale > 1f || fitWidthForIme) {
                                             val pageBmp = baseBitmap
                                             if (pageBmp != null) {
                                                 val clamped =
@@ -1831,6 +1893,7 @@ fun AnnotatePdfScreen(
                                                         size.height.toFloat(),
                                                         pageBmp.width.toFloat(),
                                                         pageBmp.height.toFloat(),
+                                                        fitWidthForIme,
                                                     )
                                                 offsetX = clamped.offsetX
                                                 offsetY = clamped.offsetY
@@ -1857,7 +1920,7 @@ fun AnnotatePdfScreen(
                         val pageBitmap = displayed.bitmap ?: baseBitmap
                         val pageRect =
                             if (pageBitmap != null && pageSize.width > 0 && pageSize.height > 0) {
-                                fittedRect(pageSize, pageBitmap.width, pageBitmap.height)
+                                fittedRect(pageSize, pageBitmap.width, pageBitmap.height, fitWidthForIme)
                             } else {
                                 null
                             }
@@ -1889,7 +1952,7 @@ fun AnnotatePdfScreen(
                                 bitmap = bmp.asImageBitmap(),
                                 contentDescription = null,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit,
+                                contentScale = if (fitWidthForIme) ContentScale.FillWidth else ContentScale.Fit,
                                 filterQuality = FilterQuality.High,
                             )
                         }
@@ -1906,7 +1969,7 @@ fun AnnotatePdfScreen(
                         val editing = draft
                         val bmp = baseBitmap
                         if (editing != null && bmp != null && pageSize.width > 0) {
-                            val rect = fittedRect(pageSize, bmp.width, bmp.height)
+                            val rect = fittedRect(pageSize, bmp.width, bmp.height, fitWidthForIme)
                             val x = rect.left + editing.xFraction * rect.width
                             val y = rect.top + editing.yFraction * rect.height
                             // Committed annotations wrap at 95% of the page bitmap width
@@ -2000,7 +2063,7 @@ fun AnnotatePdfScreen(
                                         }
                                 }
                             fractionBounds?.let { bounds ->
-                                val fitted = fittedRect(pageSize, chipBmp.width, chipBmp.height)
+                                val fitted = fittedRect(pageSize, chipBmp.width, chipBmp.height, fitWidthForIme)
                                 val zoom = if (scale > 0f) scale else 1f
                                 val screenWidth = pageSize.width.toFloat()
                                 val screenHeight = pageSize.height.toFloat()
@@ -2859,23 +2922,17 @@ private fun fittedRect(
     container: IntSize,
     bmpW: Int,
     bmpH: Int,
+    fitWidth: Boolean = false,
 ): Rect {
-    val sw = container.width.toFloat()
-    val sh = container.height.toFloat()
-    if (sw <= 0f || sh <= 0f || bmpW <= 0 || bmpH <= 0) {
-        return Rect(0f, 0f, sw, sh)
-    }
-    val aspect = bmpW.toFloat() / bmpH
-    val screenAspect = sw / sh
-    return if (aspect > screenAspect) {
-        val dw = sw
-        val dh = sw / aspect
-        Rect(0f, (sh - dh) / 2f, dw, (sh - dh) / 2f + dh)
-    } else {
-        val dw = sh * aspect
-        val dh = sh
-        Rect((sw - dw) / 2f, 0f, (sw - dw) / 2f + dw, dh)
-    }
+    val placed =
+        previewPageRect(
+            container.width.toFloat(),
+            container.height.toFloat(),
+            bmpW.toFloat(),
+            bmpH.toFloat(),
+            fitWidth,
+        )
+    return Rect(placed.left, placed.top, placed.left + placed.width, placed.top + placed.height)
 }
 
 private const val ANNOTATION_HIT_PAD = 0.05f
@@ -3083,9 +3140,10 @@ private fun editFieldScreenRect(
     offsetY: Float,
     fieldWidth: Float,
     fieldHeight: Float,
+    fitWidth: Boolean = false,
 ): Rect? {
     if (bmpWidth <= 0 || bmpHeight <= 0) return null
-    val fitted = fittedRect(container, bmpWidth, bmpHeight)
+    val fitted = fittedRect(container, bmpWidth, bmpHeight, fitWidth)
     if (fitted.width <= 0f || fitted.height <= 0f) return null
     var width = fieldWidth
     var height = fieldHeight
@@ -3177,8 +3235,9 @@ private fun mapTapToFraction(
     scale: Float,
     offsetX: Float,
     offsetY: Float,
+    fitWidth: Boolean = false,
 ): Pair<Float, Float> {
-    val rect = fittedRect(container, bmpW, bmpH)
+    val rect = fittedRect(container, bmpW, bmpH, fitWidth)
     val sw = container.width.toFloat()
     val sh = container.height.toFloat()
     if (sw <= 0f || sh <= 0f || rect.width <= 0f || rect.height <= 0f) {
