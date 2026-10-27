@@ -216,17 +216,20 @@ fun centredCoveringRect(
  * Where the fit-width (or ordinary) page is drawn, and how the graphicsLayer is
  * translated, so pan limits meet the real page edges (#161).
  *
- * [layer] is the centred covering rect. It is laid out at the canvas origin
- * `(0, 0)`, not moved with `Modifier.offset`. The lambda form of that modifier
- * places through `placeWithLayer`; stacked on this `graphicsLayer` the same
- * shift was applied twice, so the page sat high by [PreviewPageRect.top] of the
- * layer (about half the fit-width overflow). The upper pan stop then still hid
- * the top of the page, and the lower stop left a grey band under it (Beta 10).
+ * [layer] is the centred covering rect. It is laid out with `requiredSize`, not
+ * `Modifier.offset` (the lambda form places through `placeWithLayer` and would
+ * stack another shift on this `graphicsLayer`). `requiredSize` that is taller
+ * than the incoming max constraint is centred by Compose
+ * ([requiredSizeCentering], `Placeable.apparentToRealOffset`): the layer origin
+ * already lands on the canvas. Adding that origin to the graphicsLayer
+ * translation again shifts the page up by about half the fit-width overflow.
+ * The upper pan stop then hides the top of the page, and the lower stop leaves
+ * a grey band of that size under it (Beta 11, landmark page).
  *
- * [translationX] and [translationY] are `pan + layer origin`: one centring
- * shift, then the user's pan. [pageLeft] and [pageTop] are the fitted page
- * inside the layer. At scale 1, a canvas-space point `y` is on screen at
- * `y + panY` — see [coveringPanScreenY]. Pure; unit tested.
+ * [translationX] and [translationY] are the user's pan, plus the layer origin
+ * only for the part Compose did not already apply. [pageLeft] and [pageTop] are
+ * the fitted page inside the layer. At scale 1, a canvas-space point `y` is on
+ * screen at `y + panY` — see [coveringPanScreenY]. Pure; unit tested.
  */
 data class CoveringPanLayer(
     val layer: PreviewPageRect,
@@ -235,6 +238,32 @@ data class CoveringPanLayer(
     val translationX: Float,
     val translationY: Float,
 )
+
+/**
+ * Layout shift Compose applies when `requiredSize` does not fit the incoming
+ * max constraint (`Placeable.apparentToRealOffset`).
+ *
+ * The parent [Box] passes a loose max (minimum 0). The apparent size is the
+ * measured size coerced into `0..maxConstraint`, and the content is centred in
+ * that slot: `(apparent - measured) / 2`. A layer taller than the canvas is
+ * shifted by `(canvas - layer) / 2`, which is [PreviewPageRect.top] of a
+ * [centredCoveringRect]. A layer that already fits is not shifted. Pure; unit tested.
+ */
+fun requiredSizeCentering(
+    measured: Float,
+    maxConstraint: Float,
+): Float {
+    if (
+        !measured.isFinite() ||
+        !maxConstraint.isFinite() ||
+        maxConstraint <= 0f ||
+        measured <= 0f
+    ) {
+        return 0f
+    }
+    val apparent = measured.coerceAtMost(maxConstraint)
+    return (apparent - measured) / 2f
+}
 
 fun coveringPanLayer(
     containerWidth: Float,
@@ -263,13 +292,47 @@ fun coveringPanLayer(
         )
     val safePanX = if (panX.isFinite()) panX else 0f
     val safePanY = if (panY.isFinite()) panY else 0f
+    // requiredSize already centres an oversized layer. Subtract that shift so
+    // it is not applied a second time as graphicsLayer translation (#161).
+    val centeringX = requiredSizeCentering(layer.width, containerWidth)
+    val centeringY = requiredSizeCentering(layer.height, containerHeight)
     return CoveringPanLayer(
         layer = layer,
         pageLeft = pageLeft - layer.left,
         pageTop = pageTop - layer.top,
-        translationX = safePanX + layer.left,
-        translationY = safePanY + layer.top,
+        translationX = safePanX + layer.left - centeringX,
+        translationY = safePanY + layer.top - centeringY,
     )
+}
+
+/**
+ * Screen Y of a canvas-space point drawn by [coveringPanLayer] at [scale].
+ *
+ * Compose places the `requiredSize` layer at [requiredSizeCentering], then
+ * `graphicsLayer` scales around the layer centre and adds [CoveringPanLayer.translationY].
+ * The layer origin and that centring cancel, leaving scale-around-canvas-centre
+ * plus the pan. Pure; unit tested.
+ */
+fun coveringLayerScreenY(
+    frame: CoveringPanLayer,
+    canvasY: Float,
+    containerHeight: Float,
+    scale: Float = 1f,
+): Float {
+    if (
+        !canvasY.isFinite() ||
+        !containerHeight.isFinite() ||
+        !scale.isFinite() ||
+        !frame.layer.top.isFinite() ||
+        !frame.layer.height.isFinite() ||
+        !frame.translationY.isFinite()
+    ) {
+        return 0f
+    }
+    val layoutY = requiredSizeCentering(frame.layer.height, containerHeight)
+    val localY = canvasY - frame.layer.top
+    val pivot = frame.layer.height / 2f
+    return layoutY + (localY - pivot) * scale + pivot + frame.translationY
 }
 
 /**
