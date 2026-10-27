@@ -404,6 +404,8 @@
     <string name="publisher_name">Poul Andersen</string>
     <string name="publisher_email">phaprodevelop@gmail.com</string>
     <string name="privacy_policy">Privacy policy</string>
+    <string name="settings_rate_helper">If KlipSilo helps you, a Play Store rating helps others find it.</string>
+    <string name="settings_rate_play">Rate KlipSilo on Google Play</string>
     <string name="acknowledgements">Open-source acknowledgements</string>
     <string name="acknowledgements_body">KlipSilo uses:\n\n• Android Jetpack, CameraX, Room and Material (Google / Android Open Source Project) — Apache License 2.0\n• Kotlin (JetBrains) — Apache License 2.0\n• Coil — Apache License 2.0\n• commonmark-java — BSD-2-Clause\n• PDFBox Android (Tom Roush) — Apache License 2.0\n• ML Kit barcode scanning and text recognition (Google) — on-device libraries; Google Play Services terms apply\n• Liberation Fonts (Red Hat / Google) — SIL Open Font License 1.1 (full licence in the app assets)\n\nKlipSilo itself is provided as-is by Poul Andersen.</string>
     <string name="location_disclosure_title">Use your location?</string>

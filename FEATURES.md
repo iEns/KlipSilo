@@ -147,6 +147,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Theme: light/dark/system | Settings | 1.1.0 | [K1](docs/regression-checklist.md#K1) | no |
 | 13 languages plus System default, synced with Android App Info | Settings → Language | 1.2.0 | [K1](docs/regression-checklist.md#K1) | no |
 | About, Privacy policy (all 13 app languages; paid-download wording matches the site; effective 25 Oct 2026). Guide (Tips/Limitations/Why/Use cases) removed in #159. | Settings → About, below PDF & export | 1.3.0 | [K3](docs/regression-checklist.md#K3) | no |
+| Rate KlipSilo on Google Play: quiet link (no in-app prompt, dialog or "remind me later") under Privacy; opens the production listing, falling back to the web listing when the Play Store app is missing | Settings → About → Rate KlipSilo on Google Play, below Privacy policy | 1.3.0 | [K5](docs/regression-checklist.md#K5) | no |
 
 ## Other / maintenance
 
