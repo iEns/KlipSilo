@@ -151,6 +151,7 @@ import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
+import com.phaprodevelop.klipsilo.ui.components.centredCoveringRect
 import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
@@ -1907,43 +1908,77 @@ fun AnnotatePdfScreen(
                                 }
                             },
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer(
-                                    scaleX = scale,
-                                    scaleY = scale,
-                                    translationX = offsetX,
-                                    translationY = offsetY,
-                                ),
-                    ) {
-                        val pageBitmap = displayed.bitmap ?: baseBitmap
-                        val pageRect =
-                            if (pageBitmap != null && pageSize.width > 0 && pageSize.height > 0) {
-                                fittedRect(pageSize, pageBitmap.width, pageBitmap.height, fitWidthForIme)
-                            } else {
-                                null
-                            }
-                        // The page layer is the full fitted rect, which is taller than the canvas
-                        // while fit-width is active for the IME (#161). requiredSize ignores the
-                        // canvas bounds so the bitmap, shadow, frame and draft all share the same
-                        // geometry and panning can reveal the page above/below the viewport.
-                        val pageChromeModifier =
-                            pageRect?.let { rect ->
+                    val pageBitmap = displayed.bitmap ?: baseBitmap
+                    val pageRect =
+                        if (pageBitmap != null && pageSize.width > 0 && pageSize.height > 0) {
+                            fittedRect(pageSize, pageBitmap.width, pageBitmap.height, fitWidthForIme)
+                        } else {
+                            null
+                        }
+                    val editing = draft
+                    if (pageRect != null) {
+                        // The transformed layer must contain everything it draws (#161). While
+                        // fit-width is active for the IME the page is taller than the canvas, and
+                        // content drawn above (or below) a canvas-sized layer could not be
+                        // composited when a pan moved it into view, so the top of the page stayed
+                        // unreachable. Grow the layer around the canvas centre (keeping the
+                        // graphicsLayer transformOrigin on the canvas centre, so the pan and
+                        // hit-test math below is unchanged) until it holds the whole page and the
+                        // open text field.
+                        var contentLeft = pageRect.left
+                        var contentTop = pageRect.top
+                        var contentRight = pageRect.right
+                        var contentBottom = pageRect.bottom
+                        if (editing != null) {
+                            val fieldLeft = pageRect.left + editing.xFraction * pageRect.width
+                            val fieldTop = pageRect.top + editing.yFraction * pageRect.height
+                            contentLeft = minOf(contentLeft, fieldLeft)
+                            contentTop = minOf(contentTop, fieldTop)
+                            contentRight = maxOf(contentRight, fieldLeft + draftFieldSize.width)
+                            contentBottom = maxOf(contentBottom, fieldTop + draftFieldSize.height)
+                        }
+                        val layerRect =
+                            centredCoveringRect(
+                                containerWidth = pageSize.width.toFloat(),
+                                containerHeight = pageSize.height.toFloat(),
+                                contentLeft = contentLeft,
+                                contentTop = contentTop,
+                                contentRight = contentRight,
+                                contentBottom = contentBottom,
+                                // Leave room for the page shadow so it stays inside the layer too.
+                                padding = with(density) { 8.dp.toPx() },
+                            )
+                        Box(
+                            modifier =
                                 Modifier
                                     .offset {
-                                        IntOffset(rect.left.roundToInt(), rect.top.roundToInt())
+                                        IntOffset(layerRect.left.roundToInt(), layerRect.top.roundToInt())
                                     }.requiredSize(
-                                        width = with(density) { rect.width.toDp() },
-                                        height = with(density) { rect.height.toDp() },
+                                        width = with(density) { layerRect.width.toDp() },
+                                        height = with(density) { layerRect.height.toDp() },
+                                    ).graphicsLayer(
+                                        scaleX = scale,
+                                        scaleY = scale,
+                                        translationX = offsetX,
+                                        translationY = offsetY,
+                                    ),
+                        ) {
+                            val pageLeft = pageRect.left - layerRect.left
+                            val pageTop = pageRect.top - layerRect.top
+                            // The page occupies the fitted rect inside the (possibly larger) layer;
+                            // the bitmap, shadow, frame and draft field share that geometry.
+                            val pageChromeModifier =
+                                Modifier
+                                    .offset {
+                                        IntOffset(pageLeft.roundToInt(), pageTop.roundToInt())
+                                    }.requiredSize(
+                                        width = with(density) { pageRect.width.toDp() },
+                                        height = with(density) { pageRect.height.toDp() },
                                     )
-                            }
-                        // Shadow sits under the page bitmap; the frame is drawn over it.
-                        pageChromeModifier?.let { chrome ->
+                            // Shadow sits under the page bitmap; the frame is drawn over it.
                             Box(
                                 modifier =
-                                    chrome.shadow(
+                                    pageChromeModifier.shadow(
                                         elevation = 6.dp,
                                         shape = RectangleShape,
                                         clip = false,
@@ -1951,91 +1986,91 @@ fun AnnotatePdfScreen(
                                         spotColor = pageShadowColor,
                                     ),
                             )
-                        }
-                        displayed.bitmap?.let { bmp ->
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = null,
-                                // The bitmap must occupy the same fitted rect as the chrome and
-                                // the draft field; a viewport-sized FillWidth image crops the top
-                                // and bottom of the page and leaves taps in grey (#161 reopen).
-                                modifier = pageChromeModifier ?: Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit,
-                                filterQuality = FilterQuality.High,
-                            )
-                        }
-                        pageChromeModifier?.let { chrome ->
+                            displayed.bitmap?.let { bmp ->
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = null,
+                                    // The bitmap must occupy the same fitted rect as the chrome
+                                    // and the draft field; a viewport-sized FillWidth image crops
+                                    // the top and bottom of the page and leaves taps in grey
+                                    // (#161 reopen).
+                                    modifier = pageChromeModifier,
+                                    contentScale = ContentScale.Fit,
+                                    filterQuality = FilterQuality.High,
+                                )
+                            }
                             Box(
                                 modifier =
-                                    chrome.border(
+                                    pageChromeModifier.border(
                                         width = 1.dp,
                                         color = pageFrameColor,
                                         shape = RectangleShape,
                                     ),
                             )
-                        }
-                        val editing = draft
-                        val bmp = baseBitmap
-                        if (editing != null && bmp != null && pageSize.width > 0) {
-                            val rect = fittedRect(pageSize, bmp.width, bmp.height, fitWidthForIme)
-                            val x = rect.left + editing.xFraction * rect.width
-                            val y = rect.top + editing.yFraction * rect.height
-                            // Committed annotations wrap at 95% of the page bitmap width
-                            // (wrapAnnotationText), so the edit field can never grow past
-                            // that same cap (#138).
-                            val maxFieldWidth = with(density) { (rect.width * 0.95f).toDp() }
-                            // 16.dp of empty field past the last glyph is enough for a
-                            // caret-placement tap without making short text look boxy.
-                            val caretOverhang = 16.dp
-                            // Size the field to the text (longest unwrapped line) plus the
-                            // overhang after the last character, so there is still room to
-                            // tap and place the caret without a huge empty box (#153).
-                            // Existing text starts at the wrap cap so its first layout
-                            // matches the committed wrapping; empty/short drafts keep a
-                            // small minimum.
-                            val measuredWidth =
-                                draftFieldLayout
-                                    ?.let { layout ->
-                                        with(density) { layout.multiParagraph.maxIntrinsicWidth.toDp() }
-                                    }?.plus(caretOverhang)
-                                    ?: if (draftField.text.isEmpty()) caretOverhang else maxFieldWidth
-                            val fieldWidth =
-                                measuredWidth
-                                    .coerceAtMost(maxFieldWidth)
-                                    .coerceAtLeast(48.dp)
-                            BasicTextField(
-                                value = draftField,
-                                onValueChange = { value ->
-                                    draftField = value
-                                    draft = draft?.copy(text = value.text)
-                                },
-                                onTextLayout = { layout ->
-                                    draftFieldLayout = layout
-                                    refineDraftCaret(layout)
-                                },
-                                modifier =
-                                    Modifier
-                                        .offset { IntOffset(x.toInt(), y.toInt()) }
-                                        .width(fieldWidth)
-                                        .focusRequester(focusRequester)
-                                        .background(
-                                            if (editing.color == android.graphics.Color.WHITE) {
-                                                Color(0xFF333333)
-                                            } else {
-                                                Color.White.copy(alpha = 0.92f)
-                                            },
-                                        )
-                                        .border(1.dp, Color(0xFF3F51B5))
-                                        .onSizeChanged { draftFieldSize = it },
-                                textStyle =
-                                    TextStyle(
-                                        color = Color(editing.color),
-                                        fontSize = with(density) { (editing.sizeFraction * rect.height).toSp() },
-                                    ),
-                                // Multi-line text (#138, also #91): Enter inserts a newline;
-                                // commit with Save or by tapping outside the field.
-                                singleLine = false,
-                            )
+                            val bmp = baseBitmap
+                            if (editing != null && bmp != null) {
+                                val x = pageLeft + editing.xFraction * pageRect.width
+                                val y = pageTop + editing.yFraction * pageRect.height
+                                // Committed annotations wrap at 95% of the page bitmap width
+                                // (wrapAnnotationText), so the edit field can never grow past
+                                // that same cap (#138).
+                                val maxFieldWidth = with(density) { (pageRect.width * 0.95f).toDp() }
+                                // 16.dp of empty field past the last glyph is enough for a
+                                // caret-placement tap without making short text look boxy.
+                                val caretOverhang = 16.dp
+                                // Size the field to the text (longest unwrapped line) plus the
+                                // overhang after the last character, so there is still room to
+                                // tap and place the caret without a huge empty box (#153).
+                                // Existing text starts at the wrap cap so its first layout
+                                // matches the committed wrapping; empty/short drafts keep a
+                                // small minimum.
+                                val measuredWidth =
+                                    draftFieldLayout
+                                        ?.let { layout ->
+                                            with(density) { layout.multiParagraph.maxIntrinsicWidth.toDp() }
+                                        }?.plus(caretOverhang)
+                                        ?: if (draftField.text.isEmpty()) caretOverhang else maxFieldWidth
+                                val fieldWidth =
+                                    measuredWidth
+                                        .coerceAtMost(maxFieldWidth)
+                                        .coerceAtLeast(48.dp)
+                                BasicTextField(
+                                    value = draftField,
+                                    onValueChange = { value ->
+                                        draftField = value
+                                        draft = draft?.copy(text = value.text)
+                                    },
+                                    onTextLayout = { layout ->
+                                        draftFieldLayout = layout
+                                        refineDraftCaret(layout)
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .offset { IntOffset(x.toInt(), y.toInt()) }
+                                            .width(fieldWidth)
+                                            .focusRequester(focusRequester)
+                                            .background(
+                                                if (editing.color == android.graphics.Color.WHITE) {
+                                                    Color(0xFF333333)
+                                                } else {
+                                                    Color.White.copy(alpha = 0.92f)
+                                                },
+                                            )
+                                            .border(1.dp, Color(0xFF3F51B5))
+                                            .onSizeChanged { draftFieldSize = it },
+                                    textStyle =
+                                        TextStyle(
+                                            color = Color(editing.color),
+                                            fontSize =
+                                                with(density) {
+                                                    (editing.sizeFraction * pageRect.height).toSp()
+                                                },
+                                        ),
+                                    // Multi-line text (#138, also #91): Enter inserts a newline;
+                                    // commit with Save or by tapping outside the field.
+                                    singleLine = false,
+                                )
+                            }
                         }
                     }
                 }

@@ -552,4 +552,117 @@ class PdfPreviewZoomTest {
             revealOffsetY(42f, 0f, 10f, 0f, 300f, 800f, 16f, 16f),
         )
     }
+
+    @Test
+    fun `pan reaches both page ends after a top quarter reveal under fit width`() {
+        // 1080x2400 page in a 1080x1000 canvas with the IME up: the page starts 700px above
+        // the canvas, so the gesture's symmetric pan range is -700..700 (#161 Beta 9).
+        val rect = previewPageRect(1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        assertEquals(-700f, rect.top, 0.01f)
+        val fieldTop = rect.top + 0.10f * rect.height
+        val revealed =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = fieldTop,
+                targetBottom = fieldTop + 64f,
+                scale = 1f,
+                viewportHeight = 1000f,
+                scaledPageHeight = rect.height,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        // The reveal is a normal pan inside the gesture clamp, not a locked one-sided offset.
+        assertTrue("reveal ${revealed}px should stay in the pan range", revealed in -700f..700f)
+        assertTrue("a top tap pans the page down so the field stays visible", revealed > 0f)
+        // Dragging down from the reveal reaches the top of the page; dragging up reaches the
+        // bottom. Both ends must stay reachable while the keyboard is open.
+        val toTop =
+            clampFittedPan(0f, revealed + 10_000f, 1f, 1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        val toBottom =
+            clampFittedPan(0f, revealed - 10_000f, 1f, 1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        assertEquals(700f, toTop.offsetY, 0.01f)
+        assertEquals(-700f, toBottom.offsetY, 0.01f)
+        // +max maps the page top to the canvas top and -max maps the page bottom to its bottom.
+        assertEquals(0f, rect.top + toTop.offsetY, 0.01f)
+        assertEquals(1000f, rect.top + rect.height + toBottom.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `top quarter pan stays reachable when the reveal itself clamps to the page top`() {
+        // A tap on the very first page row makes revealOffsetY ask for more than the page's
+        // pan room; the clamped reveal must still leave room to pan to the bottom.
+        val rect = previewPageRect(1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        val revealed =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = rect.top,
+                targetBottom = rect.top + 64f,
+                scale = 1f,
+                viewportHeight = 1000f,
+                scaledPageHeight = rect.height,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(700f, revealed, 0.01f)
+        assertEquals(0f, rect.top + revealed, 0.01f)
+        val toBottom =
+            clampFittedPan(0f, revealed - 10_000f, 1f, 1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        assertEquals(-700f, toBottom.offsetY, 0.01f)
+    }
+
+    @Test
+    fun `covering layer contains the full fit width page around the canvas centre`() {
+        val rect = previewPageRect(1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        val layer =
+            centredCoveringRect(
+                containerWidth = 1080f,
+                containerHeight = 1000f,
+                contentLeft = rect.left,
+                contentTop = rect.top,
+                contentRight = rect.left + rect.width,
+                contentBottom = rect.top + rect.height,
+                padding = 8f,
+            )
+        // The whole page (plus the shadow padding) is inside the transformed layer, so a pan
+        // that moves the top of the page into view has content to composite (#161).
+        assertTrue(layer.left <= rect.left - 8f + 0.01f)
+        assertTrue(layer.top <= rect.top - 8f + 0.01f)
+        assertTrue(layer.left + layer.width >= rect.left + rect.width + 8f - 0.01f)
+        assertTrue(layer.top + layer.height >= rect.top + rect.height + 8f - 0.01f)
+        // Centring keeps graphicsLayer's centre transformOrigin on the canvas centre.
+        assertEquals(540f, layer.left + layer.width / 2f, 0.01f)
+        assertEquals(500f, layer.top + layer.height / 2f, 0.01f)
+    }
+
+    @Test
+    fun `covering layer grows symmetrically for content off the canvas centre`() {
+        // A draft field reaching past the right edge grows the layer on both sides, so the
+        // layer stays centred and the zoom transform does not shift.
+        val layer =
+            centredCoveringRect(
+                containerWidth = 400f,
+                containerHeight = 400f,
+                contentLeft = 100f,
+                contentTop = 100f,
+                contentRight = 500f,
+                contentBottom = 300f,
+            )
+        assertEquals(200f, layer.left + layer.width / 2f, 0.01f)
+        assertEquals(200f, layer.top + layer.height / 2f, 0.01f)
+        assertEquals(-100f, layer.left, 0.01f)
+        assertEquals(600f, layer.width, 0.01f)
+        assertEquals(200f, layer.height, 0.01f)
+    }
+
+    @Test
+    fun `covering layer falls back to the canvas for invalid input`() {
+        assertEquals(
+            PreviewPageRect(0f, 0f, 0f, 0f),
+            centredCoveringRect(0f, 0f, 10f, 10f, 20f, 20f),
+        )
+        assertEquals(
+            PreviewPageRect(0f, 0f, 400f, 300f),
+            centredCoveringRect(400f, 300f, Float.NaN, 10f, 20f, 20f),
+        )
+    }
 }
