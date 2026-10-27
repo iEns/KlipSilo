@@ -1529,12 +1529,15 @@ private fun PdfViewer(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                translationX = offsetX,
-                                translationY = offsetY,
-                            )
+                            // #160 reopen: the gesture loop must stay OUTSIDE the
+                            // graphicsLayer. Compose delivers pointer positions to a
+                            // node below a layer in that layer's *unscaled* space, so
+                            // reading the pinch distance inside the layer divides it
+                            // by the scale we just wrote. The next frame's delta then
+                            // flips sign and the page oscillates between two zoom
+                            // levels while the fingers are still. Gesture px and the
+                            // focal point below are therefore screen px, matching
+                            // transformFittedZoom/clampFittedPan.
                             .pointerInput(Unit) {
                                 awaitEachGesture {
                                     awaitFirstDown(requireUnconsumed = false)
@@ -1641,7 +1644,13 @@ private fun PdfViewer(
                                         }
                                     }
                                 }
-                            },
+                            }
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offsetX,
+                                translationY = offsetY,
+                            ),
                     contentScale = ContentScale.Fit,
                     filterQuality = FilterQuality.High,
                 )
