@@ -565,20 +565,26 @@ fun AnnotatePdfScreen(
      * Applies a pending caret refinement (#55b): the tap is mapped through the text field's own
      * layout with [androidx.compose.ui.text.TextLayoutResult.getOffsetForPosition], which puts
      * the caret at the nearest glyph boundary (horizontal midpoints) with the field's real line
-     * wrapping. Skipped when the field is unmeasured, the text changed or nothing is pending.
+     * wrapping. Uses the laid-out line widths rather than the field box, because the box also
+     * holds the caret overhang (#153) and starts at the wrap cap for existing text. Skipped when
+     * the text changed, the text block is empty or nothing is pending.
      */
     fun refineDraftCaret(layout: TextLayoutResult) {
         val pending = draftPendingCaret ?: return
-        val size = draftFieldSize
-        if (size.width <= 0 || size.height <= 0) return
+        val textWidth =
+            (0 until layout.lineCount).maxOfOrNull { line ->
+                layout.getLineRight(line) - layout.getLineLeft(line)
+            } ?: 0f
+        val textHeight = layout.size.height.toFloat()
+        if (textWidth <= 0f || textHeight <= 0f) return
         draftPendingCaret = null
         if (pending.forText != draftField.text) return
         val position =
             localCaretPosition(
                 xFraction = pending.xFraction,
                 yFraction = pending.yFraction,
-                widthPx = size.width.toFloat(),
-                heightPx = size.height.toFloat(),
+                widthPx = textWidth,
+                heightPx = textHeight,
             )
         val offset = layout.getOffsetForPosition(position).coerceIn(0, draftField.text.length)
         draftField = draftField.copy(selection = TextRange(offset))
@@ -1904,9 +1910,28 @@ fun AnnotatePdfScreen(
                             val x = rect.left + editing.xFraction * rect.width
                             val y = rect.top + editing.yFraction * rect.height
                             // Committed annotations wrap at 95% of the page bitmap width
-                            // (wrapAnnotationText), so the edit field uses that same width
-                            // instead of an early 220dp cap (#138).
-                            val fieldWidth = with(density) { (rect.width * 0.95f).toDp() }
+                            // (wrapAnnotationText), so the edit field can never grow past
+                            // that same cap (#138).
+                            val maxFieldWidth = with(density) { (rect.width * 0.95f).toDp() }
+                            // 16.dp of empty field past the last glyph is enough for a
+                            // caret-placement tap without making short text look boxy.
+                            val caretOverhang = 16.dp
+                            // Size the field to the text (longest unwrapped line) plus the
+                            // overhang after the last character, so there is still room to
+                            // tap and place the caret without a huge empty box (#153).
+                            // Existing text starts at the wrap cap so its first layout
+                            // matches the committed wrapping; empty/short drafts keep a
+                            // small minimum.
+                            val measuredWidth =
+                                draftFieldLayout
+                                    ?.let { layout ->
+                                        with(density) { layout.multiParagraph.maxIntrinsicWidth.toDp() }
+                                    }?.plus(caretOverhang)
+                                    ?: if (draftField.text.isEmpty()) caretOverhang else maxFieldWidth
+                            val fieldWidth =
+                                measuredWidth
+                                    .coerceAtMost(maxFieldWidth)
+                                    .coerceAtLeast(48.dp)
                             BasicTextField(
                                 value = draftField,
                                 onValueChange = { value ->
@@ -1920,7 +1945,7 @@ fun AnnotatePdfScreen(
                                 modifier =
                                     Modifier
                                         .offset { IntOffset(x.toInt(), y.toInt()) }
-                                        .width(fieldWidth.coerceAtLeast(48.dp))
+                                        .width(fieldWidth)
                                         .focusRequester(focusRequester)
                                         .background(
                                             if (editing.color == android.graphics.Color.WHITE) {
