@@ -1921,14 +1921,12 @@ fun AnnotatePdfScreen(
                         // The transformed layer must contain everything it draws (#161). While
                         // fit-width is active for the IME the page is taller than the canvas, and
                         // content drawn above (or below) a canvas-sized layer could not be
-                        // composited when a pan moved it into view, so the top of the page stayed
-                        // unreachable. Grow the layer around the canvas centre until it holds the
-                        // whole page and the open text field. Lay that layer out at the canvas
-                        // origin and apply the centring shift once, as the graphicsLayer
-                        // translation. Offsetting the same box with Modifier.offset { } placed
-                        // it through another layer and applied the shift again, so the page sat
-                        // high by about half the overflow: the top stayed clipped and the lower
-                        // pan stop left a grey band under the page (Beta 10).
+                        // composited when a pan moved it into view. Grow the layer around the
+                        // canvas centre until it holds the whole page and the open text field.
+                        // requiredSize centres that oversized layer (apparentToRealOffset).
+                        // coveringPanLayer therefore does not add the same shift again:
+                        // doing so left the top of the page about half an overflow above the
+                        // canvas and a matching grey band under the bottom (Beta 11).
                         var contentLeft = pageRect.left
                         var contentTop = pageRect.top
                         var contentRight = pageRect.right

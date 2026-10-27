@@ -737,21 +737,110 @@ class PdfPreviewZoomTest {
                 panY = toBottom.offsetY,
                 padding = 8f,
             )
-        // Screen position is page-in-layer plus the single graphicsLayer translation.
-        val topEdge = topFrame.pageTop + topFrame.translationY
-        val bottomEdge = bottomFrame.pageTop + rect.height + bottomFrame.translationY
+        // requiredSize centres the oversized layer; graphicsLayer translation is pan only.
+        assertEquals(0f, requiredSizeCentering(topFrame.layer.height, viewportH) - topFrame.layer.top, 0.01f)
+        assertEquals(toTop.offsetX, topFrame.translationX, 0.01f)
+        assertEquals(toTop.offsetY, topFrame.translationY, 0.01f)
+        val topEdge = coveringLayerScreenY(topFrame, rect.top, viewportH)
+        val bottomEdge = coveringLayerScreenY(bottomFrame, rect.top + rect.height, viewportH)
         assertEquals(coveringPanScreenY(rect.top, toTop.offsetY), topEdge, 0.01f)
         assertEquals(0f, topEdge, 0.01f)
         assertEquals(viewportH, bottomEdge, 0.01f)
         val gapBelow = viewportH - bottomEdge
         assertEquals(0f, gapBelow, 0.01f)
         assertTrue("grey gap ${gapBelow}px", abs(gapBelow) < 1f)
-        // Applying the layer origin a second time (the Beta 10 offset) hides the top
-        // and opens a gap the size of that origin under the page.
+        // Adding the layer origin on top of requiredSize centring (Beta 11) hides the
+        // top and opens a gap the size of that origin under the page.
         val doubledTop = topEdge + topFrame.layer.top
         val doubledBottom = bottomEdge + bottomFrame.layer.top
         assertTrue(doubledTop < -400f)
         assertTrue(viewportH - doubledBottom > 400f)
+    }
+
+    @Test
+    fun `landmark fit width page can show both edges under the IME`() {
+        // Phone canvas above the keyboard, portrait page fitted to width. Landmarks sit at
+        // fixed fractions: TOP_EDGE at the page top, BOTTOM_EDGE at the page bottom.
+        // Beta 11 left TOP_EDGE unreachable and a ~500px grey band under BOTTOM_EDGE.
+        val viewportW = 1080f
+        val viewportH = 963f
+        val pageH = 2051f
+        val rect = previewPageRect(viewportW, viewportH, viewportW, pageH, fitWidth = true)
+        val max = (pageH - viewportH) / 2f
+        assertEquals(544f, max, 0.01f)
+        val revealed =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = rect.top,
+                targetBottom = rect.top + 48f,
+                scale = 1f,
+                viewportHeight = viewportH,
+                scaledPageHeight = rect.height,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertEquals(max, revealed, 0.01f)
+        val toTop =
+            clampFittedPan(
+                0f,
+                revealed + 10_000f,
+                1f,
+                viewportW,
+                viewportH,
+                viewportW,
+                pageH,
+                fitWidth = true,
+            )
+        val toBottom =
+            clampFittedPan(
+                0f,
+                revealed - 10_000f,
+                1f,
+                viewportW,
+                viewportH,
+                viewportW,
+                pageH,
+                fitWidth = true,
+            )
+        val topFrame = landmarkFrame(viewportW, viewportH, rect, toTop.offsetX, toTop.offsetY)
+        val bottomFrame = landmarkFrame(viewportW, viewportH, rect, toBottom.offsetX, toBottom.offsetY)
+        val topEdge = coveringLayerScreenY(topFrame, rect.top, viewportH)
+        val upperThird = coveringLayerScreenY(topFrame, rect.top + pageH * 400f / 1400f, viewportH)
+        val bottomEdge = coveringLayerScreenY(bottomFrame, rect.top + rect.height, viewportH)
+        assertEquals(0f, topEdge, 0.01f)
+        assertTrue("UPPER_THIRD must sit below the top edge", upperThird > topEdge + 100f)
+        assertEquals(viewportH, bottomEdge, 0.01f)
+        val gapBelow = viewportH - bottomEdge
+        assertTrue("grey gap ${gapBelow}px", abs(gapBelow) < 1f)
+        // The Beta 11 double shift leaves a gap of half the overflow (~544px).
+        val doubledGap = viewportH - (bottomEdge + bottomFrame.layer.top)
+        assertTrue(doubledGap > 500f)
+    }
+
+    @Test
+    fun `required size centring is zero when the layer fits`() {
+        assertEquals(0f, requiredSizeCentering(400f, 800f), 0.01f)
+        assertEquals(-200f, requiredSizeCentering(800f, 400f), 0.01f)
+        assertEquals(0f, requiredSizeCentering(Float.NaN, 400f), 0.01f)
+        // Fit-page: the covering layer is shorter than the canvas, so Compose does not
+        // centre it and the translation must still move the layer off the origin.
+        val rect = previewPageRect(400f, 800f, 400f, 600f, fitWidth = false)
+        val frame =
+            coveringPanLayer(
+                containerWidth = 400f,
+                containerHeight = 800f,
+                pageLeft = rect.left,
+                pageTop = rect.top,
+                pageRight = rect.left + rect.width,
+                pageBottom = rect.top + rect.height,
+                panX = 0f,
+                panY = 12f,
+                padding = 8f,
+            )
+        assertTrue(frame.layer.height < 800f)
+        assertEquals(0f, requiredSizeCentering(frame.layer.height, 800f), 0.01f)
+        assertEquals(frame.layer.top + 12f, frame.translationY, 0.01f)
+        assertEquals(rect.top + 12f, coveringLayerScreenY(frame, rect.top, 800f), 0.01f)
     }
 
     @Test
@@ -769,19 +858,15 @@ class PdfPreviewZoomTest {
                 panY = -120f,
                 padding = 8f,
             )
-        assertEquals(frame.layer.left + 40f, frame.translationX, 0.01f)
-        assertEquals(frame.layer.top + -120f, frame.translationY, 0.01f)
+        // The layer is taller and wider than the canvas, so requiredSize supplies the
+        // centring and the graphicsLayer translation is the pan alone.
+        assertEquals(40f, frame.translationX, 0.01f)
+        assertEquals(-120f, frame.translationY, 0.01f)
         assertEquals(rect.top - frame.layer.top, frame.pageTop, 0.01f)
-        // graphicsLayer scales around the layer centre, then translates. With the
-        // centring shift included once, that is the same as scaling around the
-        // canvas centre — the hit-test formula.
         val scale = 2f
         val canvasY = rect.top + 0.25f * rect.height
-        val localY = canvasY - frame.layer.top
-        val pivot = frame.layer.height / 2f
-        val screen = (localY - pivot) * scale + pivot + frame.translationY
         val aroundCanvas = (canvasY - 500f) * scale + 500f + -120f
-        assertEquals(aroundCanvas, screen, 0.01f)
+        assertEquals(aroundCanvas, coveringLayerScreenY(frame, canvasY, 1000f, scale), 0.01f)
         assertEquals(540f, frame.layer.left + frame.layer.width / 2f, 0.01f)
         assertEquals(500f, frame.layer.top + frame.layer.height / 2f, 0.01f)
     }
@@ -800,9 +885,30 @@ class PdfPreviewZoomTest {
                 panY = Float.NaN,
                 padding = 4f,
             )
-        assertEquals(frame.layer.left, frame.translationX, 0.01f)
-        assertEquals(frame.layer.top, frame.translationY, 0.01f)
+        // Layer is taller than the 300px canvas, so requiredSize already centres it.
+        assertEquals(0f, frame.translationX, 0.01f)
+        assertEquals(0f, frame.translationY, 0.01f)
+        assertEquals(-50f, coveringLayerScreenY(frame, -50f, 300f), 0.01f)
         assertTrue(frame.pageTop >= -0.01f)
         assertEquals(0f, coveringPanScreenY(Float.NaN, 10f), 0.01f)
     }
+
+    private fun landmarkFrame(
+        viewportW: Float,
+        viewportH: Float,
+        rect: PreviewPageRect,
+        panX: Float,
+        panY: Float,
+    ): CoveringPanLayer =
+        coveringPanLayer(
+            containerWidth = viewportW,
+            containerHeight = viewportH,
+            pageLeft = rect.left,
+            pageTop = rect.top,
+            pageRight = rect.left + rect.width,
+            pageBottom = rect.top + rect.height,
+            panX = panX,
+            panY = panY,
+            padding = 8f,
+        )
 }
