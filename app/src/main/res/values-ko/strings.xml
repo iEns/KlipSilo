@@ -367,6 +367,8 @@
     <string name="publisher_name">Poul Andersen</string>
     <string name="publisher_email">phaprodevelop@gmail.com</string>
     <string name="privacy_policy">개인정보 처리방침</string>
+    <string name="settings_rate_helper">KlipSilo가 도움이 되었다면 Play 스토어 평점이 다른 사람이 앱을 찾는 데 도움이 됩니다.</string>
+    <string name="settings_rate_play">Google Play에서 KlipSilo 평가하기</string>
     <string name="acknowledgements">오픈소스 고지</string>
     <string name="acknowledgements_body">KlipSilo가 사용하는 것:\n\n• Android Jetpack, CameraX, Room, Material(Google / Android Open Source Project) — Apache License 2.0\n• Kotlin(JetBrains) — Apache License 2.0\n• Coil — Apache License 2.0\n• commonmark-java — BSD-2-Clause\n• PDFBox Android(Tom Roush) — Apache License 2.0\n• ML Kit 코드 스캔과 텍스트 인식(Google) — 기기에서 동작하는 라이브러리. Google Play 서비스 약관이 적용됩니다\n• Liberation Fonts(Red Hat / Google) — SIL Open Font License 1.1(전문은 앱 자산에 있습니다)\n\nKlipSilo 자체는 Poul Andersen이 있는 그대로 제공합니다.</string>
     <string name="location_disclosure_title">위치를 사용할까요?</string>
