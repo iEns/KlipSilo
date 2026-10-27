@@ -56,7 +56,7 @@ class ThemeColorContrastTest {
 
     @Test
     fun lightPrimaryContainerOnOnPrimaryContainer_meetsAA() {
-        assertAA("light primaryContainer/onPrimaryContainer", Purple80, SnipOnPrimaryContainer)
+        assertAA("light primaryContainer/onPrimaryContainer", SnipPrimaryContainer, SnipOnPrimaryContainer)
     }
 
     @Test
@@ -76,7 +76,7 @@ class ThemeColorContrastTest {
 
     @Test
     fun darkPrimaryContainerOnOnPrimaryContainer_meetsAA() {
-        assertAA("dark primaryContainer/onPrimaryContainer", PurpleGrey80, SnipDarkOnPrimaryContainer)
+        assertAA("dark primaryContainer/onPrimaryContainer", SnipDarkPrimaryContainer, SnipDarkOnPrimaryContainer)
     }
 
     private companion object {

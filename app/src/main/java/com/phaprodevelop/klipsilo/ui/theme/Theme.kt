@@ -15,7 +15,7 @@ private val LightColorScheme =
     lightColorScheme(
         primary = SnipPrimary,
         onPrimary = SnipOnPrimary,
-        primaryContainer = Purple80,
+        primaryContainer = SnipPrimaryContainer,
         onPrimaryContainer = SnipOnPrimaryContainer,
         secondary = SnipSecondary,
         onSecondary = SnipOnSecondary,
@@ -31,7 +31,7 @@ private val DarkColorScheme =
     darkColorScheme(
         primary = SnipDarkPrimary,
         onPrimary = SnipDarkOnPrimary,
-        primaryContainer = PurpleGrey80,
+        primaryContainer = SnipDarkPrimaryContainer,
         onPrimaryContainer = SnipDarkOnPrimaryContainer,
         secondary = SnipDarkSecondary,
         onSecondary = SnipDarkOnSecondary,
