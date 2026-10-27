@@ -166,11 +166,12 @@ fun previewPageRect(
  * [padding] on every side.
  *
  * Mark Up draws the page inside a `graphicsLayer` whose transformOrigin is the layer's
- * centre. Centring the layer on the canvas keeps that origin on the canvas centre, so the
- * scale/pan math used for hit-testing and clamping is unchanged. The layer must also
- * contain the whole page: while fit-width is active for the IME the page is taller than
- * the canvas, and content drawn outside a canvas-sized layer could not be composited
- * above the layer, so panning down to reveal the top of the page showed nothing (#161).
+ * centre. The layer is laid out at the canvas origin and translated once, by
+ * [coveringPanLayer], so that centre lands on the canvas centre. The scale/pan math
+ * used for hit-testing and clamping is unchanged. The layer must also contain the
+ * whole page: while fit-width is active for the IME the page is taller than the
+ * canvas, and content drawn outside a canvas-sized layer could not be composited
+ * above the layer, so panning to reveal the top of the page showed nothing (#161).
  * Degenerate input falls back to the canvas rect. Pure; unit tested.
  */
 fun centredCoveringRect(
@@ -209,6 +210,79 @@ fun centredCoveringRect(
         width = halfWidth * 2f,
         height = halfHeight * 2f,
     )
+}
+
+/**
+ * Where the fit-width (or ordinary) page is drawn, and how the graphicsLayer is
+ * translated, so pan limits meet the real page edges (#161).
+ *
+ * [layer] is the centred covering rect. It is laid out at the canvas origin
+ * `(0, 0)`, not moved with `Modifier.offset`. The lambda form of that modifier
+ * places through `placeWithLayer`; stacked on this `graphicsLayer` the same
+ * shift was applied twice, so the page sat high by [PreviewPageRect.top] of the
+ * layer (about half the fit-width overflow). The upper pan stop then still hid
+ * the top of the page, and the lower stop left a grey band under it (Beta 10).
+ *
+ * [translationX] and [translationY] are `pan + layer origin`: one centring
+ * shift, then the user's pan. [pageLeft] and [pageTop] are the fitted page
+ * inside the layer. At scale 1, a canvas-space point `y` is on screen at
+ * `y + panY` — see [coveringPanScreenY]. Pure; unit tested.
+ */
+data class CoveringPanLayer(
+    val layer: PreviewPageRect,
+    val pageLeft: Float,
+    val pageTop: Float,
+    val translationX: Float,
+    val translationY: Float,
+)
+
+fun coveringPanLayer(
+    containerWidth: Float,
+    containerHeight: Float,
+    pageLeft: Float,
+    pageTop: Float,
+    pageRight: Float,
+    pageBottom: Float,
+    panX: Float,
+    panY: Float,
+    padding: Float = 0f,
+    contentLeft: Float = pageLeft,
+    contentTop: Float = pageTop,
+    contentRight: Float = pageRight,
+    contentBottom: Float = pageBottom,
+): CoveringPanLayer {
+    val layer =
+        centredCoveringRect(
+            containerWidth = containerWidth,
+            containerHeight = containerHeight,
+            contentLeft = contentLeft,
+            contentTop = contentTop,
+            contentRight = contentRight,
+            contentBottom = contentBottom,
+            padding = padding,
+        )
+    val safePanX = if (panX.isFinite()) panX else 0f
+    val safePanY = if (panY.isFinite()) panY else 0f
+    return CoveringPanLayer(
+        layer = layer,
+        pageLeft = pageLeft - layer.left,
+        pageTop = pageTop - layer.top,
+        translationX = safePanX + layer.left,
+        translationY = safePanY + layer.top,
+    )
+}
+
+/**
+ * Screen Y of a canvas-space point under [coveringPanLayer] at scale 1.
+ * The layer origin cancels (it is added to the translation and subtracted
+ * from the page position) and must not be added a second time. Pure; unit tested.
+ */
+fun coveringPanScreenY(
+    canvasY: Float,
+    panY: Float,
+): Float {
+    if (!canvasY.isFinite() || !panY.isFinite()) return 0f
+    return canvasY + panY
 }
 
 /**

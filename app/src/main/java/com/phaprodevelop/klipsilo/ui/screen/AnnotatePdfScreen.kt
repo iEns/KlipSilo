@@ -105,6 +105,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -151,8 +152,8 @@ import com.phaprodevelop.klipsilo.ui.components.FitTextPolicy
 import com.phaprodevelop.klipsilo.ui.components.FitTopBar
 import com.phaprodevelop.klipsilo.ui.components.PageSelector
 import com.phaprodevelop.klipsilo.ui.components.TOOL_LABEL_MIN_SCALE
-import com.phaprodevelop.klipsilo.ui.components.centredCoveringRect
 import com.phaprodevelop.klipsilo.ui.components.clampFittedPan
+import com.phaprodevelop.klipsilo.ui.components.coveringPanLayer
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fitTextSemantics
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
@@ -1921,10 +1922,13 @@ fun AnnotatePdfScreen(
                         // fit-width is active for the IME the page is taller than the canvas, and
                         // content drawn above (or below) a canvas-sized layer could not be
                         // composited when a pan moved it into view, so the top of the page stayed
-                        // unreachable. Grow the layer around the canvas centre (keeping the
-                        // graphicsLayer transformOrigin on the canvas centre, so the pan and
-                        // hit-test math below is unchanged) until it holds the whole page and the
-                        // open text field.
+                        // unreachable. Grow the layer around the canvas centre until it holds the
+                        // whole page and the open text field. Lay that layer out at the canvas
+                        // origin and apply the centring shift once, as the graphicsLayer
+                        // translation. Offsetting the same box with Modifier.offset { } placed
+                        // it through another layer and applied the shift again, so the page sat
+                        // high by about half the overflow: the top stayed clipped and the lower
+                        // pan stop left a grey band under the page (Beta 10).
                         var contentLeft = pageRect.left
                         var contentTop = pageRect.top
                         var contentRight = pageRect.right
@@ -1937,41 +1941,47 @@ fun AnnotatePdfScreen(
                             contentRight = maxOf(contentRight, fieldLeft + draftFieldSize.width)
                             contentBottom = maxOf(contentBottom, fieldTop + draftFieldSize.height)
                         }
-                        val layerRect =
-                            centredCoveringRect(
+                        val frame =
+                            coveringPanLayer(
                                 containerWidth = pageSize.width.toFloat(),
                                 containerHeight = pageSize.height.toFloat(),
+                                pageLeft = pageRect.left,
+                                pageTop = pageRect.top,
+                                pageRight = pageRect.right,
+                                pageBottom = pageRect.bottom,
+                                panX = offsetX,
+                                panY = offsetY,
+                                // Leave room for the page shadow so it stays inside the layer too.
+                                padding = with(density) { 8.dp.toPx() },
                                 contentLeft = contentLeft,
                                 contentTop = contentTop,
                                 contentRight = contentRight,
                                 contentBottom = contentBottom,
-                                // Leave room for the page shadow so it stays inside the layer too.
-                                padding = with(density) { 8.dp.toPx() },
                             )
+                        val layerRect = frame.layer
                         Box(
                             modifier =
                                 Modifier
-                                    .offset {
-                                        IntOffset(layerRect.left.roundToInt(), layerRect.top.roundToInt())
-                                    }.requiredSize(
+                                    .requiredSize(
                                         width = with(density) { layerRect.width.toDp() },
                                         height = with(density) { layerRect.height.toDp() },
                                     ).graphicsLayer(
                                         scaleX = scale,
                                         scaleY = scale,
-                                        translationX = offsetX,
-                                        translationY = offsetY,
+                                        translationX = frame.translationX,
+                                        translationY = frame.translationY,
                                     ),
                         ) {
-                            val pageLeft = pageRect.left - layerRect.left
-                            val pageTop = pageRect.top - layerRect.top
+                            val pageLeft = frame.pageLeft
+                            val pageTop = frame.pageTop
                             // The page occupies the fitted rect inside the (possibly larger) layer;
                             // the bitmap, shadow, frame and draft field share that geometry.
+                            // placePx uses place(), not offset { }'s placeWithLayer, so the shadow's
+                            // own graphicsLayer does not pick up a second copy of this position.
                             val pageChromeModifier =
                                 Modifier
-                                    .offset {
-                                        IntOffset(pageLeft.roundToInt(), pageTop.roundToInt())
-                                    }.requiredSize(
+                                    .placePx(pageLeft, pageTop)
+                                    .requiredSize(
                                         width = with(density) { pageRect.width.toDp() },
                                         height = with(density) { pageRect.height.toDp() },
                                     )
@@ -2046,7 +2056,7 @@ fun AnnotatePdfScreen(
                                     },
                                     modifier =
                                         Modifier
-                                            .offset { IntOffset(x.toInt(), y.toInt()) }
+                                            .placePx(x, y)
                                             .width(fieldWidth)
                                             .focusRequester(focusRequester)
                                             .background(
@@ -2960,6 +2970,18 @@ private fun wrapSegment(
     if (current.isNotEmpty()) lines.add(current.toString())
     return lines
 }
+
+/** Layout placement in px that does not promote a graphics layer (see [coveringPanLayer]). */
+private fun Modifier.placePx(
+    x: Float,
+    y: Float,
+): Modifier =
+    layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        layout(placeable.width, placeable.height) {
+            placeable.place(x.roundToInt(), y.roundToInt())
+        }
+    }
 
 private fun fittedRect(
     container: IntSize,

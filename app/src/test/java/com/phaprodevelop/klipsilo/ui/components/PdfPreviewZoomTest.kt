@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.abs
 
 class PdfPreviewZoomTest {
     @Test
@@ -664,5 +665,144 @@ class PdfPreviewZoomTest {
             PreviewPageRect(0f, 0f, 400f, 300f),
             centredCoveringRect(400f, 300f, Float.NaN, 10f, 20f, 20f),
         )
+    }
+
+    @Test
+    fun `fit width pan stops with both page edges flush and no gap below`() {
+        // Phone-shaped strip: 1178x1700 page in a 1178x713 canvas (keyboard open).
+        // Half the overflow is ~494px. Beta 10 applied the covering-layer shift twice,
+        // so max pan-down left a grey band of about that size and max pan-up still
+        // hid the top ~500px of the page.
+        val viewportW = 1178f
+        val viewportH = 713f
+        val pageH = 1700f
+        val rect = previewPageRect(viewportW, viewportH, viewportW, pageH, fitWidth = true)
+        val max = (pageH - viewportH) / 2f
+        assertEquals(-max, rect.top, 0.01f)
+        val revealed =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = rect.top + 0.10f * rect.height,
+                targetBottom = rect.top + 0.10f * rect.height + 64f,
+                scale = 1f,
+                viewportHeight = viewportH,
+                scaledPageHeight = rect.height,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        assertTrue(revealed in -max..max)
+        val toTop =
+            clampFittedPan(
+                0f,
+                revealed + 10_000f,
+                1f,
+                viewportW,
+                viewportH,
+                viewportW,
+                pageH,
+                fitWidth = true,
+            )
+        val toBottom =
+            clampFittedPan(
+                0f,
+                revealed - 10_000f,
+                1f,
+                viewportW,
+                viewportH,
+                viewportW,
+                pageH,
+                fitWidth = true,
+            )
+        val topFrame =
+            coveringPanLayer(
+                containerWidth = viewportW,
+                containerHeight = viewportH,
+                pageLeft = rect.left,
+                pageTop = rect.top,
+                pageRight = rect.left + rect.width,
+                pageBottom = rect.top + rect.height,
+                panX = toTop.offsetX,
+                panY = toTop.offsetY,
+                padding = 8f,
+            )
+        val bottomFrame =
+            coveringPanLayer(
+                containerWidth = viewportW,
+                containerHeight = viewportH,
+                pageLeft = rect.left,
+                pageTop = rect.top,
+                pageRight = rect.left + rect.width,
+                pageBottom = rect.top + rect.height,
+                panX = toBottom.offsetX,
+                panY = toBottom.offsetY,
+                padding = 8f,
+            )
+        // Screen position is page-in-layer plus the single graphicsLayer translation.
+        val topEdge = topFrame.pageTop + topFrame.translationY
+        val bottomEdge = bottomFrame.pageTop + rect.height + bottomFrame.translationY
+        assertEquals(coveringPanScreenY(rect.top, toTop.offsetY), topEdge, 0.01f)
+        assertEquals(0f, topEdge, 0.01f)
+        assertEquals(viewportH, bottomEdge, 0.01f)
+        val gapBelow = viewportH - bottomEdge
+        assertEquals(0f, gapBelow, 0.01f)
+        assertTrue("grey gap ${gapBelow}px", abs(gapBelow) < 1f)
+        // Applying the layer origin a second time (the Beta 10 offset) hides the top
+        // and opens a gap the size of that origin under the page.
+        val doubledTop = topEdge + topFrame.layer.top
+        val doubledBottom = bottomEdge + bottomFrame.layer.top
+        assertTrue(doubledTop < -400f)
+        assertTrue(viewportH - doubledBottom > 400f)
+    }
+
+    @Test
+    fun `covering pan translation centres the layer once at any scale`() {
+        val rect = previewPageRect(1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        val frame =
+            coveringPanLayer(
+                containerWidth = 1080f,
+                containerHeight = 1000f,
+                pageLeft = rect.left,
+                pageTop = rect.top,
+                pageRight = rect.left + rect.width,
+                pageBottom = rect.top + rect.height,
+                panX = 40f,
+                panY = -120f,
+                padding = 8f,
+            )
+        assertEquals(frame.layer.left + 40f, frame.translationX, 0.01f)
+        assertEquals(frame.layer.top + -120f, frame.translationY, 0.01f)
+        assertEquals(rect.top - frame.layer.top, frame.pageTop, 0.01f)
+        // graphicsLayer scales around the layer centre, then translates. With the
+        // centring shift included once, that is the same as scaling around the
+        // canvas centre — the hit-test formula.
+        val scale = 2f
+        val canvasY = rect.top + 0.25f * rect.height
+        val localY = canvasY - frame.layer.top
+        val pivot = frame.layer.height / 2f
+        val screen = (localY - pivot) * scale + pivot + frame.translationY
+        val aroundCanvas = (canvasY - 500f) * scale + 500f + -120f
+        assertEquals(aroundCanvas, screen, 0.01f)
+        assertEquals(540f, frame.layer.left + frame.layer.width / 2f, 0.01f)
+        assertEquals(500f, frame.layer.top + frame.layer.height / 2f, 0.01f)
+    }
+
+    @Test
+    fun `covering pan ignores a non-finite pan and keeps the page inside the layer`() {
+        val frame =
+            coveringPanLayer(
+                containerWidth = 400f,
+                containerHeight = 300f,
+                pageLeft = 0f,
+                pageTop = -50f,
+                pageRight = 400f,
+                pageBottom = 550f,
+                panX = Float.NaN,
+                panY = Float.NaN,
+                padding = 4f,
+            )
+        assertEquals(frame.layer.left, frame.translationX, 0.01f)
+        assertEquals(frame.layer.top, frame.translationY, 0.01f)
+        assertTrue(frame.pageTop >= -0.01f)
+        assertEquals(0f, coveringPanScreenY(Float.NaN, 10f), 0.01f)
     }
 }
