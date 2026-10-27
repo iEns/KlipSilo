@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -1924,12 +1925,16 @@ fun AnnotatePdfScreen(
                             } else {
                                 null
                             }
+                        // The page layer is the full fitted rect, which is taller than the canvas
+                        // while fit-width is active for the IME (#161). requiredSize ignores the
+                        // canvas bounds so the bitmap, shadow, frame and draft all share the same
+                        // geometry and panning can reveal the page above/below the viewport.
                         val pageChromeModifier =
                             pageRect?.let { rect ->
                                 Modifier
                                     .offset {
                                         IntOffset(rect.left.roundToInt(), rect.top.roundToInt())
-                                    }.size(
+                                    }.requiredSize(
                                         width = with(density) { rect.width.toDp() },
                                         height = with(density) { rect.height.toDp() },
                                     )
@@ -1951,8 +1956,11 @@ fun AnnotatePdfScreen(
                             Image(
                                 bitmap = bmp.asImageBitmap(),
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = if (fitWidthForIme) ContentScale.FillWidth else ContentScale.Fit,
+                                // The bitmap must occupy the same fitted rect as the chrome and
+                                // the draft field; a viewport-sized FillWidth image crops the top
+                                // and bottom of the page and leaves taps in grey (#161 reopen).
+                                modifier = pageChromeModifier ?: Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit,
                                 filterQuality = FilterQuality.High,
                             )
                         }
