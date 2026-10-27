@@ -161,6 +161,57 @@ fun previewPageRect(
 }
 
 /**
+ * Smallest rect centred on the canvas centre that contains the content span
+ * [contentLeft]..[contentRight] x [contentTop]..[contentBottom] (canvas px), grown by
+ * [padding] on every side.
+ *
+ * Mark Up draws the page inside a `graphicsLayer` whose transformOrigin is the layer's
+ * centre. Centring the layer on the canvas keeps that origin on the canvas centre, so the
+ * scale/pan math used for hit-testing and clamping is unchanged. The layer must also
+ * contain the whole page: while fit-width is active for the IME the page is taller than
+ * the canvas, and content drawn outside a canvas-sized layer could not be composited
+ * above the layer, so panning down to reveal the top of the page showed nothing (#161).
+ * Degenerate input falls back to the canvas rect. Pure; unit tested.
+ */
+fun centredCoveringRect(
+    containerWidth: Float,
+    containerHeight: Float,
+    contentLeft: Float,
+    contentTop: Float,
+    contentRight: Float,
+    contentBottom: Float,
+    padding: Float = 0f,
+): PreviewPageRect {
+    if (
+        containerWidth <= 0f ||
+        containerHeight <= 0f ||
+        !containerWidth.isFinite() ||
+        !containerHeight.isFinite() ||
+        !contentLeft.isFinite() ||
+        !contentTop.isFinite() ||
+        !contentRight.isFinite() ||
+        !contentBottom.isFinite()
+    ) {
+        return PreviewPageRect(0f, 0f, containerWidth, containerHeight)
+    }
+    val safePadding = if (padding.isFinite() && padding > 0f) padding else 0f
+    val centreX = containerWidth / 2f
+    val centreY = containerHeight / 2f
+    val left = minOf(centreX, contentLeft) - safePadding
+    val top = minOf(centreY, contentTop) - safePadding
+    val right = maxOf(centreX, contentRight) + safePadding
+    val bottom = maxOf(centreY, contentBottom) + safePadding
+    val halfWidth = maxOf(centreX - left, right - centreX)
+    val halfHeight = maxOf(centreY - top, bottom - centreY)
+    return PreviewPageRect(
+        left = centreX - halfWidth,
+        top = centreY - halfHeight,
+        width = halfWidth * 2f,
+        height = halfHeight * 2f,
+    )
+}
+
+/**
  * Pan offset (px, viewport-centre relative like [PreviewZoomState]) that keeps the page-layer
  * span [targetTop]..[targetBottom] inside the viewport margins, moving as little as possible
  * from [currentOffsetY] and then clamped so the page stays over the viewport (#161).
