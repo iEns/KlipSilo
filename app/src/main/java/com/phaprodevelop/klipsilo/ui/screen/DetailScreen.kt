@@ -1477,6 +1477,49 @@ private fun PdfViewer(
         return
     }
 
+    val actions =
+        buildList {
+            if (onSavePageAsPdf != null) {
+                add(
+                    PdfBarActionSpec(
+                        icon = Icons.Filled.PictureAsPdf,
+                        label = context.getString(R.string.save_page_pdf),
+                        onClick = { onSavePageAsPdf(pageIndex) },
+                    ),
+                )
+            }
+            if (onOcrPage != null) {
+                add(
+                    PdfBarActionSpec(
+                        icon = Icons.Filled.TextFields,
+                        label = context.getString(R.string.ocr_page),
+                        onClick = { onOcrPage(pageIndex) },
+                    ),
+                )
+            }
+        }
+    val menu =
+        buildList {
+            if (onExtractImages != null) {
+                add(
+                    PdfBarActionSpec(
+                        icon = Icons.Filled.Photo,
+                        label = context.getString(R.string.pdf_to_image),
+                        onClick = { onExtractImages(pageIndex) },
+                    ),
+                )
+            }
+            if (onScanQr != null) {
+                add(
+                    PdfBarActionSpec(
+                        icon = Icons.Filled.QrCodeScanner,
+                        label = context.getString(R.string.scan_content),
+                        onClick = { onScanQr(pageIndex) },
+                    ),
+                )
+            }
+        }
+
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
             displayed.bitmap?.let { bmp ->
@@ -1603,85 +1646,45 @@ private fun PdfViewer(
                     filterQuality = FilterQuality.High,
                 )
             }
-            val actions =
-                buildList {
-                    if (onSavePageAsPdf != null) {
-                        add(
-                            PdfBarActionSpec(
-                                icon = Icons.Filled.PictureAsPdf,
-                                label = context.getString(R.string.save_page_pdf),
-                                onClick = { onSavePageAsPdf(pageIndex) },
-                            ),
-                        )
-                    }
-                    if (onOcrPage != null) {
-                        add(
-                            PdfBarActionSpec(
-                                icon = Icons.Filled.TextFields,
-                                label = context.getString(R.string.ocr_page),
-                                onClick = { onOcrPage(pageIndex) },
-                            ),
-                        )
-                    }
-                }
-            val menu =
-                buildList {
-                    if (onExtractImages != null) {
-                        add(
-                            PdfBarActionSpec(
-                                icon = Icons.Filled.Photo,
-                                label = context.getString(R.string.pdf_to_image),
-                                onClick = { onExtractImages(pageIndex) },
-                            ),
-                        )
-                    }
-                    if (onScanQr != null) {
-                        add(
-                            PdfBarActionSpec(
-                                icon = Icons.Filled.QrCodeScanner,
-                                label = context.getString(R.string.scan_content),
-                                onClick = { onScanQr(pageIndex) },
-                            ),
-                        )
-                    }
-                }
-            PdfViewerActionBar(
-                pageIndex = pageIndex,
-                pageCount = pageCount,
-                onPrev = {
-                    if (pageIndex > 0) {
-                        pageIndex--
-                        offsetX = 0f
-                        offsetY = 0f
-                        scale = 1f
-                    }
-                },
-                onNext = {
-                    if (pageIndex < pageCount - 1) {
-                        pageIndex++
-                        offsetX = 0f
-                        offsetY = 0f
-                        scale = 1f
-                    }
-                },
-                onGoToPage = { target ->
-                    if (target != pageIndex) {
-                        pageIndex = target
-                        offsetX = 0f
-                        offsetY = 0f
-                        scale = 1f
-                    }
-                },
-                actions = actions,
-                menu = menu,
-                moreLabel = context.getString(R.string.more_options),
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(8.dp)
-                        .fillMaxWidth(),
-            )
         }
+        // #160: the action bar sits below the page, not over it, so the
+        // viewport and pan clamp end above the bar and the bottom of the page
+        // stays reachable when zoomed in (same layout as Mark up, #152).
+        PdfViewerActionBar(
+            pageIndex = pageIndex,
+            pageCount = pageCount,
+            onPrev = {
+                if (pageIndex > 0) {
+                    pageIndex--
+                    offsetX = 0f
+                    offsetY = 0f
+                    scale = 1f
+                }
+            },
+            onNext = {
+                if (pageIndex < pageCount - 1) {
+                    pageIndex++
+                    offsetX = 0f
+                    offsetY = 0f
+                    scale = 1f
+                }
+            },
+            onGoToPage = { target ->
+                if (target != pageIndex) {
+                    pageIndex = target
+                    offsetX = 0f
+                    offsetY = 0f
+                    scale = 1f
+                }
+            },
+            actions = actions,
+            menu = menu,
+            moreLabel = context.getString(R.string.more_options),
+            modifier =
+                Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth(),
+        )
     }
 }
 
