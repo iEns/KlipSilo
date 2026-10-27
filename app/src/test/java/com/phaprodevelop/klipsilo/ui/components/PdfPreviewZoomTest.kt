@@ -518,6 +518,30 @@ class PdfPreviewZoomTest {
     }
 
     @Test
+    fun `reveal pan brings a top quarter field on a fit width page into view`() {
+        // 1080x2400 page in a 1080x1000 canvas with the IME up: the fit-width page starts
+        // 700px above the canvas, so a tap at 10% lands at -460px, in the cut-off top band.
+        val rect = previewPageRect(1080f, 1000f, 1080f, 2400f, fitWidth = true)
+        assertEquals(-700f, rect.top, 0.01f)
+        val fieldTop = rect.top + 0.1f * rect.height
+        assertEquals(-460f, fieldTop, 0.01f)
+        val offset =
+            revealOffsetY(
+                currentOffsetY = 0f,
+                targetTop = fieldTop,
+                targetBottom = fieldTop + 64f,
+                scale = 1f,
+                viewportHeight = 1000f,
+                scaledPageHeight = rect.height,
+                topMargin = 16f,
+                bottomMargin = 16f,
+            )
+        // The page pans down 476px (within its 700px room) so the field sits at the top margin.
+        assertEquals(476f, offset, 0.01f)
+        assertEquals(16f, fieldTop + offset, 0.01f)
+    }
+
+    @Test
     fun `reveal pan ignores non-finite input`() {
         assertEquals(
             42f,
