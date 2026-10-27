@@ -1,7 +1,10 @@
 package com.phaprodevelop.klipsilo.ui.screen
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +28,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -257,6 +261,39 @@ fun SettingsScreen(
                     Text("›", color = MaterialTheme.colorScheme.primary)
                 }
             }
+            // #163: a quiet Play Store rating link lives under Privacy, still
+            // in the About block. No in-app review prompt or nag.
+            Spacer(Modifier.size(12.dp))
+            Text(
+                text = context.getString(R.string.settings_rate_helper),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.size(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { openPlayStore(context) },
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    ButtonLabel(
+                        text = context.getString(R.string.settings_rate_play),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        floorFraction = SETTINGS_LABEL_MIN_SCALE,
+                        hyphenate = true,
+                    )
+                    Text("›", color = MaterialTheme.colorScheme.primary)
+                }
+            }
         }
 
         if (showLanguageSheet) {
@@ -276,6 +313,36 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * #163: opens the production KlipSilo listing. The Play Store app handles
+ * `market://`; when it is missing (or the launch fails) the web listing opens
+ * in a browser instead. The production package id is hardcoded so `.beta`
+ * builds also rate the released app — never [android.content.Context.getPackageName].
+ */
+private fun openPlayStore(context: Context) {
+    val packageId = "com.phaprodevelop.klipsilo"
+    val marketIntent =
+        Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageId"))
+    if (marketIntent.resolveActivity(context.packageManager) != null) {
+        try {
+            context.startActivity(marketIntent)
+            return
+        } catch (_: ActivityNotFoundException) {
+            // No Play Store activity after all: fall through to the web listing.
+        }
+    }
+    val webIntent =
+        Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=$packageId"),
+        )
+    try {
+        context.startActivity(webIntent)
+    } catch (_: ActivityNotFoundException) {
+        // No browser either; the tap is a no-op rather than a crash.
     }
 }
 
