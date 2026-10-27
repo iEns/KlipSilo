@@ -56,7 +56,6 @@ class InvisibleBreakUsageTest {
             "FitTopBar",
             "TopBarFitTitle",
             // Wrappers whose labels render through ButtonLabel/DisplayText:
-            "GuideRow",
             "ToolRow",
             "SheetRow",
             "LanguageOptionRow",
@@ -95,32 +94,6 @@ class InvisibleBreakUsageTest {
                         "form field label rendered through ButtonLabel in FormFillScreen.kt; " +
                         "no non-visible sink",
                 ),
-            // The strings flow into data-class fields; the render sites below
-            // use DisplayText (tip.title / tip.body / category.title).
-            "TipsScreen.kt" to
-                mapOf(
-                    "tips_cat_settings" to "rendered through DisplayText (category.title)",
-                    "tips_cat_sheet" to "rendered through DisplayText (category.title)",
-                    "tip_clips_auto_t" to "rendered through DisplayText (tip.title)",
-                    "tip_pdf_pages_t" to "rendered through DisplayText (tip.title)",
-                    "tip_settings_pdf_t" to "rendered through DisplayText (tip.title)",
-                    "tip_tools_combine_t" to "rendered through DisplayText (tip.title)",
-                ),
-            "LimitationsScreen.kt" to
-                mapOf(
-                    "limitations_break_t" to "rendered through DisplayText (limitation.title)",
-                    "limitations_spacing_t" to "rendered through DisplayText (limitation.title)",
-                    "limitations_symbols_t" to "rendered through DisplayText (limitation.title)",
-                    "limitations_summary_t" to "rendered through DisplayText (summary title)",
-                ),
-            "UseCasesScreen.kt" to
-                mapOf(
-                    "use_3_t" to "rendered through DisplayText (section.title)",
-                    "use_7_t" to "rendered through DisplayText (section.title)",
-                    "use_10_t" to "rendered through DisplayText (section.title)",
-                ),
-            "WhyScreen.kt" to
-                mapOf("why_9_t" to "rendered through DisplayText (section.title)"),
             // The title val is rendered through DisplayText in the TopAppBar.
             "TextPresentationScreen.kt" to
                 mapOf(

@@ -66,15 +66,11 @@ import com.phaprodevelop.klipsilo.ui.screen.CameraScanScreen
 import com.phaprodevelop.klipsilo.ui.screen.DetailScreen
 import com.phaprodevelop.klipsilo.ui.screen.FormFillScreen
 import com.phaprodevelop.klipsilo.ui.screen.KlipScreen
-import com.phaprodevelop.klipsilo.ui.screen.LimitationsScreen
 import com.phaprodevelop.klipsilo.ui.screen.PdfPagesScreen
 import com.phaprodevelop.klipsilo.ui.screen.PrivacyPolicyScreen
 import com.phaprodevelop.klipsilo.ui.screen.ScanMode
 import com.phaprodevelop.klipsilo.ui.screen.SettingsScreen
-import com.phaprodevelop.klipsilo.ui.screen.TipsScreen
 import com.phaprodevelop.klipsilo.ui.screen.ToolsScreen
-import com.phaprodevelop.klipsilo.ui.screen.UseCasesScreen
-import com.phaprodevelop.klipsilo.ui.screen.WhyScreen
 import com.phaprodevelop.klipsilo.viewmodel.ClipNoticeAction
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutInvisibleBreaks
@@ -306,10 +302,6 @@ fun AppRoot(viewModel: ClipboardViewModel) {
             composable(BottomNavItem.SETTINGS.route) {
                 SettingsScreen(
                     viewModel,
-                    onNavigateToTips = { navController.navigate("tips") },
-                    onNavigateToLimitations = { navController.navigate("limitations") },
-                    onNavigateToWhy = { navController.navigate("why") },
-                    onNavigateToUseCases = { navController.navigate("use-cases") },
                     onNavigateToAbout = { navController.navigate("about") },
                     onNavigateToPrivacy = { navController.navigate("privacy") },
                 )
@@ -426,18 +418,6 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     viewModel = viewModel,
                     onNavigateBack = { navController.popBackStack() },
                 )
-            }
-            composable("tips") {
-                TipsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable("limitations") {
-                LimitationsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable("why") {
-                WhyScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            composable("use-cases") {
-                UseCasesScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable("about") {
                 AboutScreen(
