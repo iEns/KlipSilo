@@ -43,7 +43,10 @@ android {
             if (!signingStore.isNullOrBlank()) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = false
+            // R8 full mode. Keep rules live in proguard-rules.pro; the beta
+            // build type inherits both flags through initWith(release).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

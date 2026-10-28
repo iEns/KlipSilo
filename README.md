@@ -64,6 +64,8 @@ sdk.dir=/path/to/Android/Sdk
 
 `beta` is a second build type. Its application id is `com.phaprodevelop.klipsilo.beta`, the launcher name is "KlipSilo Beta", and the icon is orange, so it installs beside the Play app. The release build type is unchanged: application id `com.phaprodevelop.klipsilo`, versionName `1.2.0`, versionCode `12000`.
 
+Release and beta builds are R8-minified and resource-shrunk (`isMinifyEnabled = true`, `isShrinkResources = true`). Keep rules are in `app/proguard-rules.pro`; mapping files and the Play deobfuscation step are documented in [`docs/release-minification.md`](docs/release-minification.md).
+
 The beta version comes from a tag such as `v1.2.0-beta.1` (versionCode `11901`). `DEPLOYTOOL_ARTIFACT_REF` wins when it is set, because a deploy builds from `git archive` and that tree has no `.git`. Otherwise Gradle uses `git describe`. A checkout that is not on a beta tag falls back to `1.2.0-beta.7`. The same release keystore signs the beta APK when `DEPLOYTOOL_SIGNING_*` is set.
 
 Debug builds are signed with the debug keystore. Release builds are signed only when these environment variables are set:

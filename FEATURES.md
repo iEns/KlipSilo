@@ -6,6 +6,10 @@ This file lists what KlipSilo can do on the current `main` branch, grouped by ar
 - **Test:** the checklist item(s) that cover the feature. `—` means no item yet.
 - **Automated:** whether an automated test covers the feature end to end. All `no` for now.
 
+## Builds
+
+Release and beta builds are minified with R8 and have unused resources removed (`isMinifyEnabled = true`, `isShrinkResources = true`, #88). Debug builds stay unminified. A feature that works in debug but fails in beta/release is an R8 keep-rule bug, not a feature change; the mapping files and release artifact handling are described in [docs/release-minification.md](docs/release-minification.md).
+
 ## Clipboard / main list
 
 | Feature | How to reach it | Released in | Test | Automated |
