@@ -1,6 +1,7 @@
 # KlipSilo manual regression checklist (core features)
 
 - **Build under test:** v1.2.0-beta.x (current beta.6 = `3e2513e`). **Baseline:** v1.1.0 (`2a5e8eb`).
+- **Minified since #88:** release and beta are R8-minified with resource shrinking. Test the minified **beta** APK for a full regression, not a debug build, so keep-rule regressions in PDFBox, ML Kit, CameraX, Coil, Room or Compose show up. Mapping files and artifact handling: [`release-minification.md`](release-minification.md).
 - **Source:** `../FEATURES.md` with Jens's corrections from 2026-10-18:
   - Conversion *to* DOCX never existed and is dropped. DOCX → PDF is a v1.1.0 feature and stays in scope (Silas, 2026-10-18).
   - The duplicate-share dialog (R2) and undo/redo replacing "Clear all" (R3) are intended.
