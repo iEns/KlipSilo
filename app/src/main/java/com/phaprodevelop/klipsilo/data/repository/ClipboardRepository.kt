@@ -1287,19 +1287,21 @@ class ClipboardRepository(
         val lines =
             wrapAnnotationText(annotation.text, paint, (visualWidth * 0.95f).toInt())
                 .map { pdfSafeText(font, it) }
-                .filter { it.isNotEmpty() }
-        if (lines.isEmpty()) return
+        // Blank lines are kept as vertical space (#172) but nothing is drawn for them.
+        if (lines.all { it.isEmpty() }) return
         val (red, green, blue) = rgbOf(annotation.color)
         stream.setNonStrokingColor(red / 255f, green / 255f, blue / 255f)
         val lineAdvance = paint.fontSpacing.let { if (it > 0f) it else fontSize }
         var baseline = (1f - annotation.yFraction) * visualHeight - (-paint.ascent()).coerceAtLeast(0f)
         val x = annotation.xFraction * visualWidth
         lines.forEach { line ->
-            stream.beginText()
-            stream.setFont(font, fontSize)
-            stream.newLineAtOffset(x, baseline)
-            stream.showText(line)
-            stream.endText()
+            if (line.isNotEmpty()) {
+                stream.beginText()
+                stream.setFont(font, fontSize)
+                stream.newLineAtOffset(x, baseline)
+                stream.showText(line)
+                stream.endText()
+            }
             baseline -= lineAdvance
         }
     }
@@ -5091,7 +5093,7 @@ private fun rgbOf(color: Int): Triple<Int, Int, Int> {
 
 private const val ANNOTATION_FONT = "fonts/LiberationSans-Regular.ttf"
 
-private fun wrapAnnotationText(
+internal fun wrapAnnotationText(
     text: String,
     paint: Paint,
     maxWidthPx: Int,
@@ -5106,11 +5108,13 @@ private fun wrapAnnotationText(
     }
 }
 
-private fun wrapSegment(
+internal fun wrapSegment(
     segment: String,
     paint: Paint,
     maxWidthPx: Int,
 ): List<String> {
+    // A blank line is content (#172): keep it so internal line breaks survive wrapping.
+    if (segment.isEmpty()) return listOf("")
     val lines = mutableListOf<String>()
     var current = StringBuilder()
     segment.split(" ").forEach { word ->
