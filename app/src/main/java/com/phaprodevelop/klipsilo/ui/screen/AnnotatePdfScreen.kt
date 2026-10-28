@@ -2954,6 +2954,8 @@ private fun wrapSegment(
     paint: android.graphics.Paint,
     maxWidthPx: Int,
 ): List<String> {
+    // A blank line is content (#172): keep it so internal line breaks survive wrapping.
+    if (segment.isEmpty()) return listOf("")
     val lines = mutableListOf<String>()
     var current = StringBuilder()
     segment.split(" ").forEach { word ->

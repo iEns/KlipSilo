@@ -75,6 +75,20 @@ class MarkupHistoryTest {
     }
 
     @Test
+    fun resolveTextCommit_keepsInternalBlankLines_butTrimsEnds() {
+        // Blank lines between content lines are content (#172). Only leading and
+        // trailing whitespace is trimmed.
+        assertEquals(
+            TextCommitDecision.Add("line1\n\n\nline4"),
+            resolveTextCommit(null, annotation(text = "line1\n\n\nline4\n\n")),
+        )
+        assertEquals(
+            TextCommitDecision.Add("line1\n\n\nline4"),
+            resolveTextCommit(null, annotation(text = "\n\nline1\n\n\nline4")),
+        )
+    }
+
+    @Test
     fun resolveTextCommit_editChangedText_replacesItem() {
         val original = annotation(text = "Note")
         assertEquals(
