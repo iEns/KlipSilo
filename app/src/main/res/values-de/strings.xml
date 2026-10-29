@@ -116,8 +116,8 @@
     <string name="view_pdf">PDF ansehen</string>
     <string name="pdf_to_image">PDF → Bild</string>
     <plurals name="pdf_to_images_confirm_message">
-        <item quantity="one">Diese PDF hat %1$d Seite. Beim Konvertieren wird %1$d Bild erstellt (eins pro Seite).</item>
-        <item quantity="other">Diese PDF hat %1$d Seiten. Beim Konvertieren werden %1$d Bilder erstellt (eins pro Seite).</item>
+        <item quantity="one">Dieses PDF hat %1$d Seite. Beim Konvertieren wird %1$d Bild erstellt (eins pro Seite).</item>
+        <item quantity="other">Dieses PDF hat %1$d Seiten. Beim Konvertieren werden %1$d Bilder erstellt (eins pro Seite).</item>
     </plurals>
     <string name="images_extracted_count">%d Bilder als Clips gespeichert</string>
     <string name="converting">Wird konvertiert…</string>
