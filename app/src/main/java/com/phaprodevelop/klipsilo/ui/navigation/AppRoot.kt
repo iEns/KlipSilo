@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
@@ -116,6 +117,7 @@ fun AppRoot(viewModel: ClipboardViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val undoOffer by viewModel.undoOffer.collectAsState()
     val duplicateShare by viewModel.duplicateShare.collectAsState()
+    val pdfImageConfirmation by viewModel.pdfImageConfirmation.collectAsState()
     val context = LocalContext.current
     LaunchedEffect(undoOffer) {
         val offer = undoOffer
@@ -479,6 +481,32 @@ fun AppRoot(viewModel: ClipboardViewModel) {
                     TextButton(onClick = { viewModel.dismissDuplicateShare() }) {
                         ButtonLabel(stringResource(R.string.cancel))
                     }
+                }
+            },
+        )
+    }
+
+    pdfImageConfirmation?.let { confirmation ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissPdfImageConfirmation() },
+            title = { DialogTitleLabel(stringResource(R.string.pdf_to_image)) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.pdf_to_images_confirm_message,
+                        confirmation.pageCount,
+                        confirmation.pageCount,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmPdfToImages() }) {
+                    ButtonLabel(stringResource(R.string.convert))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissPdfImageConfirmation() }) {
+                    ButtonLabel(stringResource(R.string.cancel))
                 }
             },
         )

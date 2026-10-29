@@ -37,6 +37,7 @@ import com.phaprodevelop.klipsilo.data.textTitleLooksAutomatic
 import com.phaprodevelop.klipsilo.hasLocationPermission
 import com.phaprodevelop.klipsilo.isLocationEnabled
 import com.phaprodevelop.klipsilo.obtainCurrentLocation
+import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -90,6 +91,12 @@ data class DuplicateShareOffer(
     val fileUri: Uri?,
 )
 
+/** A multi-page PDF→images conversion waiting for the user to confirm (#175). */
+data class PdfImageConfirmation(
+    val entry: ClipboardEntry,
+    val pageCount: Int,
+)
+
 /** What a [ClipNoticeAction.RetrySaveClipboard] snackbar should save again (#101). */
 private sealed interface PendingSaveRetry {
     data object Clipboard : PendingSaveRetry
@@ -123,6 +130,7 @@ class ClipboardViewModel(
     private val repository: ClipboardRepository,
     private val undoTimeoutMs: Long = UNDO_TIMEOUT_MS,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val pageCountProvider: (String) -> Int = ::pdfPageCount,
 ) : AndroidViewModel(application) {
     constructor(application: Application) : this(
         application,
@@ -299,6 +307,11 @@ class ClipboardViewModel(
 
     private val _isConverting = MutableStateFlow(false)
     val isConverting: StateFlow<Boolean> = _isConverting.asStateFlow()
+
+    // #175: a PDF with more than one page needs confirmation before it creates
+    // one image per page.
+    private val _pdfImageConfirmation = MutableStateFlow<PdfImageConfirmation?>(null)
+    val pdfImageConfirmation: StateFlow<PdfImageConfirmation?> = _pdfImageConfirmation.asStateFlow()
 
     private val _isLocating = MutableStateFlow(false)
     val isLocating: StateFlow<Boolean> = _isLocating.asStateFlow()
@@ -710,6 +723,30 @@ class ClipboardViewModel(
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.combine_nothing_readable))
             }
         }
+    }
+
+    /** Ask for confirmation when a PDF will produce more than one image (#175). */
+    fun requestPdfToImages(entry: ClipboardEntry) {
+        if (_isConverting.value || _pdfImageConfirmation.value != null) return
+        viewModelScope.launch {
+            val filePath = requireFilePath(entry) ?: return@launch
+            val pageCount = withContext(ioDispatcher) { pageCountProvider(filePath) }
+            if (pageCount > 1) {
+                _pdfImageConfirmation.value = PdfImageConfirmation(entry, pageCount)
+            } else {
+                convertPdfToImages(entry)
+            }
+        }
+    }
+
+    fun confirmPdfToImages() {
+        val confirmation = _pdfImageConfirmation.value ?: return
+        _pdfImageConfirmation.value = null
+        convertPdfToImages(confirmation.entry)
+    }
+
+    fun dismissPdfImageConfirmation() {
+        _pdfImageConfirmation.value = null
     }
 
     fun convertPdfToImages(entry: ClipboardEntry) {

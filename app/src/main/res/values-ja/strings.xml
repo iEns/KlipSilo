@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">保存したクリップをすべて削除しますか？</string>
     <string name="confirm">確認</string>
     <string name="cancel">キャンセル</string>
+    <string name="convert">変換</string>
     <string name="ok">OK</string>
     <string name="icons">アイコン</string>
     <string name="language">言語</string>
@@ -113,6 +114,9 @@
     <string name="combine_nothing_readable">選択したPDFを読み取れませんでした</string>
     <string name="view_pdf">PDFを表示</string>
     <string name="pdf_to_image">PDF → 画像</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="other">このPDFは%1$dページあります。変換すると%1$d枚の画像が作成されます（1ページにつき1枚）。</item>
+    </plurals>
     <string name="images_extracted_count">%d 件の画像をクリップとして保存しました</string>
     <string name="converting">変換中…</string>
     <string name="view_file">ファイルを表示</string>

@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Voulez-vous vraiment supprimer tous les extraits enregistrés ?</string>
     <string name="confirm">Confirmer</string>
     <string name="cancel">Annuler</string>
+    <string name="convert">Convertir</string>
     <string name="ok">OK</string>
     <string name="icons">Icônes</string>
     <string name="language">Langue</string>
@@ -115,6 +116,11 @@
     <string name="combine_nothing_readable">Impossible de lire les PDF sélectionnés</string>
     <string name="view_pdf">Voir le PDF</string>
     <string name="pdf_to_image">PDF → Image</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Ce PDF contient %1$d page. La conversion créera %1$d image (une par page).</item>
+        <item quantity="many">Ce PDF contient %1$d pages. La conversion créera %1$d images (une par page).</item>
+        <item quantity="other">Ce PDF contient %1$d pages. La conversion créera %1$d images (une par page).</item>
+    </plurals>
     <string name="images_extracted_count">%d images enregistrées comme extraits</string>
     <string name="converting">Conversion…</string>
     <string name="view_file">Voir le fichier</string>

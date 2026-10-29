@@ -676,7 +676,8 @@ private fun conversionRows(
                     icon = Icons.Filled.Image,
                     label = context.getString(R.string.pdf_to_image),
                 ) {
-                    viewModel.convertPdfToImages(entry)
+                    // #175: multi-page PDFs ask for confirmation first.
+                    viewModel.requestPdfToImages(entry)
                 },
                 SheetItem(
                     action = ClipSheetAction.PDF_TO_TEXT,

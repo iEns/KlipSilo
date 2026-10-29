@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Kayıtlı tüm klipleri silmek istediğinizden emin misiniz?</string>
     <string name="confirm">Onayla</string>
     <string name="cancel">İptal</string>
+    <string name="convert">Dönüştür</string>
     <string name="ok">OK</string>
     <string name="icons">Simgeler</string>
     <string name="language">Dil</string>
@@ -114,6 +115,10 @@
     <string name="combine_nothing_readable">Seçilen PDF\'ler okunamadı</string>
     <string name="view_pdf">PDF\'yi görüntüle</string>
     <string name="pdf_to_image">PDF → Resim</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Bu PDF %1$d sayfa içeriyor. Dönüştürme %1$d resim oluşturacak (her sayfa için bir tane).</item>
+        <item quantity="other">Bu PDF %1$d sayfa içeriyor. Dönüştürme %1$d resim oluşturacak (her sayfa için bir tane).</item>
+    </plurals>
     <string name="images_extracted_count">%d resim klip olarak kaydedildi</string>
     <string name="converting">Dönüştürülüyor…</string>
     <string name="view_file">Dosyayı görüntüle</string>

@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Vuoi davvero eliminare tutti i ritagli salvati?</string>
     <string name="confirm">Conferma</string>
     <string name="cancel">Annulla</string>
+    <string name="convert">Converti</string>
     <string name="ok">OK</string>
     <string name="icons">Icone</string>
     <string name="language">Lingua</string>
@@ -114,6 +115,11 @@
     <string name="combine_nothing_readable">Impossibile leggere i PDF selezionati</string>
     <string name="view_pdf">Vedi PDF</string>
     <string name="pdf_to_image">PDF → Immagine</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Questo PDF ha %1$d pagina. La conversione creerà %1$d immagine (una per pagina).</item>
+        <item quantity="many">Questo PDF ha %1$d pagine. La conversione creerà %1$d immagini (una per pagina).</item>
+        <item quantity="other">Questo PDF ha %1$d pagine. La conversione creerà %1$d immagini (una per pagina).</item>
+    </plurals>
     <string name="images_extracted_count">%d immagini salvate come ritagli</string>
     <string name="converting">Conversione…</string>
     <string name="view_file">Vedi file</string>

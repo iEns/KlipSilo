@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Möchtest du wirklich alle gespeicherten Clips löschen?</string>
     <string name="confirm">Bestätigen</string>
     <string name="cancel">Abbrechen</string>
+    <string name="convert">Konvertieren</string>
     <string name="ok">OK</string>
     <string name="icons">Symbole</string>
     <string name="language">Sprache</string>
@@ -114,6 +115,10 @@
     <string name="combine_nothing_readable">Die ausgewählten PDFs konnten nicht gelesen werden</string>
     <string name="view_pdf">PDF ansehen</string>
     <string name="pdf_to_image">PDF → Bild</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Dieses PDF hat %1$d Seite. Beim Konvertieren wird %1$d Bild erstellt (eins pro Seite).</item>
+        <item quantity="other">Dieses PDF hat %1$d Seiten. Beim Konvertieren werden %1$d Bilder erstellt (eins pro Seite).</item>
+    </plurals>
     <string name="images_extracted_count">%d Bilder als Clips gespeichert</string>
     <string name="converting">Wird konvertiert…</string>
     <string name="view_file">Datei ansehen</string>

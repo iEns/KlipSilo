@@ -75,6 +75,7 @@
     <string name="delete_all_confirm">Are you sure you want to delete all saved clips?</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="convert">Convert</string>
     <string name="ok">OK</string>
     <string name="icons">Icons</string>
     <string name="language">Language</string>
@@ -131,6 +132,10 @@
     <string name="combine_nothing_readable">Could not read the selected PDFs</string>
     <string name="view_pdf">View PDF</string>
     <string name="pdf_to_image">PDF → Image</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">This PDF has %1$d page. Converting will create %1$d image (one per page).</item>
+        <item quantity="other">This PDF has %1$d pages. Converting will create %1$d images (one per page).</item>
+    </plurals>
     <string name="images_extracted_count">%d images saved as clips</string>
     <string name="converting">Converting…</string>
     <string name="view_file">View file</string>

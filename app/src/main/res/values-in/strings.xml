@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Yakin ingin menghapus semua klip tersimpan?</string>
     <string name="confirm">Konfirmasi</string>
     <string name="cancel">Batal</string>
+    <string name="convert">Konversi</string>
     <string name="ok">OK</string>
     <string name="icons">Ikon</string>
     <string name="language">Bahasa</string>
@@ -113,6 +114,9 @@
     <string name="combine_nothing_readable">PDF yang dipilih tidak dapat dibaca</string>
     <string name="view_pdf">Lihat PDF</string>
     <string name="pdf_to_image">PDF → Gambar</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="other">PDF ini memiliki %1$d halaman. Konversi akan membuat %1$d gambar (satu per halaman).</item>
+    </plurals>
     <string name="images_extracted_count">%d gambar disimpan sebagai klip</string>
     <string name="converting">Mengonversi…</string>
     <string name="view_file">Lihat file</string>

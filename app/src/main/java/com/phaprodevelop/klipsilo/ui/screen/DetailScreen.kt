@@ -134,12 +134,14 @@ import com.phaprodevelop.klipsilo.ui.components.clipInfo
 import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
+import com.phaprodevelop.klipsilo.ui.components.markdownContentRange
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
 import com.phaprodevelop.klipsilo.ui.components.rememberDisplayedBitmap
 import com.phaprodevelop.klipsilo.ui.components.renderPdfPage
 import com.phaprodevelop.klipsilo.ui.components.transformFittedZoom
+import com.phaprodevelop.klipsilo.ui.components.trimSelectionTrailingWhitespace
 import com.phaprodevelop.klipsilo.ui.components.typefaceForPdfFont
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
@@ -342,8 +344,9 @@ fun DetailScreen(
         val cursor = editedText.selection.start.coerceIn(0, text.length)
         val start = paragraphStart(text, cursor)
         val end = paragraphEnd(text, cursor)
-        if (end > start && !text.substring(start, end).isBlank()) {
-            editedText = editedText.copy(selection = TextRange(start, end))
+        val selection = trimSelectionTrailingWhitespace(text, TextRange(start, end))
+        if (!selection.collapsed && !text.substring(selection.start, selection.end).isBlank()) {
+            editedText = editedText.copy(selection = selection)
         }
     }
 
@@ -362,7 +365,10 @@ fun DetailScreen(
                 } else {
                     cursor
                 }
-            editedText = editedText.copy(selection = TextRange(start, end))
+            editedText =
+                editedText.copy(
+                    selection = trimSelectionTrailingWhitespace(text, TextRange(start, end)),
+                )
         } else {
             var fwd = cursor
             while (fwd < text.length && text[fwd].isWhitespace()) fwd++
@@ -370,7 +376,10 @@ fun DetailScreen(
             var start = fwd
             var end = fwd + 1
             while (end < text.length && !text[end].isWhitespace()) end++
-            editedText = editedText.copy(selection = TextRange(start, end))
+            editedText =
+                editedText.copy(
+                    selection = trimSelectionTrailingWhitespace(text, TextRange(start, end)),
+                )
         }
     }
 
@@ -400,7 +409,10 @@ fun DetailScreen(
             i++
         }
         if (end > start) {
-            editedText = editedText.copy(selection = TextRange(start, end))
+            editedText =
+                editedText.copy(
+                    selection = trimSelectionTrailingWhitespace(text, TextRange(start, end)),
+                )
         }
     }
 
@@ -464,10 +476,19 @@ fun DetailScreen(
                         TextRange((sel.start + before.length).coerceIn(0, newText.length)),
                     )
                 } else {
-                    val selected = text.substring(sel.start, sel.end)
-                    val newText = text.substring(0, sel.start) + before + selected + after + text.substring(sel.end)
-                    val newEnd = (sel.end + before.length + after.length).coerceIn(0, newText.length)
-                    TextFieldValue(newText, TextRange(newEnd))
+                    val content = markdownContentRange(text, sel)
+                    if (content == null) {
+                        null
+                    } else {
+                        val newText =
+                            text.substring(0, content.start) +
+                                before +
+                                text.substring(content.start, content.end) +
+                                after +
+                                text.substring(content.end)
+                        val newEnd = (content.end + before.length + after.length).coerceIn(0, newText.length)
+                        TextFieldValue(newText, TextRange(newEnd))
+                    }
                 }
             } catch (_: Exception) {
                 null

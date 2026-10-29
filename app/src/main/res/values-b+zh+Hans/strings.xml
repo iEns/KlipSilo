@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">确定删除所有已保存的剪贴吗？</string>
     <string name="confirm">确认</string>
     <string name="cancel">取消</string>
+    <string name="convert">转换</string>
     <string name="ok">OK</string>
     <string name="icons">图标</string>
     <string name="language">语言</string>
@@ -113,6 +114,9 @@
     <string name="combine_nothing_readable">无法读取所选 PDF</string>
     <string name="view_pdf">查看 PDF</string>
     <string name="pdf_to_image">PDF → 图片</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="other">此 PDF 共有 %1$d 页。转换将生成 %1$d 张图片（每页一张）。</item>
+    </plurals>
     <string name="images_extracted_count">已将 %d 张图片保存为剪贴</string>
     <string name="converting">正在转换…</string>
     <string name="view_file">查看文件</string>
