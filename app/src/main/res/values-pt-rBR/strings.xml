@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Tem certeza de que deseja excluir todos os recortes salvos?</string>
     <string name="confirm">Confirmar</string>
     <string name="cancel">Cancelar</string>
+    <string name="convert">Converter</string>
     <string name="ok">OK</string>
     <string name="icons">Ícones</string>
     <string name="language">Idioma</string>
@@ -114,6 +115,11 @@
     <string name="combine_nothing_readable">Não foi possível ler os PDFs selecionados</string>
     <string name="view_pdf">Ver PDF</string>
     <string name="pdf_to_image">PDF → Imagem</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Este PDF tem %1$d página. A conversão criará %1$d imagem (uma por página).</item>
+        <item quantity="many">Este PDF tem %1$d páginas. A conversão criará %1$d imagens (uma por página).</item>
+        <item quantity="other">Este PDF tem %1$d páginas. A conversão criará %1$d imagens (uma por página).</item>
+    </plurals>
     <string name="images_extracted_count">%d imagens salvas como recortes</string>
     <string name="converting">Convertendo…</string>
     <string name="view_file">Ver arquivo</string>

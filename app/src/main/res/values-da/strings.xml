@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Er du sikker på at du vil slette alle gemte klip?</string>
     <string name="confirm">Bekræft</string>
     <string name="cancel">Annuller</string>
+    <string name="convert">Konverter</string>
     <string name="ok">OK</string>
     <string name="icons">Ikoner</string>
     <string name="language">Sprog</string>
@@ -114,6 +115,10 @@
     <string name="combine_nothing_readable">Kunne ikke læse de valgte PDF\'er</string>
     <string name="view_pdf">Se PDF</string>
     <string name="pdf_to_image">PDF → Billede</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Denne PDF har %1$d side. Konverteringen opretter %1$d billede (ét pr. side).</item>
+        <item quantity="other">Denne PDF har %1$d sider. Konverteringen opretter %1$d billeder (ét pr. side).</item>
+    </plurals>
     <string name="images_extracted_count">%d billeder gemt som klip</string>
     <string name="converting">Konverterer…</string>
     <string name="view_file">Vis fil</string>

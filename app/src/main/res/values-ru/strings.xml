@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">Удалить все сохранённые клипы?</string>
     <string name="confirm">Подтвердить</string>
     <string name="cancel">Отмена</string>
+    <string name="convert">Конвертировать</string>
     <string name="ok">OK</string>
     <string name="icons">Значки</string>
     <string name="language">Язык</string>
@@ -116,6 +117,12 @@
     <string name="combine_nothing_readable">Не удалось прочитать выбранные PDF</string>
     <string name="view_pdf">Смотреть PDF</string>
     <string name="pdf_to_image">PDF → Изображение</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">В этом PDF %1$d страница. При конвертации будет создано %1$d изображение (по одному на страницу).</item>
+        <item quantity="few">В этом PDF %1$d страницы. При конвертации будут созданы %1$d изображения (по одному на страницу).</item>
+        <item quantity="many">В этом PDF %1$d страниц. При конвертации будет создано %1$d изображений (по одному на страницу).</item>
+        <item quantity="other">В этом PDF %1$d страницы. При конвертации будет создано %1$d изображения (по одному на страницу).</item>
+    </plurals>
     <string name="images_extracted_count">Изображения сохранены как клипы: %d</string>
     <string name="converting">Конвертация…</string>
     <string name="view_file">Смотреть файл</string>

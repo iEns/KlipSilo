@@ -58,6 +58,7 @@
     <string name="delete_all_confirm">¿Seguro que quieres eliminar todos los recortes guardados?</string>
     <string name="confirm">Confirmar</string>
     <string name="cancel">Cancelar</string>
+    <string name="convert">Convertir</string>
     <string name="ok">OK</string>
     <string name="icons">Iconos</string>
     <string name="language">Idioma</string>
@@ -114,6 +115,11 @@
     <string name="combine_nothing_readable">No se pudieron leer los PDF seleccionados</string>
     <string name="view_pdf">Ver PDF</string>
     <string name="pdf_to_image">PDF → Imagen</string>
+    <plurals name="pdf_to_images_confirm_message">
+        <item quantity="one">Este PDF tiene %1$d página. Al convertirlo se creará %1$d imagen (una por página).</item>
+        <item quantity="many">Este PDF tiene %1$d páginas. Al convertirlo se crearán %1$d imágenes (una por página).</item>
+        <item quantity="other">Este PDF tiene %1$d páginas. Al convertirlo se crearán %1$d imágenes (una por página).</item>
+    </plurals>
     <string name="images_extracted_count">%d imágenes guardadas como recortes</string>
     <string name="converting">Convirtiendo…</string>
     <string name="view_file">Ver archivo</string>
