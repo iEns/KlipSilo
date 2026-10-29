@@ -75,6 +75,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -153,6 +154,17 @@ fun KlipScreen(
     // reports the listener while KlipSilo is focused, so re-check on every resume.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshClipboardHasContent()
+    }
+
+    // #177: ON_RESUME can run before the window gains focus, and on Android 10+
+    // the clipboard is only readable by the focused window. Re-check once focus
+    // arrives so returning to / opening the Clips page enables the button without
+    // a page switch (an empty clipboard stays disabled, #120).
+    val windowInfo = LocalWindowInfo.current
+    LaunchedEffect(windowInfo.isWindowFocused) {
+        if (windowInfo.isWindowFocused) {
+            viewModel.refreshClipboardHasContent()
+        }
     }
 
     LaunchedEffect(scrollToTop) {
