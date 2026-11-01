@@ -48,7 +48,7 @@ fi
 
 mkdir -p "$apk_dir"
 dest="$apk_dir/KlipSilo-$sha-$suffix.apk"
-cp -f "$built" "$dest.tmp"
+cp -fp "$built" "$dest.tmp"
 mv -f "$dest.tmp" "$dest"
 echo "alpha-apk: $dest"
 
