@@ -68,6 +68,10 @@ Release and beta builds are R8-minified and resource-shrunk (`isMinifyEnabled = 
 
 The beta version comes from a tag such as `v1.2.0-beta.1` (versionCode `11901`). `DEPLOYTOOL_ARTIFACT_REF` wins when it is set, because a deploy builds from `git archive` and that tree has no `.git`. Otherwise Gradle uses `git describe`. A checkout that is not on a beta tag falls back to `1.2.0-beta.7`. The same release keystore signs the beta APK when `DEPLOYTOOL_SIGNING_*` is set.
 
+### Alpha APKs
+
+`scripts/alpha-apk.sh [debug|beta]` runs the normal debug or beta task, copies the APK to `~/apks` (or `$APK_DIR`) as `KlipSilo-<sha>-debug.apk` or `KlipSilo-<sha>-beta-minified.apk`, and writes a `<file>.apk.json` sidecar next to it with the version, versionCode, build date, changelog and sha256. The sidecar is written by an external helper (`$COVE_SIDECAR`); without it the APK is still copied. The script does not change the version scheme, signing, R8 mapping output, or the website beta cut.
+
 Debug builds are signed with the debug keystore. Release builds are signed only when these environment variables are set:
 
 - `DEPLOYTOOL_SIGNING_STORE_FILE`
