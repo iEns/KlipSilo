@@ -15,8 +15,8 @@ android {
         applicationId = "com.phaprodevelop.klipsilo"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12000
-        versionName = "1.2.0"
+        versionCode = 13000
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -54,7 +54,7 @@ android {
         }
         // Side-by-side with the Play app. applicationIdSuffix keeps providers,
         // FileProvider and the share target on ${applicationId}. Release stays
-        // com.phaprodevelop.klipsilo / 1.2.0 (versionCode 12000).
+        // com.phaprodevelop.klipsilo / 1.3.0 (versionCode 13000).
         create("beta") {
             initWith(getByName("release"))
             applicationIdSuffix = ".beta"
