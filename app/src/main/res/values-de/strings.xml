@@ -429,4 +429,5 @@
     <string name="markup_image_no_clips">Noch keine Bild-Clips</string>
     <string name="markup_image_source_title">Bild einfügen</string>
     <string name="markup_tool_image">Bild</string>
+    <string name="pdf_text_page_separator">--- Seite %1$d ---</string>
 </resources>

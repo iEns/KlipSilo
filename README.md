@@ -6,7 +6,7 @@ KlipSilo is a clipboard for Android. It keeps text, links, images, PDFs, files, 
 
 Install it from Google Play, or download the signed APK from [klipsilo.futunichi.dk](https://klipsilo.futunichi.dk/) ([KlipSilo.apk](https://klipsilo.futunichi.dk/KlipSilo.apk)). A beta build that installs beside the Play app is on [klipsilo.futunichi.dk/beta/](https://klipsilo.futunichi.dk/beta/).
 
-Application id: `com.phaprodevelop.klipsilo`. This tree is version 1.2.0 (versionCode 12000).
+Application id: `com.phaprodevelop.klipsilo`. This tree is version 1.3.0 (versionCode 13000).
 
 ## Screenshots
 
@@ -62,7 +62,7 @@ sdk.dir=/path/to/Android/Sdk
 ./gradlew :app:assembleBeta
 ```
 
-`beta` is a second build type. Its application id is `com.phaprodevelop.klipsilo.beta`, the launcher name is "KlipSilo Beta", and the icon is orange, so it installs beside the Play app. The release build type is unchanged: application id `com.phaprodevelop.klipsilo`, versionName `1.2.0`, versionCode `12000`.
+`beta` is a second build type. Its application id is `com.phaprodevelop.klipsilo.beta`, the launcher name is "KlipSilo Beta", and the icon is orange, so it installs beside the Play app. The release build type is unchanged: application id `com.phaprodevelop.klipsilo`, versionName `1.3.0`, versionCode `13000`.
 
 Release and beta builds are R8-minified and resource-shrunk (`isMinifyEnabled = true`, `isShrinkResources = true`). Keep rules are in `app/proguard-rules.pro`; mapping files and the Play deobfuscation step are documented in [`docs/release-minification.md`](docs/release-minification.md).
 

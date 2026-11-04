@@ -68,7 +68,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -896,7 +895,7 @@ private fun ClipItemRow(
                                             context.getString(
                                                 R.string.pin_or_unpin,
                                             ).withoutSoftHyphens(),
-                                        tint = Color(0xFF4CAF50),
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -965,7 +964,7 @@ private fun ClipItemRow(
                                 Icon(
                                     Icons.Filled.PushPin,
                                     contentDescription = context.getString(R.string.pin_or_unpin).withoutSoftHyphens(),
-                                    tint = Color(0xFF4CAF50),
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }

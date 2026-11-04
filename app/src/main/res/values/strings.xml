@@ -429,4 +429,5 @@
     <string name="hide_password">Hide password</string>
     <string name="form_password_saved_note">This will be saved in the PDF as readable text.</string>
     <string name="form_password_saved_badge">Saved as readable text</string>
+    <string name="pdf_text_page_separator">--- Page %1$d ---</string>
 </resources>

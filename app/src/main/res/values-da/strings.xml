@@ -429,4 +429,5 @@
     <string name="share_as_file">Del som fil</string>
     <string name="share_as_text">Del som tekst</string>
     <string name="share_no_saveable_content">Denne deling har ingen fil eller tekst at gemme</string>
+    <string name="pdf_text_page_separator">--- Side %1$d ---</string>
 </resources>

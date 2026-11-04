@@ -50,15 +50,16 @@ internal fun markdownPresentationText(
             .build()
             .parse(markdown)
     return buildAnnotatedString {
-        appendMarkdownNode(root, fontSize, textColor, linkColor)
+        appendMarkdownBlock(root, fontSize, textColor, linkColor)
     }.trimTrailingNewlines()
 }
 
-private fun AnnotatedString.Builder.appendMarkdownNode(
+private fun AnnotatedString.Builder.appendMarkdownBlock(
     node: Node,
     fontSize: Float,
     textColor: Color,
     linkColor: Color,
+    compact: Boolean = false,
 ) {
     when (node) {
         is Heading -> {
@@ -70,43 +71,23 @@ private fun AnnotatedString.Builder.appendMarkdownNode(
                     color = textColor,
                 ),
             ) {
-                appendChildren(node, fontSize, textColor, linkColor)
+                appendMarkdownInlines(node, fontSize, textColor, linkColor)
             }
-            append("\n\n")
+            append(if (compact) "\n" else "\n\n")
         }
         is Paragraph -> {
-            appendChildren(node, fontSize, textColor, linkColor)
-            append("\n\n")
+            appendMarkdownInlines(node, fontSize, textColor, linkColor)
+            append(if (compact) "\n" else "\n\n")
         }
-        is StrongEmphasis ->
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                appendChildren(node, fontSize, textColor, linkColor)
-            }
-        is Emphasis ->
-            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                appendChildren(node, fontSize, textColor, linkColor)
-            }
-        is Strikethrough ->
-            withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
-                appendChildren(node, fontSize, textColor, linkColor)
-            }
-        is Code ->
-            withStyle(
-                SpanStyle(
-                    fontFamily = FontFamily.Monospace,
-                    color = textColor,
-                ),
-            ) {
-                append(node.literal)
-            }
-        is FencedCodeBlock -> appendCodeBlock(node.literal)
-        is IndentedCodeBlock -> appendCodeBlock(node.literal)
         is BlockQuote -> {
-            withStyle(SpanStyle(color = textColor.copy(alpha = 0.8f))) {
-                append("› ")
-                appendChildren(node, fontSize, textColor, linkColor)
+            val content =
+                buildAnnotatedString {
+                    appendMarkdownBlocks(node, fontSize, textColor, linkColor, compact = true)
+                }.trimTrailingNewlines()
+            if (content.text.isNotEmpty()) {
+                appendPrefixedLines(content, "› ", "› ")
             }
-            append("\n")
+            append("\n\n")
         }
         is BulletList ->
             appendList(
@@ -124,26 +105,29 @@ private fun AnnotatedString.Builder.appendMarkdownNode(
                 textColor = textColor,
                 linkColor = linkColor,
             )
-        is ListItem -> appendChildren(node, fontSize, textColor, linkColor)
-        is Link ->
-            withStyle(
-                SpanStyle(
-                    color = linkColor,
-                    textDecoration = TextDecoration.Underline,
-                ),
-            ) {
-                appendChildren(node, fontSize, textColor, linkColor)
-            }
-        is Image -> append(node.title ?: node.destination.orEmpty())
-        is Text -> append(node.literal)
-        is SoftLineBreak -> append(" ")
-        is HardLineBreak -> append("\n")
+        is ListItem -> appendMarkdownBlocks(node, fontSize, textColor, linkColor, compact = true)
+        is FencedCodeBlock -> appendCodeBlock(node.literal)
+        is IndentedCodeBlock -> appendCodeBlock(node.literal)
         is ThematicBreak -> append("────────\n\n")
-        else -> appendChildren(node, fontSize, textColor, linkColor)
+        else -> appendMarkdownBlocks(node, fontSize, textColor, linkColor, compact)
     }
 }
 
-private fun AnnotatedString.Builder.appendChildren(
+private fun AnnotatedString.Builder.appendMarkdownBlocks(
+    node: Node,
+    fontSize: Float,
+    textColor: Color,
+    linkColor: Color,
+    compact: Boolean = false,
+) {
+    var child = node.firstChild
+    while (child != null) {
+        appendMarkdownBlock(child, fontSize, textColor, linkColor, compact)
+        child = child.next
+    }
+}
+
+private fun AnnotatedString.Builder.appendMarkdownInlines(
     node: Node,
     fontSize: Float,
     textColor: Color,
@@ -151,8 +135,53 @@ private fun AnnotatedString.Builder.appendChildren(
 ) {
     var child = node.firstChild
     while (child != null) {
-        appendMarkdownNode(child, fontSize, textColor, linkColor)
+        appendMarkdownInline(child, fontSize, textColor, linkColor)
         child = child.next
+    }
+}
+
+private fun AnnotatedString.Builder.appendMarkdownInline(
+    node: Node,
+    fontSize: Float,
+    textColor: Color,
+    linkColor: Color,
+) {
+    when (node) {
+        is StrongEmphasis ->
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                appendMarkdownInlines(node, fontSize, textColor, linkColor)
+            }
+        is Emphasis ->
+            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                appendMarkdownInlines(node, fontSize, textColor, linkColor)
+            }
+        is Strikethrough ->
+            withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                appendMarkdownInlines(node, fontSize, textColor, linkColor)
+            }
+        is Code ->
+            withStyle(
+                SpanStyle(
+                    fontFamily = FontFamily.Monospace,
+                    color = textColor,
+                ),
+            ) {
+                append(node.literal)
+            }
+        is Link ->
+            withStyle(
+                SpanStyle(
+                    color = linkColor,
+                    textDecoration = TextDecoration.Underline,
+                ),
+            ) {
+                appendMarkdownInlines(node, fontSize, textColor, linkColor)
+            }
+        is Image -> append(node.title ?: node.destination.orEmpty())
+        is Text -> append(node.literal)
+        is SoftLineBreak -> append(" ")
+        is HardLineBreak -> append("\n")
+        else -> appendMarkdownInlines(node, fontSize, textColor, linkColor)
     }
 }
 
@@ -163,16 +192,54 @@ private fun AnnotatedString.Builder.appendList(
     textColor: Color,
     linkColor: Color,
 ) {
-    var index = 1
+    var index = (list as? OrderedList)?.markerStartNumber ?: 1
     var item = list.firstChild
+    var firstItem = true
     while (item != null) {
-        append(if (ordered) "$index. " else "• ")
-        appendChildren(item, fontSize, textColor, linkColor)
-        if (item.next != null) append("\n")
-        index++
+        if (item is ListItem) {
+            val marker = if (ordered) "$index. " else "• "
+            val content =
+                buildAnnotatedString {
+                    appendMarkdownBlocks(item, fontSize, textColor, linkColor, compact = true)
+                }.trimTrailingNewlines()
+            if (!firstItem) append("\n")
+            if (content.text.isEmpty()) {
+                append(marker.trimEnd())
+            } else {
+                appendPrefixedLines(content, marker)
+            }
+            firstItem = false
+            index++
+        }
         item = item.next
     }
     append("\n\n")
+}
+
+/**
+ * Appends [content] line by line, with [firstPrefix] on the first line and
+ * [continuationPrefix] on the rest. This is what keeps a nested list under its
+ * parent item and every line of a blockquote behind its quote marker.
+ */
+private fun AnnotatedString.Builder.appendPrefixedLines(
+    content: AnnotatedString,
+    firstPrefix: String,
+    continuationPrefix: String = " ".repeat(firstPrefix.length),
+) {
+    val text = content.text
+    if (text.isEmpty()) return
+    var start = 0
+    var firstLine = true
+    while (start <= text.length) {
+        val newline = text.indexOf('\n', start)
+        val end = if (newline < 0) text.length else newline
+        if (!firstLine) append("\n")
+        append(if (firstLine) firstPrefix else continuationPrefix)
+        append(content.subSequence(start, end))
+        firstLine = false
+        if (newline < 0) break
+        start = newline + 1
+    }
 }
 
 private fun AnnotatedString.Builder.appendCodeBlock(literal: String?) {

@@ -430,4 +430,5 @@
     <string name="markup_image_no_clips">Aún no hay clips de imagen</string>
     <string name="markup_image_source_title">Insertar imagen</string>
     <string name="markup_tool_image">Imagen</string>
+    <string name="pdf_text_page_separator">--- Página %1$d ---</string>
 </resources>
