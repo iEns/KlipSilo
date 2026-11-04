@@ -427,4 +427,5 @@
     <string name="markup_image_no_clips">画像クリップはまだありません</string>
     <string name="markup_image_source_title">画像を挿入</string>
     <string name="markup_tool_image">画像</string>
+    <string name="pdf_text_page_separator">--- ページ %1$d ---</string>
 </resources>

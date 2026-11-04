@@ -427,4 +427,5 @@
     <string name="markup_image_no_clips">Belum ada klip gambar</string>
     <string name="markup_image_source_title">Sisipkan gambar</string>
     <string name="markup_tool_image">Gambar</string>
+    <string name="pdf_text_page_separator">--- Halaman %1$d ---</string>
 </resources>

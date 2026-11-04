@@ -102,7 +102,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
-import org.commonmark.node.AbstractVisitor
 import org.commonmark.node.BlockQuote
 import org.commonmark.node.BulletList
 import org.commonmark.node.Code
@@ -111,6 +110,7 @@ import org.commonmark.node.FencedCodeBlock
 import org.commonmark.node.HardLineBreak
 import org.commonmark.node.Heading
 import org.commonmark.node.Image
+import org.commonmark.node.IndentedCodeBlock
 import org.commonmark.node.Link
 import org.commonmark.node.ListItem
 import org.commonmark.node.Node
@@ -2221,114 +2221,216 @@ class ClipboardRepository(
         compactHeadings: Boolean = false,
     ): List<MdLine> {
         val out = mutableListOf<MdLine>()
-        val visitor =
-            object : AbstractVisitor() {
-                override fun visit(heading: Heading) {
-                    val size = headingFontSize(heading.level, layout, compactHeadings)
-                    val lineHeight = size * layout.lineSpacing
-                    val runs = collectInlineRuns(heading, baseMdPaint(size, bold = true, font = layout.font))
-                    val gap = lineHeight * if (compactHeadings) 0.2f else 0.5f
-                    if (out.isNotEmpty() || !compactHeadings) {
-                        out.add(MdLine(emptyList(), gap))
+        collectMdBlock(root, out, layout, compactHeadings)
+        return out
+    }
+
+    private fun collectMdBlock(
+        node: Node,
+        out: MutableList<MdLine>,
+        layout: PdfLayout,
+        compactHeadings: Boolean,
+        indent: Float = 0f,
+        quote: Boolean = false,
+        firstPrefix: String = "",
+        continuationIndent: Float = indent,
+    ) {
+        when (node) {
+            is Heading -> {
+                val size = headingFontSize(node.level, layout, compactHeadings)
+                val lineHeight = size * layout.lineSpacing
+                val paint = baseMdPaint(size, bold = true, font = layout.font)
+                val runs =
+                    buildList {
+                        if (firstPrefix.isNotEmpty()) add(MdRun(firstPrefix, paint))
+                        addAll(collectInlineRuns(node, paint))
                     }
-                    wrapRuns(runs, layout.textWidth).forEach {
-                        out.add(MdLine(it, lineHeight))
-                    }
+                val gap = lineHeight * if (compactHeadings) 0.2f else 0.5f
+                if (out.isNotEmpty() || !compactHeadings) {
                     out.add(MdLine(emptyList(), gap))
                 }
-
-                override fun visit(paragraph: Paragraph) {
-                    val runs =
-                        collectInlineRuns(paragraph, baseMdPaint(layout.fontSizePt, bold = false, font = layout.font))
-                    wrapRuns(runs, layout.textWidth).forEach {
-                        out.add(MdLine(it, layout.baseLineHeight))
-                    }
-                    out.add(MdLine(emptyList(), layout.baseLineHeight * 0.5f))
+                wrapRuns(runs, layout.textWidth - indent).forEachIndexed { i, lineRuns ->
+                    out.add(
+                        MdLine(
+                            lineRuns,
+                            lineHeight,
+                            indent = if (i == 0) indent else continuationIndent,
+                            quote = quote,
+                        ),
+                    )
                 }
-
-                override fun visit(bulletList: BulletList) {
-                    bulletList.forEachChild { child ->
-                        if (child is ListItem) {
-                            val runs =
-                                mutableListOf(
-                                    MdRun("•  ", baseMdPaint(layout.fontSizePt, bold = false, font = layout.font)),
-                                )
-                            runs +=
-                                collectInlineRuns(
-                                    child,
-                                    baseMdPaint(layout.fontSizePt, bold = false, font = layout.font),
-                                )
-                            wrapRuns(runs, layout.textWidth).forEachIndexed { i, lineRuns ->
-                                out.add(
-                                    MdLine(lineRuns, layout.baseLineHeight, indent = if (i == 0) 0f else LIST_INDENT),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                override fun visit(orderedList: OrderedList) {
-                    var index = orderedList.markerStartNumber ?: 1
-                    orderedList.forEachChild { child ->
-                        if (child is ListItem) {
-                            val runs =
-                                mutableListOf(
-                                    MdRun(
-                                        "$index.  ",
-                                        baseMdPaint(layout.fontSizePt, bold = false, font = layout.font),
-                                    ),
-                                )
-                            runs +=
-                                collectInlineRuns(
-                                    child,
-                                    baseMdPaint(layout.fontSizePt, bold = false, font = layout.font),
-                                )
-                            wrapRuns(runs, layout.textWidth).forEachIndexed { i, lineRuns ->
-                                out.add(
-                                    MdLine(lineRuns, layout.baseLineHeight, indent = if (i == 0) 0f else LIST_INDENT),
-                                )
-                            }
-                            index++
-                        }
-                    }
-                }
-
-                override fun visit(fencedCodeBlock: FencedCodeBlock) {
-                    val mono =
-                        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            textSize = layout.fontSizePt * 0.9f
-                            typeface = pdfTypeface(layout.font, bold = false, mono = true)
-                            color = Color.BLACK
-                        }
-                    val lineHeight = mono.textSize * layout.lineSpacing
-                    fencedCodeBlock.literal.split("\n").forEach { line ->
-                        out.add(
-                            MdLine(
-                                runs = listOf(MdRun(line, mono)),
-                                lineHeight = lineHeight,
-                                indent = 8f,
-                                background = CODE_BG,
-                            ),
-                        )
-                    }
-                    out.add(MdLine(emptyList(), lineHeight * 0.5f))
-                }
-
-                override fun visit(blockQuote: BlockQuote) {
-                    val runs =
-                        collectInlineRuns(blockQuote, baseMdPaint(layout.fontSizePt, bold = false, font = layout.font))
-                    wrapRuns(runs, layout.textWidth - QUOTE_INDENT).forEach {
-                        out.add(MdLine(it, layout.baseLineHeight, indent = QUOTE_INDENT, quote = true))
-                    }
-                    out.add(MdLine(emptyList(), layout.baseLineHeight * 0.5f))
-                }
-
-                override fun visit(thematicBreak: ThematicBreak) {
-                    out.add(MdLine(emptyList(), layout.baseLineHeight, isHr = true))
-                }
+                out.add(MdLine(emptyList(), gap))
             }
-        root.accept(visitor)
-        return out
+            is Paragraph -> {
+                val paint = baseMdPaint(layout.fontSizePt, bold = false, font = layout.font)
+                val runs =
+                    buildList {
+                        if (firstPrefix.isNotEmpty()) add(MdRun(firstPrefix, paint))
+                        addAll(collectInlineRuns(node, paint))
+                    }
+                wrapRuns(runs, layout.textWidth - indent).forEachIndexed { i, lineRuns ->
+                    out.add(
+                        MdLine(
+                            lineRuns,
+                            layout.baseLineHeight,
+                            indent = if (i == 0) indent else continuationIndent,
+                            quote = quote,
+                        ),
+                    )
+                }
+                out.add(MdLine(emptyList(), layout.baseLineHeight * 0.5f))
+            }
+            is BulletList ->
+                collectMdList(
+                    node,
+                    ordered = false,
+                    out = out,
+                    layout = layout,
+                    compactHeadings = compactHeadings,
+                    indent = indent,
+                    quote = quote,
+                )
+            is OrderedList ->
+                collectMdList(
+                    node,
+                    ordered = true,
+                    out = out,
+                    layout = layout,
+                    compactHeadings = compactHeadings,
+                    indent = indent,
+                    quote = quote,
+                )
+            is BlockQuote -> {
+                collectMdChildren(
+                    node,
+                    out,
+                    layout,
+                    compactHeadings,
+                    indent = indent + QUOTE_INDENT,
+                    quote = true,
+                )
+                out.add(MdLine(emptyList(), layout.baseLineHeight * 0.5f))
+            }
+            is FencedCodeBlock -> appendMdCodeBlock(node.literal, out, layout, indent, quote)
+            is IndentedCodeBlock -> appendMdCodeBlock(node.literal, out, layout, indent, quote)
+            is ThematicBreak -> out.add(MdLine(emptyList(), layout.baseLineHeight, isHr = true))
+            else ->
+                collectMdChildren(
+                    node,
+                    out,
+                    layout,
+                    compactHeadings,
+                    indent,
+                    quote,
+                    firstPrefix,
+                    continuationIndent,
+                )
+        }
+    }
+
+    private fun collectMdChildren(
+        node: Node,
+        out: MutableList<MdLine>,
+        layout: PdfLayout,
+        compactHeadings: Boolean,
+        indent: Float = 0f,
+        quote: Boolean = false,
+        firstPrefix: String = "",
+        continuationIndent: Float = indent,
+    ) {
+        var child = node.firstChild
+        var first = true
+        while (child != null) {
+            collectMdBlock(
+                child,
+                out,
+                layout,
+                compactHeadings,
+                indent = indent,
+                quote = quote,
+                firstPrefix = if (first) firstPrefix else "",
+                continuationIndent = if (first) continuationIndent else indent,
+            )
+            first = false
+            child = child.next
+        }
+    }
+
+    private fun collectMdList(
+        list: Node,
+        ordered: Boolean,
+        out: MutableList<MdLine>,
+        layout: PdfLayout,
+        compactHeadings: Boolean,
+        indent: Float,
+        quote: Boolean,
+    ) {
+        val paint = baseMdPaint(layout.fontSizePt, bold = false, font = layout.font)
+        var index = (list as? OrderedList)?.markerStartNumber ?: 1
+        var item = list.firstChild
+        while (item != null) {
+            if (item is ListItem) {
+                val marker = if (ordered) "$index.  " else "•  "
+                val contentIndent = indent + paint.measureText(marker)
+                var block = item.firstChild
+                var firstBlock = true
+                while (block != null) {
+                    collectMdBlock(
+                        block,
+                        out,
+                        layout,
+                        compactHeadings,
+                        indent = if (firstBlock) indent else contentIndent,
+                        quote = quote,
+                        firstPrefix = if (firstBlock) marker else "",
+                        continuationIndent = contentIndent,
+                    )
+                    firstBlock = false
+                    block = block.next
+                }
+                if (item.firstChild == null) {
+                    out.add(
+                        MdLine(
+                            runs = listOf(MdRun(marker.trimEnd(), paint)),
+                            lineHeight = layout.baseLineHeight,
+                            indent = indent,
+                            quote = quote,
+                        ),
+                    )
+                }
+                index++
+            }
+            item = item.next
+        }
+        out.add(MdLine(emptyList(), layout.baseLineHeight * 0.3f))
+    }
+
+    private fun appendMdCodeBlock(
+        literal: String?,
+        out: MutableList<MdLine>,
+        layout: PdfLayout,
+        indent: Float,
+        quote: Boolean,
+    ) {
+        val mono =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = layout.fontSizePt * 0.9f
+                typeface = pdfTypeface(layout.font, bold = false, mono = true)
+                color = Color.BLACK
+            }
+        val lineHeight = mono.textSize * layout.lineSpacing
+        literal.orEmpty().trimEnd('\n').split("\n").forEach { line ->
+            out.add(
+                MdLine(
+                    runs = listOf(MdRun(line, mono)),
+                    lineHeight = lineHeight,
+                    indent = indent + 8f,
+                    background = CODE_BG,
+                    quote = quote,
+                ),
+            )
+        }
+        out.add(MdLine(emptyList(), lineHeight * 0.5f))
     }
 
     private fun collectInlineRuns(
@@ -2458,7 +2560,7 @@ class ClipboardRepository(
             )
         }
         if (line.quote) {
-            val barX = layout.marginLeftRightPt + QUOTE_INDENT * 0.5f
+            val barX = layout.marginLeftRightPt + line.indent - QUOTE_INDENT * 0.5f
             canvas.drawRect(
                 barX,
                 y - line.lineHeight * 0.85f,
@@ -2985,22 +3087,24 @@ class ClipboardRepository(
                 recognizer.close()
                 return null
             }
-            val parts = mutableListOf<String>()
+            val pageTexts = mutableListOf<String?>()
             for (i in 0 until pageCount) {
-                val bitmap = renderPdfPage(pdfPath, OCR_RENDER_DIM, i) ?: continue
+                val bitmap = renderPdfPage(pdfPath, OCR_RENDER_DIM, i)
                 val text =
-                    runCatching {
-                        InputImage.fromBitmap(bitmap, 0).let { img ->
-                            Tasks.await(recognizer.process(img)).text
-                        }
-                    }.getOrNull()
-                bitmap.recycle()
-                if (!text.isNullOrBlank()) {
-                    parts.add(if (pageCount > 1) "--- Side ${i + 1} ---\n$text" else text)
-                }
+                    bitmap?.let { pageBitmap ->
+                        runCatching {
+                            InputImage.fromBitmap(pageBitmap, 0).let { img ->
+                                Tasks.await(recognizer.process(img)).text
+                            }
+                        }.getOrNull()
+                    }
+                bitmap?.recycle()
+                pageTexts.add(text)
             }
             recognizer.close()
-            if (parts.isEmpty()) null else parts.joinToString("\n\n")
+            joinOcrPageTexts(pageTexts) { page ->
+                localizedString(R.string.pdf_text_page_separator, page)
+            }
         } catch (_: Exception) {
             null
         }
@@ -4315,7 +4419,10 @@ class ClipboardRepository(
         }
     }
 
-    private fun localizedString(resId: Int): String = LocaleHelper.applyLocale(context).getString(resId)
+    private fun localizedString(
+        resId: Int,
+        vararg formatArgs: Any,
+    ): String = LocaleHelper.applyLocale(context).getString(resId, *formatArgs)
 
     private fun fileProviderUris(entries: List<ClipboardEntry>): ArrayList<Uri> {
         val uris = ArrayList<Uri>()
@@ -5993,7 +6100,6 @@ private data class PdfLayout(
         get() = fontSizePt * lineSpacing
 }
 
-private const val LIST_INDENT = 14f
 private const val QUOTE_INDENT = 18f
 private const val CODE_BG = 0xFFF2F2F2.toInt()
 

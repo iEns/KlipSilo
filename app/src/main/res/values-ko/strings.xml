@@ -427,4 +427,5 @@
     <string name="markup_image_no_clips">이미지 클립이 아직 없습니다</string>
     <string name="markup_image_source_title">이미지 삽입</string>
     <string name="markup_tool_image">이미지</string>
+    <string name="pdf_text_page_separator">--- 페이지 %1$d ---</string>
 </resources>

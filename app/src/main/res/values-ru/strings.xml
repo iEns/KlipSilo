@@ -433,4 +433,5 @@
     <string name="markup_image_no_clips">Пока нет клипов с изображениями</string>
     <string name="markup_image_source_title">Вставить изображение</string>
     <string name="markup_tool_image">Изображение</string>
+    <string name="pdf_text_page_separator">--- Страница %1$d ---</string>
 </resources>
