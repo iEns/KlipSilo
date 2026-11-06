@@ -13,29 +13,30 @@ Application id: `com.phaprodevelop.klipsilo`. This tree is version 1.3.0 (versio
 <table align="center">
   <tr>
     <td><img src="docs/screenshots/01_clips.webp" width="200" alt="Everything you copy, in one place"></td>
-    <td><img src="docs/screenshots/02_pin_lock_search.webp" width="200" alt="Pin, lock and search your clips"></td>
-    <td><img src="docs/screenshots/03_pdf_highlight.webp" width="200" alt="View, mark up and highlight PDFs"></td>
-    <td><img src="docs/screenshots/04_convert_to_pdf.webp" width="200" alt="Convert DOCX, XLSX and images to PDF"></td>
+    <td><img src="docs/screenshots/02_markup_colour.webp" width="200" alt="Mark up PDFs in any colour"></td>
+    <td><img src="docs/screenshots/03_add_images_text.webp" width="200" alt="Add images and text to PDFs"></td>
+    <td><img src="docs/screenshots/04_pdf_tools.webp" width="200" alt="All your PDF tools in one place"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/05_ocr_text.webp" width="200" alt="Copy text from paper and PDFs (OCR)"></td>
-    <td><img src="docs/screenshots/06_fill_form.webp" width="200" alt="Fill in PDF forms with a live preview"></td>
-    <td><img src="docs/screenshots/07_qr_scan.webp" width="200" alt="Scan QR codes, even on PDF pages"></td>
-    <td><img src="docs/screenshots/08_privacy.webp" width="200" alt="No ads, no account, works offline"></td>
+    <td><img src="docs/screenshots/05_fill_form.webp" width="200" alt="Fill in PDF forms with a live preview"></td>
+    <td><img src="docs/screenshots/06_ocr.webp" width="200" alt="Copy text from photos and PDFs (OCR)"></td>
+    <td><img src="docs/screenshots/07_blue_look.webp" width="200" alt="New blue look, in light or dark"></td>
+    <td><img src="docs/screenshots/08_type_notes.webp" width="200" alt="Type notes right on the page"></td>
   </tr>
 </table>
 
 ## Features
 
-- Save text, URLs, images, PDFs, other files, and locations. Search them, filter by type, and pin the ones you need often.
+- Save text (Plain Text or Markdown), URLs, images, PDFs, other files, and locations. Search them, filter by type, and pin the ones you need often. HTML files open in a read-only preview.
 - Share into the app, or save the current clipboard while the app is in front. It does not watch the clipboard in the background.
-- Convert TXT, RTF, DOCX, XLSX, and images to PDF on the device.
+- Convert TXT, RTF, DOCX, XLSX, HTML, and images to PDF on the device.
 - Open PDFs with page navigation and zoom, decode a QR code on a page, run OCR, and save one page as its own PDF.
-- Mark up a PDF with text, lines, freehand, and a highlighter, with undo and redo.
+- Mark up a PDF with text, lines, freehand, images, and a highlighter, with per-tool colours, undo, and redo.
 - Fill in PDF forms (text, checkbox, radio, choice) with field labels and a live page preview.
 - Copy text from paper with camera OCR, and scan QR codes with the camera or from an image.
 - Find links and phone numbers, and open a saved place in navigation.
 - Back up all clips to a ZIP and restore them. The backup is not encrypted.
+- Rate KlipSilo from Settings → About, with no in-app prompt.
 - 13 languages: English, Danish, German, Spanish, French, Indonesian, Italian, Japanese, Korean, Portuguese (Brazil), Russian, Turkish, and Simplified Chinese.
 - Lock a clip against an accidental edit or delete. That lock is not encryption.
 
