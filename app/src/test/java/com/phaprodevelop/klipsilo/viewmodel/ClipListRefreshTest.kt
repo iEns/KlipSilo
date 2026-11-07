@@ -114,6 +114,85 @@ class ClipListRefreshTest {
     }
 
     @Test
+    fun pin_updatesClipsWhenRoomFlowDoesNotEmit() {
+        val entry = textEntry()
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.clips.value.size)
+        dao.emitFlowUpdates = false
+
+        viewModel.togglePin(viewModel.clips.value.single())
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        // #184: Pin writes must not rely on the (possibly missing) Room flow
+        // emission, and the moved row must be surfaced to the UI.
+        assertTrue(viewModel.clips.value.single().isPinned)
+        assertEquals(entry.id, viewModel.scrollToClipId.value)
+    }
+
+    @Test
+    fun unpin_updatesClipsWhenRoomFlowDoesNotEmit() {
+        val entry = textEntry().copy(isPinned = true)
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.clips.value.size)
+        dao.emitFlowUpdates = false
+
+        viewModel.togglePin(viewModel.clips.value.single())
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        // #184: Unpin refreshes the list the same way.
+        assertFalse(viewModel.clips.value.single().isPinned)
+        assertEquals(entry.id, viewModel.scrollToClipId.value)
+    }
+
+    @Test
+    fun lock_updatesClipsWhenRoomFlowDoesNotEmit() {
+        val entry = textEntry()
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.clips.value.size)
+        dao.emitFlowUpdates = false
+
+        viewModel.toggleLock(viewModel.clips.value.single())
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        // #184: Lock/Unlock has the same refresh gap as Pin.
+        assertTrue(viewModel.clips.value.single().isLocked)
+    }
+
+    @Test
+    fun makeMarkdown_updatesClipsWithoutRoomEmission() {
+        val entry = textEntry()
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.clips.value.size)
+        dao.emitFlowUpdates = false
+
+        viewModel.setTextClipKind(viewModel.clips.value.single(), ContentType.MARKDOWN)
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        // #184: converting the kind must not depend on the Room flow, and the
+        // converted row stays surfaced instead of scrolling off to the top.
+        assertEquals(ContentType.MARKDOWN, viewModel.clips.value.single().contentType)
+        assertEquals(entry.id, viewModel.scrollToClipId.value)
+    }
+
+    @Test
+    fun clearScrollToClipId_resetsTheScrollEvent() {
+        val entry = textEntry()
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        viewModel.togglePin(viewModel.clips.value.single())
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(entry.id, viewModel.scrollToClipId.value)
+
+        viewModel.clearScrollToClipId()
+        assertEquals(0L, viewModel.scrollToClipId.value)
+    }
+
+    @Test
     fun refreshClipboardHasContent_tracksTextAndUriButNotEmptyText() {
         // #93: the Save clipboard button is shown only for pasteable content.
         val clipboard = app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

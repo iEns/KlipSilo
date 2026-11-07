@@ -482,6 +482,19 @@ class ClipboardViewModel(
     private val _scrollToTop = MutableStateFlow(0L)
     val scrollToTop: StateFlow<Long> = _scrollToTop.asStateFlow()
 
+    /**
+     * #184: id of the clip the UI should put in view after a clip-number move,
+     * such as Pin / Unpin / Make Markdown. The list keeps its scroll anchor by
+     * index when the sort order reshuffles, so the toggled row can land way above
+     * or below the viewport and appear to vanish. 0 means none.
+     */
+    private val _scrollToClipId = MutableStateFlow(0L)
+    val scrollToClipId: StateFlow<Long> = _scrollToClipId.asStateFlow()
+
+    fun clearScrollToClipId() {
+        _scrollToClipId.value = 0L
+    }
+
     private val _shareSelectedIds = MutableStateFlow<LinkedHashSet<Long>>(LinkedHashSet())
     val shareSelectedIds: StateFlow<LinkedHashSet<Long>> = _shareSelectedIds.asStateFlow()
 
@@ -915,7 +928,11 @@ class ClipboardViewModel(
                     repository.setTextClipKind(entry, target, body?.takeIf { it.isNotBlank() })
                 }
             if (ok) {
-                triggerScrollToTop()
+                // #184: reload explicitly (triggerScrollToTop would jump the whole
+                // list to the top, leaving the converted clip out of view); the
+                // row keeps its sort order, so just surface it again.
+                awaitClipReload()
+                _scrollToClipId.value = entry.id
                 toast(localizedString(kindChangedToast(target)))
             } else {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1563,13 +1580,20 @@ class ClipboardViewModel(
 
     fun togglePin(entry: ClipboardEntry) {
         viewModelScope.launch {
+            // #184: an explicit reload keeps the list in step even when the DAO
+            // flow stays silent, and the id lets the UI bring the moved row
+            // back into view (pinning re-sorts it to the top).
             repository.togglePin(entry)
+            awaitClipReload()
+            _scrollToClipId.value = entry.id
         }
     }
 
     fun toggleLock(entry: ClipboardEntry) {
         viewModelScope.launch {
+            // #184: same list-refresh gap as Pin — no reorder, so no scroll.
             repository.setLocked(entry, !entry.isLocked)
+            awaitClipReload()
         }
     }
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -172,6 +173,17 @@ fun KlipScreen(
             handledScrollToTop = scrollToTop
         }
     }
+
+    // #184: after Pin / Unpin / Make Markdown the toggled row may land outside
+    // the viewport (the keyed list anchors the scroll by index while the row
+    // re-sorts), which reads as if the clip had vanished. Bring it back.
+    val scrollToClipId by viewModel.scrollToClipId.collectAsState()
+    ScrollToClipEffect(
+        scrollTargetId = scrollToClipId,
+        clips = filtered,
+        listState = listState,
+        onConsumed = viewModel::clearScrollToClipId,
+    )
 
     if (isDownloading) {
         AlertDialog(
@@ -479,6 +491,30 @@ internal fun showSaveClipboardButton(
     clipboardHasContent: Boolean,
     clipCount: Int,
 ): Boolean = clipboardHasContent || clipCount > 0
+
+/**
+ * #184: after Pin / Unpin / Make Markdown the toggled row can land outside the
+ * anchored viewport (the sort moves it while the key-anchored list keeps its
+ * scroll position), which reads as if the clip had vanished. When a target id
+ * is pending, scroll the affected row back on screen, then consume the event.
+ */
+@Composable
+internal fun ScrollToClipEffect(
+    scrollTargetId: Long,
+    clips: List<ClipboardEntry>,
+    listState: LazyListState,
+    onConsumed: () -> Unit,
+) {
+    LaunchedEffect(scrollTargetId) {
+        if (scrollTargetId != 0L) {
+            val index = clips.indexOfFirst { it.id == scrollTargetId }
+            if (index >= 0) {
+                listState.scrollToItem(index)
+            }
+            onConsumed()
+        }
+    }
+}
 
 @Composable
 private fun CompactSearchField(
