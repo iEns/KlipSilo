@@ -1466,7 +1466,7 @@ class ClipboardViewModel(
         }
     }
 
-    private fun classifyShareStream(
+    internal fun classifyShareStream(
         uri: Uri,
         mime: String,
     ): Triple<Uri?, Uri?, Uri?> {
