@@ -808,6 +808,52 @@ class ClipboardRepository(
         }
     }
 
+    /**
+     * Deletes PDFs in `files/pdfs` that no clip references. Files can be left
+     * behind when the process dies during the 4 s delete-Undo window: the clip
+     * row is already gone (lazy delete), but its file has not been removed yet.
+     * Runs at app start so those orphans do not accumulate.
+     *
+     * Files still inside an open undo window are not in the table any more, so
+     * callers pass their paths in [extraReferencedPaths]; a referenced path is
+     * never deleted, even if the row was already lazily deleted.
+     *
+     * Only regular files directly inside `pdfs` are candidates; `images` and
+     * `files` are deliberately out of scope. Safe when the directory is missing
+     * or empty, and a failure on one file does not stop the rest. Returns the
+     * number of files deleted. Call this from a background dispatcher.
+     */
+    suspend fun sweepOrphanPdfs(extraReferencedPaths: Collection<String> = emptyList()): Int {
+        val referenced =
+            try {
+                (
+                    dao.getAllOnce().mapNotNull { it.filePath } +
+                        extraReferencedPaths.filter { it.isNotBlank() }
+                ).map { File(it).canonicalPath }.toSet()
+            } catch (_: Exception) {
+                // Without a trustworthy reference set, leave every file alone.
+                return 0
+            }
+
+        val candidates =
+            try {
+                File(context.filesDir, "pdfs").listFiles().orEmpty()
+            } catch (_: Exception) {
+                return 0
+            }
+        var deleted = 0
+        candidates.forEach { file ->
+            try {
+                if (file.isFile && file.canonicalPath !in referenced && file.delete()) {
+                    deleted++
+                }
+            } catch (_: Exception) {
+                // Keep sweeping the other files.
+            }
+        }
+        return deleted
+    }
+
     suspend fun insertEntry(entry: ClipboardEntry) {
         val item = persistTextualEntry(entry) ?: return
         try {

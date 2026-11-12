@@ -32,16 +32,18 @@ class SaveAnnotatedPdfTest {
 
     private lateinit var app: Application
     private lateinit var dao: FakeClipboardItemDao
+    private lateinit var repository: ClipboardRepository
     private lateinit var viewModel: ClipboardViewModel
 
     @Before
     fun setUp() {
         app = ApplicationProvider.getApplicationContext()
         dao = FakeClipboardItemDao()
+        repository = ClipboardRepository(dao, app)
         viewModel =
             ClipboardViewModel(
                 application = app,
-                repository = ClipboardRepository(dao, app),
+                repository = repository,
                 ioDispatcher = mainDispatcherRule.dispatcher,
             )
     }
@@ -71,6 +73,8 @@ class SaveAnnotatedPdfTest {
         runTest(mainDispatcherRule.dispatcher) {
             val file = writeBlankPdf("annotate-nav.pdf")
             val entry = pdfEntry(file, id = 52L)
+            // The startup orphan sweep must see this PDF as referenced.
+            repository.insertEntry(entry)
 
             viewModel.saveAnnotatedPdf(entry, listOf(PdfAnnotation(0, 0.2f, 0.2f, "Note", 0.02f)))
             mainDispatcherRule.scheduler.advanceUntilIdle()

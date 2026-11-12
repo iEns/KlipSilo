@@ -162,10 +162,15 @@ class ClipboardViewModel(
 
     private val clipGeneration = AtomicLong(0)
 
+    // Declared above init for the same reason as _clips: the startup sweep
+    // reads it from a coroutine that can run inline during construction.
+    private val pendingDeletes = ConcurrentHashMap<Long, ClipboardEntry>()
+
     init {
-        viewModelScope.launch {
-            repository.migrateLegacyNames()
-        }
+        val legacyNameMigration =
+            viewModelScope.launch {
+                repository.migrateLegacyNames()
+            }
         viewModelScope.launch {
             // #33 leftover: once per install, title text clips that still carry a
             // stale auto title from an older build (user renames are untouched).
@@ -174,6 +179,18 @@ class ClipboardViewModel(
         viewModelScope.launch {
             // #127: one-shot kind split (Plain Text / Markdown, HTML text -> File).
             repository.migrateTextKinds()
+        }
+        viewModelScope.launch {
+            // Remove PDFs left behind when the process died during the undo
+            // timeout. Wait for legacy renames first so the sweep's path
+            // snapshot cannot race a file move. Pending undo paths are passed
+            // so a sweep started while the snackbar is open can never delete a
+            // restorable file.
+            legacyNameMigration.join()
+            val undoPaths = pendingDeletes.values.mapNotNull { it.filePath }
+            withContext(ioDispatcher) {
+                repository.sweepOrphanPdfs(undoPaths)
+            }
         }
         viewModelScope.launch {
             // Re-read the table on every signal. A Room emission can be stale or, after a
@@ -2173,8 +2190,6 @@ class ClipboardViewModel(
         if (uri.host.isNullOrBlank()) return null
         return uri
     }
-
-    private val pendingDeletes = ConcurrentHashMap<Long, ClipboardEntry>()
 
     private fun isLockedEntry(id: Long): Boolean = clips.value.find { it.id == id }?.isLocked == true
 

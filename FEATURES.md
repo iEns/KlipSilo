@@ -162,6 +162,7 @@ Each conversion creates a new clip. In the action sheet they are grouped under *
 | Delete all clips, or all clips of one type (locked clips kept) | Tools → Maintenance → Delete; choose All or a type, then Delete | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Unlock all locked clips (asks for confirmation first) | Tools → Maintenance → Locked clips, then confirm Unlock all | 1.1.0 | [K2](docs/regression-checklist.md#K2) | no |
 | Offline only: no account, no tracking | Everything works offline | 1.1.0 | [K4](docs/regression-checklist.md#K4) | no |
+| Orphaned PDF cleanup: at app start, PDFs in `files/pdfs` that no clip references (for example left behind when the app died during the delete-Undo window) are removed; referenced PDFs, including one still undoable, are kept | Automatic on app start | Unreleased | [K6](docs/regression-checklist.md#K6) | yes |
 
 ## Not supported
 
