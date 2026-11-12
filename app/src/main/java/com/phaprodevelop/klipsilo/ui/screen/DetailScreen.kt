@@ -135,6 +135,7 @@ import com.phaprodevelop.klipsilo.ui.components.decodeImageBitmap
 import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.markdownContentRange
+import com.phaprodevelop.klipsilo.ui.components.offersHtmlToPdf
 import com.phaprodevelop.klipsilo.ui.components.pdfPageCount
 import com.phaprodevelop.klipsilo.ui.components.produceLatest
 import com.phaprodevelop.klipsilo.ui.components.rememberBitmapRecycler
@@ -665,10 +666,7 @@ fun DetailScreen(
                     null
                 },
             onConvertHtmlToPdf =
-                if (
-                    entry.contentType == ContentType.FILE &&
-                    fileExt in setOf("html", "htm")
-                ) {
+                if (offersHtmlToPdf(entry)) {
                     { viewModel.convertHtmlToPdf(entry) }
                 } else {
                     null

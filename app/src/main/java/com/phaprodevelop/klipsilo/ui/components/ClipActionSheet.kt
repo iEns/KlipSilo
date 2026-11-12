@@ -597,6 +597,13 @@ internal fun fileExtensionOf(filePath: String?): String = filePath?.substringAft
 internal val FILE_TO_PDF_EXTENSIONS = setOf("txt", "rtf", "docx", "xlsx")
 
 /**
+ * #127: only an HTML File clip offers HTML → PDF. The editor kind is not
+ * used here; HTML is never a text clip any more.
+ */
+internal fun offersHtmlToPdf(entry: ClipboardEntry): Boolean =
+    entry.contentType == ContentType.FILE && fileExtensionOf(entry.filePath) in setOf("html", "htm")
+
+/**
  * The "Convert to PDF" action for a file clip by its extension — the same
  * mapping the action sheet shows, reused by the viewer's file info card
  * (#66) so the conversion logic is not duplicated.
@@ -634,6 +641,22 @@ private fun textConversionRows(
             )
         },
     )
+
+/**
+ * The convert action ids [conversionRows] shows for a clip type. Kept separate
+ * so JVM tests can assert the conversion surface (for example that PDF has no
+ * PDF → HTML row, #127) without a Compose harness. Keep in sync with
+ * [conversionRows].
+ */
+internal fun conversionActionsFor(type: ContentType): List<ClipSheetAction> =
+    when (type) {
+        ContentType.TEXT -> listOf(ClipSheetAction.TEXT_TO_PDF, ClipSheetAction.MAKE_MARKDOWN)
+        ContentType.MARKDOWN -> listOf(ClipSheetAction.TEXT_TO_PDF, ClipSheetAction.MAKE_PLAIN_TEXT)
+        ContentType.IMAGE -> listOf(ClipSheetAction.IMAGE_TO_PDF)
+        ContentType.PDF -> listOf(ClipSheetAction.PDF_TO_IMAGE, ClipSheetAction.PDF_TO_TEXT)
+        ContentType.FILE -> listOf(ClipSheetAction.FILE_TO_TEXT)
+        else -> emptyList()
+    }
 
 private fun conversionRows(
     entry: ClipboardEntry,

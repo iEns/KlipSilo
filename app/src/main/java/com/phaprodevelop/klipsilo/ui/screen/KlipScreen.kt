@@ -107,6 +107,7 @@ import com.phaprodevelop.klipsilo.ui.components.fileConvertToPdfAction
 import com.phaprodevelop.klipsilo.ui.components.fileExtensionOf
 import com.phaprodevelop.klipsilo.ui.components.formatTimestamp
 import com.phaprodevelop.klipsilo.ui.components.hapticClickable
+import com.phaprodevelop.klipsilo.ui.components.offersHtmlToPdf
 import com.phaprodevelop.klipsilo.viewmodel.ClipboardViewModel
 import com.phaprodevelop.klipsilo.withoutSoftHyphens
 import java.io.File
@@ -261,10 +262,7 @@ fun KlipScreen(
                     null
                 },
             onConvertHtmlToPdf =
-                if (
-                    entry.contentType == ContentType.FILE &&
-                    fileExt in setOf("html", "htm")
-                ) {
+                if (offersHtmlToPdf(entry)) {
                     { viewModel.convertHtmlToPdf(entry) }
                 } else {
                     null
