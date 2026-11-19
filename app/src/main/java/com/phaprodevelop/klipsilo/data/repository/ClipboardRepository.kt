@@ -336,13 +336,17 @@ class ClipboardRepository(
                         }
                     }
                 }
-                val newPreview = extractBaseName(File(finalPath).name)
-                if (renamed || item.previewText != newPreview) {
+                // #188: only follow the file name when the preview was derived from
+                // it; a custom name (e.g. "Report - copy") survives renames and _N.
+                val oldPreview = extractBaseName(file.name)
+                val previewText =
+                    if (item.previewText == oldPreview) extractBaseName(File(finalPath).name) else item.previewText
+                if (renamed || previewText != item.previewText) {
                     try {
                         dao.update(
                             item.copy(
                                 filePath = if (renamed) finalPath else item.filePath,
-                                previewText = newPreview,
+                                previewText = previewText,
                             ),
                         )
                     } catch (_: Exception) {

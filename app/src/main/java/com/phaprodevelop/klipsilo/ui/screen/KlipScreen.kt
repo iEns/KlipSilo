@@ -932,7 +932,7 @@ private fun ClipItemRow(
                     clipListTitle(entry.contentType, entry.previewText)
                         .ifBlank { context.getString(R.string.untitled_clip) },
                 )
-            val info = remember(entry.filePath) { clipInfo(context, entry) }
+            val info = remember(entry.id, entry.filePath, entry.contentType) { clipInfo(context, entry) }
             if (compact) {
                 Column(Modifier.weight(1f)) {
                     // Two lines at the body size. A title that needs a third line

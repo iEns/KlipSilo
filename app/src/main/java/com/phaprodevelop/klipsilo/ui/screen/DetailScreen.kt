@@ -1383,7 +1383,7 @@ private fun ImageViewer(
             // large) still shares, saves and converts.
             FileInfoCard(
                 entry = entry,
-                infoLine = remember(entry.filePath) { clipInfo(context, entry) },
+                infoLine = remember(entry.id, entry.filePath, entry.contentType) { clipInfo(context, entry) },
                 actions = fileInfoActions(entry, viewModel, onMore),
             )
         }
@@ -1782,7 +1782,7 @@ private fun FileViewer(
         FileViewerState.Info -> {
             FileInfoCard(
                 entry = entry,
-                infoLine = remember(entry.filePath) { clipInfo(context, entry) },
+                infoLine = remember(entry.id, entry.filePath, entry.contentType) { clipInfo(context, entry) },
                 actions = fileInfoActions(entry, viewModel, onMore),
             )
         }
