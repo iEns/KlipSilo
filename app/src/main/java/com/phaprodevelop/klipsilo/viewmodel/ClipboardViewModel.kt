@@ -459,6 +459,18 @@ class ClipboardViewModel(
         }
     }
 
+    /**
+     * #184: shared path for actions that create or move a row. Reload the list
+     * explicitly (the Room flow can stay silent) and then surface [clipId], so a
+     * new unpinned clip below the pinned section or a moved row is not hidden.
+     */
+    private suspend fun reloadAndReveal(clipId: Long) {
+        awaitClipReload()
+        if (clipId > 0L) {
+            _scrollToClipId.value = clipId
+        }
+    }
+
     private val _navigateToNewClip = MutableStateFlow<Long?>(null)
     val navigateToNewClip: StateFlow<Long?> = _navigateToNewClip.asStateFlow()
 
@@ -481,6 +493,19 @@ class ClipboardViewModel(
 
     private val _scrollToTop = MutableStateFlow(0L)
     val scrollToTop: StateFlow<Long> = _scrollToTop.asStateFlow()
+
+    /**
+     * #184: id of the clip the UI should put in view after a clip-number move,
+     * such as Pin / Unpin / Make Markdown. The list keeps its scroll anchor by
+     * index when the sort order reshuffles, so the toggled row can land way above
+     * or below the viewport and appear to vanish. 0 means none.
+     */
+    private val _scrollToClipId = MutableStateFlow(0L)
+    val scrollToClipId: StateFlow<Long> = _scrollToClipId.asStateFlow()
+
+    fun clearScrollToClipId() {
+        _scrollToClipId.value = 0L
+    }
 
     private val _shareSelectedIds = MutableStateFlow<LinkedHashSet<Long>>(LinkedHashSet())
     val shareSelectedIds: StateFlow<LinkedHashSet<Long>> = _shareSelectedIds.asStateFlow()
@@ -657,7 +682,7 @@ class ClipboardViewModel(
                         repository.savePdfFromImageFile(filePath, entry)
                     }
                 if (result > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(result)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.image_to_pdf))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -706,13 +731,13 @@ class ClipboardViewModel(
         }
     }
 
-    private fun handleCombineResult(
+    private suspend fun handleCombineResult(
         result: PdfCombineResult,
         clearSelection: Boolean,
     ) {
         when (result) {
             is PdfCombineResult.Success -> {
-                triggerScrollToTop()
+                reloadAndReveal(result.id)
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.combine_to_pdf))
                 if (clearSelection) clearShareSelection()
             }
@@ -869,7 +894,7 @@ class ClipboardViewModel(
                         )
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.text_to_pdf))
                     if (navigateBack) {
                         _navigateBack.value = true
@@ -915,7 +940,9 @@ class ClipboardViewModel(
                     repository.setTextClipKind(entry, target, body?.takeIf { it.isNotBlank() })
                 }
             if (ok) {
-                triggerScrollToTop()
+                // #184: the shared reload-and-reveal path keeps the converted
+                // row in view instead of jumping the whole list to the top.
+                reloadAndReveal(entry.id)
                 toast(localizedString(kindChangedToast(target)))
             } else {
                 toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1000,7 +1027,7 @@ class ClipboardViewModel(
                         repository.saveHtmlAsPdf(full)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.html_to_pdf_done))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1083,7 +1110,7 @@ class ClipboardViewModel(
                         repository.fillPdfForm(filePath, entry, values)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.form_filled))
                     _navigateBack.value = true
                 } else {
@@ -1111,7 +1138,7 @@ class ClipboardViewModel(
                         repository.savePdfPages(filePath, entry, pageOrder)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pages_saved))
                     _navigateBack.value = true
                 } else {
@@ -1563,13 +1590,19 @@ class ClipboardViewModel(
 
     fun togglePin(entry: ClipboardEntry) {
         viewModelScope.launch {
+            // #184: an explicit reload keeps the list in step even when the DAO
+            // flow stays silent, and the id lets the UI bring the moved row
+            // back into view (pinning re-sorts it to the top).
             repository.togglePin(entry)
+            reloadAndReveal(entry.id)
         }
     }
 
     fun toggleLock(entry: ClipboardEntry) {
         viewModelScope.launch {
+            // #184: same list-refresh gap as Pin — no reorder, so no scroll.
             repository.setLocked(entry, !entry.isLocked)
+            awaitClipReload()
         }
     }
 
@@ -1677,7 +1710,7 @@ class ClipboardViewModel(
                         repository.saveTextFileAsPdf(entry.copy(filePath = filePath))
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1701,7 +1734,7 @@ class ClipboardViewModel(
                         repository.saveRtfFileAsPdf(entry.copy(filePath = filePath))
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1725,7 +1758,7 @@ class ClipboardViewModel(
                         repository.saveDocxFileAsPdf(entry.copy(filePath = filePath))
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1749,7 +1782,7 @@ class ClipboardViewModel(
                         repository.saveXlsxFileAsPdf(entry.copy(filePath = filePath))
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1776,7 +1809,7 @@ class ClipboardViewModel(
                         repository.savePageAsPdf(filePath, pageIndex, entry)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.page_saved_as_pdf))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))
@@ -1831,6 +1864,7 @@ class ClipboardViewModel(
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke> = emptyList(),
         images: List<PdfImageAnnotation> = emptyList(),
+        name: String? = null,
     ) {
         if (_isConverting.value) return
         viewModelScope.launch {
@@ -1839,10 +1873,10 @@ class ClipboardViewModel(
                 val filePath = requireFilePath(entry) ?: return@launch
                 val newId =
                     withContext(ioDispatcher) {
-                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry, images)
+                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry, images, name)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.pdf_saved))
                     clearMarkupSession(entry.id)
                     _navigateBack.value = true
@@ -1869,7 +1903,9 @@ class ClipboardViewModel(
                         repository.duplicateEntry(entry)
                     }
                 if (newId > 0L) {
-                    triggerScrollToTop()
+                    // #184: reveal the duplicate by its NEW id; scrolling the old
+                    // list to the top left a new unpinned copy out of view.
+                    reloadAndReveal(newId)
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_duplicated))
                 } else {
                     toast(localizedString(com.phaprodevelop.klipsilo.R.string.clip_save_failed))

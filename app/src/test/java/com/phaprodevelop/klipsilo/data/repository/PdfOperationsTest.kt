@@ -204,12 +204,14 @@ class PdfOperationsTest {
                         ),
                     ),
                     original,
+                    name = "Report - annotated",
                 )
 
             assertNotEquals(0L, newId)
             val created = repo.getAllClips().first().single { it.id == newId }
             val createdFile = File(created.filePath!!)
             assertEquals(ContentType.PDF, created.contentType)
+            assertEquals("Report - annotated", created.previewText)
             assertTrue(createdFile.length() < 1_000_000L)
             assertEquals(source.absolutePath, repo.getAllClips().first().single { it.id == original.id }.filePath)
             PDDocument.load(createdFile).use { document ->

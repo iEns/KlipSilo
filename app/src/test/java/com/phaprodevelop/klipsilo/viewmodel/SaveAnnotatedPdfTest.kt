@@ -80,6 +80,24 @@ class SaveAnnotatedPdfTest {
             assertFalse(viewModel.isConverting.value)
         }
 
+    @Test
+    fun saveAnnotatedPdf_usesProvidedNameForTheNewClip() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val file = writeBlankPdf("annotate-name.pdf")
+            val entry = pdfEntry(file, id = 53L)
+
+            viewModel.saveAnnotatedPdf(
+                entry,
+                listOf(PdfAnnotation(0, 0.2f, 0.2f, "Note", 0.02f)),
+                name = "Report - annotated",
+            )
+            mainDispatcherRule.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.navigateBack.value)
+            val saved = dao.getAllOnce().single()
+            assertEquals("Report - annotated", saved.previewText)
+        }
+
     private fun pdfEntry(
         file: File,
         id: Long,

@@ -44,6 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -173,8 +174,12 @@ fun ClipActionSheet(
         }
     }
 
+    // #189: the sheet holds the full action list, so open it fully expanded
+    // instead of at half height where the user would have to drag it up.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Column(

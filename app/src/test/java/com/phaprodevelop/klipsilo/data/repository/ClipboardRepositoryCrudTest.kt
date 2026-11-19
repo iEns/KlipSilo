@@ -2,6 +2,7 @@ package com.phaprodevelop.klipsilo.data.repository
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.phaprodevelop.klipsilo.R
 import com.phaprodevelop.klipsilo.data.db.ClipboardItem
 import com.phaprodevelop.klipsilo.data.db.ClipboardItemDao
 import com.phaprodevelop.klipsilo.data.db.ContentType
@@ -265,6 +266,34 @@ class ClipboardRepositoryCrudTest {
         }
 
     @Test
+    fun duplicateEntry_pdf_customCopyNameSurvivesReloadMigration() =
+        runTest {
+            // Arrange
+            val sourceFile = createStoredFile("pdfs", "Quarterly Report.pdf")
+            val source = pdfEntry(sourceFile, id = 90L, preview = "Quarterly Report")
+            repo.insertEntry(source)
+            val expectedPreview =
+                copiedClipName(
+                    source.previewText,
+                    context.getString(R.string.clip_copy_suffix),
+                    context.getString(R.string.untitled_clip),
+                )
+
+            // Act
+            val newId = repo.duplicateEntry(source)
+            val duplicate = repo.getClip(newId)!!
+            val relaunched = ClipboardRepository(dao, context)
+            relaunched.migrateLegacyNames()
+            val reloaded = relaunched.getClip(newId)!!
+
+            // Assert
+            assertEquals(expectedPreview, duplicate.previewText)
+            assertEquals(expectedPreview, reloaded.previewText)
+            assertEquals("Quarterly Report_1.pdf", File(reloaded.filePath!!).name)
+            assertTrue(File(reloaded.filePath!!).exists())
+        }
+
+    @Test
     fun deleteClip_removesDbAndFile() =
         runTest {
             // Arrange
@@ -454,6 +483,25 @@ class ClipboardRepositoryCrudTest {
             assertFalse(legacy.exists())
         }
 
+    @Test
+    fun migrateLegacyNames_customPreviewSurvivesFileRename() =
+        runTest {
+            // Arrange
+            val legacy = createStoredFile("pdfs", "Report_1700000000.pdf")
+            val entry = pdfEntry(legacy, id = 23L, preview = "Report - copy")
+            repo.insertEntry(entry)
+
+            // Act
+            repo.migrateLegacyNames()
+            val updated = repo.getClip(23L)!!
+
+            // Assert
+            assertEquals("Report - copy", updated.previewText)
+            assertEquals("Report.pdf", File(updated.filePath!!).name)
+            assertTrue(File(updated.filePath!!).exists())
+            assertFalse(legacy.exists())
+        }
+
     private fun textEntry(
         id: Long,
         text: String = "hello",
@@ -492,6 +540,19 @@ class ClipboardRepositoryCrudTest {
         timestamp = timestamp,
         isPinned = isPinned,
         isLocked = isLocked,
+    )
+
+    private fun pdfEntry(
+        file: File,
+        id: Long,
+        preview: String = file.nameWithoutExtension,
+    ) = ClipboardEntry(
+        id = id,
+        contentType = ContentType.PDF,
+        textContent = null,
+        filePath = file.absolutePath,
+        previewText = preview,
+        timestamp = 1_700_000_000_000L,
     )
 
     private fun createStoredFile(

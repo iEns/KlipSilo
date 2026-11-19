@@ -268,6 +268,9 @@
     <string name="analyzing">Analisi…</string>
     <string name="tool_annotate_pdf">Aggiungi testo e tratti al PDF</string>
     <string name="annotate_title">Annota</string>
+    <string name="save_clip_title">Salva clip</string>
+    <string name="annotated_clip_suffix">" - annotato"</string>
+    <string name="clip_copy_suffix">" - copia"</string>
     <string name="add_text_annotation">Aggiungi testo</string>
     <string name="markup_tool_text">Testo</string>
     <string name="markup_tool_line">Linea</string>

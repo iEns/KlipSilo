@@ -67,6 +67,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -142,6 +143,7 @@ import com.phaprodevelop.klipsilo.data.nearestMarkupWidth
 import com.phaprodevelop.klipsilo.data.repository.PdfAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfImageAnnotation
 import com.phaprodevelop.klipsilo.data.repository.PdfStroke
+import com.phaprodevelop.klipsilo.data.repository.annotatedClipName
 import com.phaprodevelop.klipsilo.data.resolveTextCommit
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettings
 import com.phaprodevelop.klipsilo.data.settings.AnnotateSettingsStore
@@ -382,6 +384,8 @@ fun AnnotatePdfScreen(
     var showImageClips by remember { mutableStateOf(false) }
     var pageSize by remember { mutableStateOf(IntSize.Zero) }
     var showExitWarning by remember { mutableStateOf(false) }
+    var showSaveNameDialog by remember { mutableStateOf(false) }
+    var saveName by remember { mutableStateOf("") }
     val annotations =
         remember(entryId) {
             mutableStateMapOf<Int, List<PdfAnnotation>>().apply {
@@ -817,6 +821,15 @@ fun AnnotatePdfScreen(
         }
     }
 
+    val annotatedSuffix = remember { context.getString(R.string.annotated_clip_suffix) }
+    val untitledName = remember { context.getString(R.string.untitled_clip) }
+
+    // #188: saving the markup creates a new clip, so ask for its name first.
+    fun openSaveNameDialog() {
+        saveName = annotatedClipName(entry.previewText, annotatedSuffix, untitledName)
+        showSaveNameDialog = true
+    }
+
     BackHandler { leave() }
 
     // Image insertion sources (#92): every source ends up as a copy in app storage before
@@ -1102,11 +1115,7 @@ fun AnnotatePdfScreen(
                 onBack = { leave() },
                 onSave = {
                     if (dirty) {
-                        commitDrafts()
-                        val all = annotations.values.flatten()
-                        val allStrokes = strokes.values.flatten()
-                        val allImages = images.values.flatten()
-                        viewModel.saveAnnotatedPdf(entry, all, allStrokes, allImages)
+                        openSaveNameDialog()
                     } else {
                         // Save with no changes (#60): just leave, like Back, instead
                         // of creating an identical copy clip.
@@ -2311,12 +2320,8 @@ fun AnnotatePdfScreen(
                     }
                     TextButton(
                         onClick = {
-                            commitDrafts()
                             showExitWarning = false
-                            val all = annotations.values.flatten()
-                            val allStrokes = strokes.values.flatten()
-                            val allImages = images.values.flatten()
-                            viewModel.saveAnnotatedPdf(entry, all, allStrokes, allImages)
+                            openSaveNameDialog()
                         },
                     ) {
                         ButtonLabel(context.getString(R.string.save))
@@ -2324,6 +2329,43 @@ fun AnnotatePdfScreen(
                 }
             },
             dismissButton = {},
+        )
+    }
+
+    if (showSaveNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveNameDialog = false },
+            title = { DialogTitleLabel(context.getString(R.string.save_clip_title)) },
+            text = {
+                OutlinedTextField(
+                    value = saveName,
+                    onValueChange = { saveName = it },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        commitDrafts()
+                        showSaveNameDialog = false
+                        val chosenName =
+                            saveName.trim().ifBlank {
+                                annotatedClipName("", annotatedSuffix, untitledName)
+                            }
+                        val all = annotations.values.flatten()
+                        val allStrokes = strokes.values.flatten()
+                        val allImages = images.values.flatten()
+                        viewModel.saveAnnotatedPdf(entry, all, allStrokes, allImages, chosenName)
+                    },
+                ) {
+                    ButtonLabel(context.getString(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveNameDialog = false }) {
+                    ButtonLabel(context.getString(R.string.cancel))
+                }
+            },
         )
     }
 
