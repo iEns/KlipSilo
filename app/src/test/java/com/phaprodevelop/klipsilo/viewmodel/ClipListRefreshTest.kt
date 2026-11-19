@@ -179,6 +179,26 @@ class ClipListRefreshTest {
     }
 
     @Test
+    fun duplicateClip_revealsNewClipWhenRoomFlowDoesNotEmit() {
+        val entry = textEntry()
+        runBlocking { repo.insertEntry(entry) }
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.clips.value.size)
+        dao.emitFlowUpdates = false
+
+        viewModel.duplicateClip(viewModel.clips.value.single())
+        mainDispatcherRule.scheduler.advanceUntilIdle()
+
+        // #184: the duplicate is a new row and must be surfaced by its own id,
+        // not by scrolling the old list to the top.
+        val clips = viewModel.clips.value
+        assertEquals(2, clips.size)
+        val duplicate = clips.single { it.id != entry.id }
+        assertTrue(clips.any { it.id == entry.id })
+        assertEquals(duplicate.id, viewModel.scrollToClipId.value)
+    }
+
+    @Test
     fun clearScrollToClipId_resetsTheScrollEvent() {
         val entry = textEntry()
         runBlocking { repo.insertEntry(entry) }
