@@ -265,6 +265,8 @@
     <string name="analyzing">正在分析…</string>
     <string name="tool_annotate_pdf">向 PDF 添加文本和笔迹</string>
     <string name="annotate_title">标注</string>
+    <string name="save_clip_title">保存剪贴</string>
+    <string name="annotated_clip_suffix">" - 已标注"</string>
     <string name="add_text_annotation">添加文本</string>
     <string name="markup_tool_text">文字</string>
     <string name="markup_tool_line">直线</string>

@@ -953,10 +953,11 @@ class ClipboardRepository(
         strokes: List<PdfStroke> = emptyList(),
         originalEntry: ClipboardEntry,
         images: List<PdfImageAnnotation> = emptyList(),
+        name: String? = null,
     ): Long {
-        val vector = savePdfWithAnnotationsVector(pdfPath, annotations, strokes, originalEntry, images)
+        val vector = savePdfWithAnnotationsVector(pdfPath, annotations, strokes, originalEntry, images, name)
         if (vector > 0L) return vector
-        return savePdfWithAnnotationsRaster(pdfPath, annotations, strokes, originalEntry, images)
+        return savePdfWithAnnotationsRaster(pdfPath, annotations, strokes, originalEntry, images, name)
     }
 
     /**
@@ -996,10 +997,11 @@ class ClipboardRepository(
         strokes: List<PdfStroke> = emptyList(),
         originalEntry: ClipboardEntry,
         images: List<PdfImageAnnotation> = emptyList(),
+        name: String? = null,
     ): Long {
         val source = File(pdfPath)
         if (!source.isFile) return 0L
-        val pdfName = buildPdfName(originalEntry.previewText)
+        val pdfName = annotatedOutputPdfName(originalEntry, name)
         val pdfFile = ensureUniqueFile(File(pdfsDir, pdfName)) ?: return 0L
         return try {
             PDDocument.load(source, MemoryUsageSetting.setupTempFileOnly()).use { document ->
@@ -1086,6 +1088,7 @@ class ClipboardRepository(
         strokes: List<PdfStroke>,
         originalEntry: ClipboardEntry,
         images: List<PdfImageAnnotation> = emptyList(),
+        name: String? = null,
     ): Long {
         return try {
             val pageCount = pdfPageCount(pdfPath)
@@ -1126,7 +1129,7 @@ class ClipboardRepository(
             document.writeTo(out)
             document.close()
 
-            writePdfClip(out.toByteArray(), originalEntry)
+            writePdfClip(out.toByteArray(), originalEntry, name)
         } catch (_: Exception) {
             0L
         } catch (_: OutOfMemoryError) {
@@ -1868,8 +1871,9 @@ class ClipboardRepository(
     private suspend fun writePdfClip(
         pdfBytes: ByteArray,
         originalEntry: ClipboardEntry,
+        name: String? = null,
     ): Long {
-        val pdfName = buildPdfName(originalEntry.previewText)
+        val pdfName = annotatedOutputPdfName(originalEntry, name)
         val pdfFile = ensureUniqueFile(File(pdfsDir, pdfName)) ?: return 0L
         return try {
             FileOutputStream(pdfFile).use { fout ->
@@ -6258,6 +6262,41 @@ internal fun buildPdfName(originalName: String): String {
             .ifBlank { "pdf" }
     return "$base.pdf"
 }
+
+/**
+ * #188: file name for an annotated copy saved under a chosen name. Uses the
+ * longer display-name cap instead of [buildPdfName]'s 30 characters so the
+ * localized " - annotated" suffix survives.
+ */
+internal fun buildAnnotatedPdfName(chosenName: String): String {
+    val cleaned =
+        extractBaseName(chosenName)
+            .withoutSoftHyphens()
+            .trim()
+            .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+    val base = capKeepingSuffix(cleaned).ifBlank { "pdf" }
+    return "$base.pdf"
+}
+
+/** Shortens an over-long name from its stem, keeping a trailing " - suffix" intact. */
+private fun capKeepingSuffix(name: String): String {
+    if (name.length <= MAX_ANNOTATED_CLIP_NAME_LENGTH) return name
+    val suffixStart = name.lastIndexOf(" - ")
+    val suffix = if (suffixStart > 0) name.substring(suffixStart) else ""
+    val maxStemLength = (MAX_ANNOTATED_CLIP_NAME_LENGTH - suffix.length).coerceAtLeast(1)
+    return name.take(maxStemLength).trimEnd() + suffix
+}
+
+/** #188: the chosen saved-copy name when present, otherwise the original name's PDF name. */
+private fun annotatedOutputPdfName(
+    originalEntry: ClipboardEntry,
+    name: String?,
+): String =
+    if (name.isNullOrBlank()) {
+        buildPdfName(originalEntry.previewText)
+    } else {
+        buildAnnotatedPdfName(name)
+    }
 
 internal fun sanitizeFileName(name: String): String {
     return name.withoutSoftHyphens()

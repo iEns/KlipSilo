@@ -1855,6 +1855,7 @@ class ClipboardViewModel(
         annotations: List<PdfAnnotation>,
         strokes: List<PdfStroke> = emptyList(),
         images: List<PdfImageAnnotation> = emptyList(),
+        name: String? = null,
     ) {
         if (_isConverting.value) return
         viewModelScope.launch {
@@ -1863,7 +1864,7 @@ class ClipboardViewModel(
                 val filePath = requireFilePath(entry) ?: return@launch
                 val newId =
                     withContext(ioDispatcher) {
-                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry, images)
+                        repository.savePdfWithAnnotations(filePath, annotations, strokes, entry, images, name)
                     }
                 if (newId > 0L) {
                     triggerScrollToTop()

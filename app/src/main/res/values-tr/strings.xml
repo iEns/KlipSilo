@@ -267,6 +267,8 @@
     <string name="analyzing">Analiz ediliyor…</string>
     <string name="tool_annotate_pdf">PDF\'ye metin ve çizgi ekle</string>
     <string name="annotate_title">Not ekle</string>
+    <string name="save_clip_title">Klibi kaydet</string>
+    <string name="annotated_clip_suffix">" - açıklamalı"</string>
     <string name="add_text_annotation">Metin ekle</string>
     <string name="markup_tool_text">Metin</string>
     <string name="markup_tool_line">Çizgi</string>

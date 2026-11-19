@@ -85,6 +85,16 @@ class FileNamingTest {
     }
 
     @Test
+    fun buildAnnotatedPdfName_keepsAnnotatedSuffix() {
+        // #188: the longer display-name cap must not cut the suffix off.
+        val longName = "a".repeat(120) + " - annotated"
+
+        assertEquals("Report - annotated.pdf", buildAnnotatedPdfName("Report - annotated"))
+        assertEquals("Report - annotated.pdf", buildAnnotatedPdfName("Report - annotated.pdf"))
+        assertTrue(buildAnnotatedPdfName(longName).endsWith(" - annotated.pdf"))
+    }
+
+    @Test
     fun buildTxtName_usesDefaultStemWhenBlank() {
         // Act
         val result = buildTxtName("", "clip")

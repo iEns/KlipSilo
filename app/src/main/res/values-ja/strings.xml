@@ -265,6 +265,8 @@
     <string name="analyzing">解析中…</string>
     <string name="tool_annotate_pdf">PDFにテキストとストロークを追加</string>
     <string name="annotate_title">マークアップ</string>
+    <string name="save_clip_title">クリップを保存</string>
+    <string name="annotated_clip_suffix">" - 注釈付き"</string>
     <string name="add_text_annotation">テキストを追加</string>
     <string name="markup_tool_text">テキスト</string>
     <string name="markup_tool_line">線</string>

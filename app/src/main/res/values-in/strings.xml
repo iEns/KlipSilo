@@ -265,6 +265,8 @@
     <string name="analyzing">Menganalisis…</string>
     <string name="tool_annotate_pdf">Tambahkan teks &amp; goresan ke PDF</string>
     <string name="annotate_title">Anotasi</string>
+    <string name="save_clip_title">Simpan klip</string>
+    <string name="annotated_clip_suffix">" - dianotasi"</string>
     <string name="add_text_annotation">Tambahkan teks</string>
     <string name="markup_tool_text">Teks</string>
     <string name="markup_tool_line">Garis</string>

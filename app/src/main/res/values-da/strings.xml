@@ -270,6 +270,8 @@
     <string name="analyzing">Analyserer…</string>
     <string name="tool_annotate_pdf">Tilføj tekst og streger til PDF</string>
     <string name="annotate_title">Anmærk</string>
+    <string name="save_clip_title">Gem klip</string>
+    <string name="annotated_clip_suffix">" - annoteret"</string>
     <string name="add_text_annotation">Tilføj tekst</string>
     <string name="markup_tool_text">Tekst</string>
     <string name="markup_tool_line">Linje</string>
