@@ -49,6 +49,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -428,32 +429,47 @@ fun KlipScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
+                    val pinnedCount = pinnedClipCount(filtered)
+                    val showPinnedDivider = pinnedCount in 1 until filtered.size
+                    val clipRow: @Composable (ClipboardEntry) -> Unit = { entry ->
+                        val deleteWithUndo: () -> Unit = {
+                            viewModel.deleteClipWithUndo(entry)
+                        }
+                        SwipeToDelete(
+                            enabled = !entry.isLocked,
+                            onDelete = deleteWithUndo,
+                            onDeleteUndo = deleteWithUndo,
+                        ) {
+                            ClipItemRow(
+                                entry = entry,
+                                onClick = { openClip(entry, viewModel, onOpenClip, onOpenPresentation) },
+                                onDoubleTap =
+                                    when (entry.contentType) {
+                                        ContentType.URL -> ({ viewModel.openUrl(entry) })
+                                        ContentType.LOCATION -> ({ viewModel.openLocation(entry) })
+                                        else -> null
+                                    },
+                                onTogglePin = { viewModel.togglePin(entry) },
+                                onOpenSheet = { sheetEntry = entry },
+                            )
+                        }
+                    }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 88.dp),
                     ) {
-                        items(filtered, key = { it.id }) { entry ->
-                            val deleteWithUndo: () -> Unit = {
-                                viewModel.deleteClipWithUndo(entry)
+                        if (showPinnedDivider) {
+                            items(filtered.take(pinnedCount), key = { it.id }) { entry ->
+                                clipRow(entry)
                             }
-                            SwipeToDelete(
-                                enabled = !entry.isLocked,
-                                onDelete = deleteWithUndo,
-                                onDeleteUndo = deleteWithUndo,
-                            ) {
-                                ClipItemRow(
-                                    entry = entry,
-                                    onClick = { openClip(entry, viewModel, onOpenClip, onOpenPresentation) },
-                                    onDoubleTap =
-                                        when (entry.contentType) {
-                                            ContentType.URL -> ({ viewModel.openUrl(entry) })
-                                            ContentType.LOCATION -> ({ viewModel.openLocation(entry) })
-                                            else -> null
-                                        },
-                                    onTogglePin = { viewModel.togglePin(entry) },
-                                    onOpenSheet = { sheetEntry = entry },
-                                )
+                            item(key = PINNED_DIVIDER_KEY) { PinnedDivider() }
+                            items(filtered.drop(pinnedCount), key = { it.id }) { entry ->
+                                clipRow(entry)
+                            }
+                        } else {
+                            items(filtered, key = { it.id }) { entry ->
+                                clipRow(entry)
                             }
                         }
                     }
@@ -492,6 +508,34 @@ internal fun showSaveClipboardButton(
     clipCount: Int,
 ): Boolean = clipboardHasContent || clipCount > 0
 
+/** Lazy-list key for the divider between the pinned and unpinned clip groups. */
+private const val PINNED_DIVIDER_KEY = "pinned_divider"
+
+/** The pinned block always leads the DAO-sorted list; count it up to its first unpinned row. */
+internal fun pinnedClipCount(clips: List<ClipboardEntry>): Int = clips.takeWhile { it.isPinned }.size
+
+/**
+ * #190: the pinned group is followed by a divider item when both groups are
+ * visible, so every unpinned clip is one lazy-list index below its clip index.
+ */
+internal fun lazyItemIndexForClip(
+    clips: List<ClipboardEntry>,
+    clipIndex: Int,
+): Int {
+    val pinnedCount = pinnedClipCount(clips)
+    val hasDivider = pinnedCount in 1 until clips.size
+    return if (hasDivider && clipIndex >= pinnedCount) clipIndex + 1 else clipIndex
+}
+
+/** #190: separates the pinned clips from the rest of the list. */
+@Composable
+private fun PinnedDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
 /**
  * #184: after Pin / Unpin / Make Markdown the toggled row can land outside the
  * anchored viewport (the sort moves it while the key-anchored list keeps its
@@ -509,7 +553,7 @@ internal fun ScrollToClipEffect(
         if (scrollTargetId != 0L) {
             val index = clips.indexOfFirst { it.id == scrollTargetId }
             if (index >= 0) {
-                listState.scrollToItem(index)
+                listState.scrollToItem(lazyItemIndexForClip(clips, index))
             }
             onConsumed()
         }

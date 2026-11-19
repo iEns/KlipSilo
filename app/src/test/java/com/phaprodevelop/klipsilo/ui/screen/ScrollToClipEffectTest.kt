@@ -47,6 +47,94 @@ class ScrollToClipEffectTest {
         )
 
     @Test
+    fun pinnedClipCount_stopsAtFirstUnpinnedRow() {
+        val clips =
+            listOf(
+                entry(1L, "pinned", 1_000L).copy(isPinned = true),
+                entry(2L, "also pinned", 2_000L).copy(isPinned = true),
+                entry(3L, "plain", 3_000L),
+            )
+
+        assertEquals(2, pinnedClipCount(clips))
+        assertEquals(0, pinnedClipCount(emptyList()))
+        assertEquals(1, pinnedClipCount(listOf(entry(4L, "only", 4_000L).copy(isPinned = true))))
+    }
+
+    @Test
+    fun lazyItemIndexForClip_withoutDivider_keepsClipIndex() {
+        val allPinned =
+            listOf(
+                entry(1L, "pinned", 1_000L).copy(isPinned = true),
+                entry(2L, "pinned too", 2_000L).copy(isPinned = true),
+            )
+        val allPlain = listOf(entry(3L, "plain", 3_000L), entry(4L, "plain too", 4_000L))
+
+        assertEquals(1, lazyItemIndexForClip(allPinned, 1))
+        assertEquals(2, lazyItemIndexForClip(allPlain, 2))
+    }
+
+    @Test
+    fun lazyItemIndexForClip_belowPinnedDivider_shiftsByOne() {
+        val clips =
+            listOf(
+                entry(1L, "pinned", 1_000L).copy(isPinned = true),
+                entry(2L, "plain", 2_000L),
+                entry(3L, "plain too", 3_000L),
+            )
+
+        assertEquals(0, lazyItemIndexForClip(clips, 0))
+        assertEquals(2, lazyItemIndexForClip(clips, 1))
+        assertEquals(3, lazyItemIndexForClip(clips, 2))
+    }
+
+    @Test
+    fun targetBelowPinnedDivider_scrollsToShiftedLazyIndex() {
+        val pinned = (1L..2L).map { entry(it, "pinned$it", it * 1_000L).copy(isPinned = true) }
+        val unpinned = (3L..40L).map { entry(it, "clip$it", it * 1_000L) }
+        val clips = pinned + unpinned
+        val target = clips[25]
+        val holder = mutableListOf<LazyListState>()
+        var scrollTarget by mutableStateOf(0L)
+        var consumed = false
+
+        composeRule.setContent {
+            MaterialTheme {
+                val state = rememberLazyListState()
+                holder.clear()
+                holder.add(state)
+                LazyColumn(state = state) {
+                    val pinnedCount = pinnedClipCount(clips)
+                    if (pinnedCount in 1 until clips.size) {
+                        items(clips.take(pinnedCount), key = { it.id }) { item ->
+                            Text(item.previewText)
+                        }
+                        item(key = "divider") { Text("divider") }
+                        items(clips.drop(pinnedCount), key = { it.id }) { item ->
+                            Text(item.previewText)
+                        }
+                    } else {
+                        items(clips, key = { it.id }) { item -> Text(item.previewText) }
+                    }
+                }
+                ScrollToClipEffect(
+                    scrollTargetId = scrollTarget,
+                    clips = clips,
+                    listState = state,
+                    onConsumed = { consumed = true },
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle { scrollTarget = target.id }
+        composeRule.waitForIdle()
+
+        assertTrue(consumed)
+        composeRule.onNodeWithText(target.previewText).assertIsDisplayed()
+        assertEquals(26, holder.last().firstVisibleItemIndex)
+    }
+
+    @Test
     fun movedRowIsScrolledIntoViewAfterResort() {
         val target = entry(30L, "deeptarget", 30_000L)
         val before = (1L..29L).map { entry(it, "clip$it", it * 1_000L) } + target
