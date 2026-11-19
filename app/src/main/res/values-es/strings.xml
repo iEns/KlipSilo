@@ -270,6 +270,7 @@
     <string name="annotate_title">Anotar</string>
     <string name="save_clip_title">Guardar clip</string>
     <string name="annotated_clip_suffix">" - anotado"</string>
+    <string name="clip_copy_suffix">" - copia"</string>
     <string name="add_text_annotation">Añadir texto</string>
     <string name="markup_tool_text">Texto</string>
     <string name="markup_tool_line">Línea</string>

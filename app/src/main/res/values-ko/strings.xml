@@ -267,6 +267,7 @@
     <string name="annotate_title">마크업</string>
     <string name="save_clip_title">클립 저장</string>
     <string name="annotated_clip_suffix">" - 주석 추가됨"</string>
+    <string name="clip_copy_suffix">" - 사본"</string>
     <string name="add_text_annotation">텍스트 추가</string>
     <string name="markup_tool_text">텍스트</string>
     <string name="markup_tool_line">선</string>

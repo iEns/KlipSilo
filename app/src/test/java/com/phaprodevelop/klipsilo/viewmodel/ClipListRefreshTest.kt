@@ -196,6 +196,11 @@ class ClipListRefreshTest {
         val duplicate = clips.single { it.id != entry.id }
         assertTrue(clips.any { it.id == entry.id })
         assertEquals(duplicate.id, viewModel.scrollToClipId.value)
+        // #188: the copy gets its own display name.
+        assertEquals(
+            entry.previewText + app.getString(com.phaprodevelop.klipsilo.R.string.clip_copy_suffix),
+            duplicate.previewText,
+        )
     }
 
     @Test

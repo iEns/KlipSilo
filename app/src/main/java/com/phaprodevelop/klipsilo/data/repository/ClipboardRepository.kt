@@ -823,6 +823,12 @@ class ClipboardRepository(
         val source = dao.getById(entry.id)?.toEntry() ?: entry
         val id = System.nanoTime()
         val sourcePath = source.filePath
+        val copyName =
+            copiedClipName(
+                source.previewText,
+                localizedString(R.string.clip_copy_suffix),
+                localizedString(R.string.untitled_clip),
+            )
         val newFilePath =
             if (!sourcePath.isNullOrBlank()) {
                 val destDir =
@@ -846,7 +852,7 @@ class ClipboardRepository(
                         source.textContent
                     },
                 filePath = newFilePath,
-                previewText = source.previewText,
+                previewText = copyName,
                 timestamp = System.currentTimeMillis(),
                 isPinned = false,
                 latitude = source.latitude,
@@ -892,7 +898,14 @@ class ClipboardRepository(
     ): Long {
         return try {
             val bitmap = renderPdfPage(pdfPath, OCR_RENDER_DIM, pageIndex) ?: return 0L
-            val id = savePdfFromBitmap(bitmap, originalEntry)
+            val pageName =
+                pdfPageClipName(
+                    originalEntry.previewText,
+                    pdfPath,
+                    pageIndex + 1,
+                    localizedString(R.string.untitled_clip),
+                )
+            val id = savePdfFromBitmap(bitmap, originalEntry, pageName)
             bitmap.recycle()
             id
         } catch (_: Exception) {
@@ -1434,6 +1447,7 @@ class ClipboardRepository(
     suspend fun savePdfFromBitmap(
         bitmap: Bitmap,
         originalEntry: ClipboardEntry,
+        name: String? = null,
     ): Long {
         return try {
             val maxOutputPx = PdfSettingsStore.load(context).maxOutputPx
@@ -1441,7 +1455,7 @@ class ClipboardRepository(
             val pdfBytes = createPdfFromBitmap(bitmapToUse)
             if (bitmapToUse !== bitmap) bitmapToUse.recycle()
 
-            writePdfClip(pdfBytes, originalEntry)
+            writePdfClip(pdfBytes, originalEntry, name)
         } catch (_: Exception) {
             0L
         }
